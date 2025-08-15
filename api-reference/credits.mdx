@@ -1,27 +1,37 @@
 ---
-title: "Credits & Billing API"
-description: "Manage credits, billing, usage tracking, and payment processing with comprehensive financial APIs"
+title: "Credits API"
+description: "Manage account credits, track usage, and handle pay-as-you-go purchases through AudioPod AI's Credits API."
 ---
 
 ## Overview
 
-The AudioPod AI Credits & Billing API provides complete financial management capabilities with Stripe integration, including credit balance monitoring, usage tracking, billing history, and secure payment processing. Our usage-based credit allocation system provides transparent cost management for developers and end users.
+The AudioPod AI Credits API allows you to monitor your credit balance, track usage history, and purchase additional credits through our pay-as-you-go system. Credits are used to access all AudioPod AI services including voice generation, transcription, and music creation.
 
-<Info>
-All credit operations are real-time and immediately reflected in your account. Credit costs vary by service and quality settings. Monitor usage carefully to avoid unexpected charges.
-</Info>
+### Key Features
 
-## Credit Management
+- **Real-time Balance**: Check current credit balance and usage
+- **Usage Tracking**: Detailed history of credit consumption by service
+- **Pay-as-You-Go**: Purchase credits as needed without subscriptions
+- **Multiple Sources**: Track subscription credits and PAYG credits separately
+- **Cost Transparency**: Clear credit costs for each service
 
-### Get Credit Balance
+## Authentication
 
-Retrieve current credit balance and usage information:
+All endpoints require authentication:
+- **API Key**: `Authorization: Bearer your_api_key`
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Get Credit Balance
+
+### Current Credit Information
+
+Get current credit balance and account information.
 
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /credits/balance
-    Authorization: Bearer {access_token}
+    GET /api/v1/credits
+    Authorization: Bearer {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -29,1120 +39,572 @@ Retrieve current credit balance and usage information:
     import requests
     
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/credits/balance",
-        headers={"Authorization": f"Bearer {access_token}"}
+        "https://api.audiopod.ai/api/v1/credits",
+        headers={"Authorization": f"Bearer {api_key}"}
     )
     
     if response.status_code == 200:
-        balance_info = response.json()
-        print(f"Current balance: {balance_info['balance']} credits")
-        print(f"Monthly allowance: {balance_info['monthly_allowance']} credits")
-        print(f"Used this month: {balance_info['used_this_month']} credits")
-        print(f"Expires on: {balance_info['next_reset']}")
+        credit_info = response.json()
+        print(f"Total Available Credits: {credit_info['total_available_credits']}")
+        print(f"Subscription Credits: {credit_info['credits_balance']}")
+        print(f"Pay-as-You-Go Credits: {credit_info['payg_balance']}")
+        print(f"Total Credits Used: {credit_info['total_credits_used']}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X GET "https://api.audiopod.ai/api/v1/credits/balance" \
-      -H "Authorization: Bearer YOUR_TOKEN"
+    curl -X GET "https://api.audiopod.ai/api/v1/credits" \
+      -H "Authorization: Bearer your_api_key"
     ```
   </Tab>
 </Tabs>
 
 **Response:**
+
 ```json
 {
-  "balance": 1500,
-  "monthly_allowance": 2000,
-  "used_this_month": 500,
-  "remaining_this_month": 1500,
-  "purchased_credits": 0,
-  "bonus_credits": 100,
-  "next_reset": "2024-02-01T00:00:00Z",
-  "subscription": {
-    "plan": "pro",
-    "status": "active",
-    "credits_included": 2000
-  },
-  "usage_summary": {
-    "last_7_days": 145,
-    "last_30_days": 500,
-    "average_daily": 16.7
-  }
+  "credits_balance": 1500,
+  "payg_balance": 750,
+  "total_available_credits": 2250,
+  "last_reset_at": "2024-01-01T00:00:00Z",
+  "total_credits_used": 3250,
+  "total_payg_credits_purchased": 1000,
+  "next_reset_date": "2024-02-01T00:00:00Z",
+  "credits_per_month": 2000,
+  "currency": "USD",
+  "credit_value": 0.001
 }
 ```
 
-### Purchase Additional Credits
+## Credit Usage History
 
-Buy extra credits beyond monthly allowance:
+### Get Usage Logs
 
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /credits/purchase
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "amount": 1000,
-      "payment_method_id": "pm_1234567890abcdef"
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/purchase",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "amount": 1000,
-            "payment_method_id": "pm_1234567890abcdef"
-        }
-    )
-    
-    if response.status_code == 200:
-        purchase = response.json()
-        print(f"Purchased {purchase['credits_added']} credits")
-        print(f"New balance: {purchase['new_balance']}")
-        print(f"Transaction ID: {purchase['transaction_id']}")
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-```json
-{
-  "transaction_id": "txn_abc123def456",
-  "credits_purchased": 1000,
-  "credits_added": 1000,
-  "cost_usd": 50.00,
-  "new_balance": 2500,
-  "payment_method": {
-    "type": "card",
-    "last_four": "4242"
-  },
-  "created_at": "2024-01-15T10:30:00Z",
-  "expires_at": "2025-01-15T10:30:00Z"
-}
-```
-
-### Credit Pricing
-
-Get current credit pricing and packages:
+Retrieve detailed history of credit usage across all services.
 
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /credits/pricing
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/credits/pricing",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    
-    pricing = response.json()
-    
-    print("Credit Packages:")
-    for package in pricing["packages"]:
-        print(f"  {package['credits']} credits: ${package['price_usd']}")
-        print(f"    Price per credit: ${package['price_per_credit']:.4f}")
-        if package.get('bonus_credits'):
-            print(f"    Bonus credits: {package['bonus_credits']}")
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-```json
-{
-  "packages": [
-    {
-      "credits": 500,
-      "price_usd": 29.99,
-      "price_per_credit": 0.06,
-      "bonus_credits": 0,
-      "popular": false
-    },
-    {
-      "credits": 1000,
-      "price_usd": 49.99,
-      "price_per_credit": 0.05,
-      "bonus_credits": 100,
-      "popular": true
-    },
-    {
-      "credits": 2500,
-      "price_usd": 99.99,
-      "price_per_credit": 0.04,
-      "bonus_credits": 500,
-      "popular": false
-    }
-  ],
-  "base_rates": {
-    "text_to_speech": {
-      "per_character": 0.001,
-      "minimum": 1
-    },
-    "voice_cloning": {
-      "per_minute_training": 10,
-      "per_generation": 2
-    },
-    "music_generation": {
-      "per_30_seconds": 15,
-      "per_minute": 30
-    }
-  }
-}
-```
-
-## Usage Tracking
-
-### Detailed Usage History
-
-Get comprehensive usage breakdown:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /credits/usage?period=30d&group_by=service&include_costs=true
-    Authorization: Bearer {access_token}
+    GET /api/v1/credits/usage
+    Authorization: Bearer {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/credits/usage",
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={
-            "period": "30d",
-            "group_by": "service",
-            "include_costs": True,
-            "breakdown": "daily"
-        }
+        headers={"Authorization": f"Bearer {api_key}"}
     )
     
-    usage_data = response.json()
-    
-    print(f"Total credits used: {usage_data['summary']['total_credits']}")
-    print(f"Total cost: ${usage_data['summary']['total_cost_usd']:.2f}")
-    
-    print("\nBy Service:")
-    for service in usage_data['by_service']:
-        print(f"  {service['service']}: {service['credits']} credits")
-        print(f"    Requests: {service['requests']}")
-        print(f"    Avg per request: {service['avg_credits_per_request']:.2f}")
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-```json
-{
-  "period": "30d",
-  "summary": {
-    "total_credits": 1250,
-    "total_cost_usd": 62.50,
-    "total_requests": 456,
-    "avg_credits_per_request": 2.74
-  },
-  "by_service": [
-    {
-      "service": "text-to-speech",
-      "credits": 680,
-      "cost_usd": 34.00,
-      "requests": 340,
-      "avg_credits_per_request": 2.0,
-      "characters_processed": 68000
-    },
-    {
-      "service": "voice-cloning",
-      "credits": 400,
-      "cost_usd": 20.00,
-      "requests": 20,
-      "avg_credits_per_request": 20.0,
-      "voices_created": 4
-    },
-    {
-      "service": "music-generation",
-      "credits": 170,
-      "cost_usd": 8.50,
-      "requests": 6,
-      "avg_credits_per_request": 28.33,
-      "minutes_generated": 5.67
-    }
-  ],
-  "daily_breakdown": [
-    {
-      "date": "2024-01-15",
-      "credits": 45,
-      "cost_usd": 2.25,
-      "requests": 23
-    }
-  ]
-}
-```
-
-### Usage by Date Range
-
-Get usage analytics for specific time periods:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /credits/usage/range?start_date=2024-01-01&end_date=2024-01-15&granularity=daily
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    from datetime import datetime, timedelta
-    
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=30)
-    
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/credits/usage/range",
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={
-            "start_date": start_date.isoformat(),
-            "end_date": end_date.isoformat(),
-            "granularity": "daily",
-            "services": ["text-to-speech", "voice-cloning"]
-        }
-    )
-    
-    usage_range = response.json()
-    
-    # Analyze trends
-    daily_usage = [day['credits'] for day in usage_range['data']]
-    avg_daily = sum(daily_usage) / len(daily_usage)
-    
-    print(f"Average daily usage: {avg_daily:.1f} credits")
-    print(f"Peak usage: {max(daily_usage)} credits")
-    print(f"Minimum usage: {min(daily_usage)} credits")
-    ```
-  </Tab>
-</Tabs>
-
-### Real-time Usage Monitoring
-
-Monitor credit usage in real-time:
-
-<Tabs>
-  <Tab title="WebSocket">
-    ```javascript
-    // WebSocket credit monitoring
-    const ws = new WebSocket('wss://api.audiopod.ai/ws/v1/credits');
-    
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        type: 'auth',
-        token: 'your_access_token',
-        subscribe_to: ['balance_updates', 'usage_alerts']
-      }));
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      switch(data.type) {
-        case 'balance_update':
-          updateBalanceDisplay(data.new_balance);
-          break;
-          
-        case 'usage_alert':
-          if (data.alert_type === 'low_balance') {
-            showLowBalanceWarning(data.remaining_credits);
-          }
-          break;
-          
-        case 'credit_deduction':
-          logUsage(data.service, data.credits_used);
-          break;
-      }
-    };
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import asyncio
-    import websockets
-    import json
-    
-    async def monitor_credits():
-        uri = "wss://api.audiopod.ai/ws/v1/credits"
+    if response.status_code == 200:
+        usage_logs = response.json()
         
-        async with websockets.connect(uri) as websocket:
-            # Authenticate and subscribe
-            await websocket.send(json.dumps({
-                "type": "auth",
-                "token": access_token,
-                "subscribe_to": ["balance_updates", "usage_alerts"]
-            }))
-            
-            async for message in websocket:
-                data = json.loads(message)
-                
-                if data["type"] == "balance_update":
-                    print(f"Balance updated: {data['new_balance']} credits")
-                elif data["type"] == "usage_alert":
-                    print(f"Alert: {data['message']}")
-                elif data["type"] == "credit_deduction":
-                    print(f"Used {data['credits_used']} credits for {data['service']}")
-    
-    asyncio.run(monitor_credits())
-    ```
-  </Tab>
-</Tabs>
-
-## Billing Management
-
-### Billing History
-
-Get complete billing and transaction history:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /credits/billing/history?limit=20&type=all
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/credits/billing/history",
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={
-            "limit": 20,
-            "type": "all",  # all, purchases, usage, refunds
-            "start_date": "2024-01-01",
-            "end_date": "2024-01-31"
-        }
-    )
-    
-    billing_history = response.json()
-    
-    for transaction in billing_history["transactions"]:
-        print(f"{transaction['date']}: {transaction['type']}")
-        print(f"  Amount: {transaction['credits']} credits")
-        if transaction.get('cost_usd'):
-            print(f"  Cost: ${transaction['cost_usd']:.2f}")
-        print(f"  Description: {transaction['description']}")
-        print(f"  Balance after: {transaction['balance_after']}")
+        for log in usage_logs:
+            print(f"Service: {log['service_type']}")
+            print(f"Credits Used: {log['credits_used']}")
+            print(f"Duration: {log['audio_duration']} seconds")
+            print(f"Date: {log['created_at']}")
+            print(f"Source: {log['credit_source']}")
+            print("---")
     ```
   </Tab>
 </Tabs>
 
 **Response:**
+
+```json
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "user_credits_id": "660f8400-e29b-41d4-a716-446655440111",
+    "credits_used": 15,
+    "service_type": "voice_cloning",
+    "audio_duration": 180,
+    "credit_source": "subscription",
+    "created_at": "2024-01-15T10:30:00Z",
+    "usage_metadata": {
+      "voice_id": 123,
+      "generation_type": "speech_synthesis",
+      "language": "en",
+      "quality": "high"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "user_credits_id": "660f8400-e29b-41d4-a716-446655440111",
+    "credits_used": 50,
+    "service_type": "music_generation",
+    "audio_duration": 30,
+    "credit_source": "payg",
+    "created_at": "2024-01-15T09:15:00Z",
+    "usage_metadata": {
+      "task_type": "text2music",
+      "duration_seconds": 30,
+      "quality": "premium"
+    }
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "user_credits_id": "660f8400-e29b-41d4-a716-446655440111",
+    "credits_used": 30,
+    "service_type": "transcription",
+    "audio_duration": 300,
+    "credit_source": "subscription",
+    "created_at": "2024-01-14T16:45:00Z",
+    "usage_metadata": {
+      "model_type": "whisperx",
+      "language": "en",
+      "speaker_diarization": true
+    }
+  }
+]
+```
+
+## Service Credit Costs
+
+### Get Credit Multipliers
+
+Get current credit costs for different services and features.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/credits/multipliers
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/credits/multipliers",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        multipliers = response.json()
+        
+        print("Service Credit Costs:")
+        for service, cost in multipliers.items():
+            print(f"  {service}: {cost} credits per unit")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
 ```json
 {
-  "transactions": [
-    {
-      "id": "txn_abc123",
-      "type": "purchase",
-      "date": "2024-01-15T10:30:00Z",
-      "credits": 1000,
-      "cost_usd": 50.00,
-      "description": "Credit purchase - 1000 credits",
-      "balance_before": 500,
-      "balance_after": 1500,
-      "payment_method": "card_4242",
-      "invoice_url": "https://invoice.audiopod.ai/inv_123"
-    },
-    {
-      "id": "txn_def456",
-      "type": "usage",
-      "date": "2024-01-15T11:45:00Z",
-      "credits": -25,
-      "cost_usd": null,
-      "description": "Voice cloning: 'Custom Voice 1'",
-      "balance_before": 1500,
-      "balance_after": 1475,
-      "service": "voice-cloning",
-      "job_id": "job_voice_xyz789"
-    }
-  ],
-  "summary": {
-    "total_purchased": 5000,
-    "total_used": 3500,
-    "total_spent_usd": 250.00,
-    "average_monthly_usage": 583
-  }
+  "voice_cloning_training": 500,
+  "voice_cloning_generation": 5,
+  "transcription": 10,
+  "transcription_with_diarization": 12,
+  "music_generation": 100,
+  "translation": 15,
+  "speaker_extraction": 8,
+  "noise_reduction": 5,
+  "stem_separation": 20,
+  "text_to_speech": 1,
+  "voice_conversion": 8,
+  "karaoke_generation": 75,
+  "media_extraction": 2
 }
 ```
 
-### Generate Invoice
+## Pay-as-You-Go Credits
 
-Create detailed invoices for accounting:
+### Get PAYG Information
+
+Get information about pay-as-you-go credit purchasing options.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/credits/payg/info
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/credits/payg/info",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        payg_info = response.json()
+        print(f"Credits per Dollar: {payg_info['credits_per_dollar']}")
+        print(f"Minimum Purchase: ${payg_info['min_amount_usd']}")
+        print(f"Maximum Purchase: ${payg_info['max_amount_usd']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "credits_per_dollar": 1000,
+  "min_amount_usd": 1,
+  "max_amount_usd": 1000,
+  "currency": "USD"
+}
+```
+
+### Create PAYG Checkout Session
+
+Create a checkout session for purchasing pay-as-you-go credits.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /credits/billing/invoice
-    Authorization: Bearer {access_token}
+    POST /api/v1/credits/payg/create-checkout-session
+    Authorization: Bearer {api_key}
     Content-Type: application/json
     
     {
-      "period": {
-        "start_date": "2024-01-01",
-        "end_date": "2024-01-31"
-      },
-      "include_usage_details": true,
-      "format": "pdf",
-      "billing_address": {
-        "company": "Acme Corp",
-        "address": "123 Main St",
-        "city": "San Francisco",
-        "state": "CA",
-        "zip": "94105",
-        "country": "US"
-      }
+      "amount_usd": 25
     }
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/billing/invoice",
-        headers={"Authorization": f"Bearer {access_token}"},
+        "https://api.audiopod.ai/api/v1/credits/payg/create-checkout-session",
+        headers={"Authorization": f"Bearer {api_key}"},
         json={
-            "period": {
-                "start_date": "2024-01-01",
-                "end_date": "2024-01-31"
-            },
-            "include_usage_details": True,
-            "format": "pdf",
-            "billing_address": {
-                "company": "Acme Corp",
-                "address": "123 Main St",
-                "city": "San Francisco",
-                "state": "CA",
-                "zip": "94105",
-                "country": "US"
-            }
+            "amount_usd": 25  # Purchase $25 worth of credits
         }
     )
     
     if response.status_code == 200:
-        invoice = response.json()
-        invoice_url = invoice["download_url"]
-        print(f"Invoice generated: {invoice_url}")
+        checkout_data = response.json()
+        print(f"Checkout Session ID: {checkout_data['session_id']}")
+        print(f"Credits to Receive: {checkout_data['credits_to_receive']}")
+        print(f"Amount: ${checkout_data['amount_usd']}")
+        
+        # Redirect user to Stripe checkout
+        print(f"Checkout URL: https://checkout.stripe.com/pay/{checkout_data['session_id']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/credits/payg/create-checkout-session" \
+      -H "Authorization: Bearer your_api_key" \
+      -H "Content-Type: application/json" \
+      -d '{"amount_usd": 25}'
     ```
   </Tab>
 </Tabs>
+
+**Response:**
+
+```json
+{
+  "session_id": "cs_test_1234567890abcdef",
+  "credits_to_receive": 25000,
+  "amount_usd": 25
+}
+```
+
+## Usage Analytics
+
+### Track Credit Consumption
+
+Monitor credit usage patterns and optimize costs.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def analyze_credit_usage(api_key):
+        # Get current balance
+        balance_response = requests.get(
+            "https://api.audiopod.ai/api/v1/credits",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        balance_data = balance_response.json()
+        
+        # Get usage history
+        usage_response = requests.get(
+            "https://api.audiopod.ai/api/v1/credits/usage",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        usage_logs = usage_response.json()
+        
+        # Analyze usage by service
+        service_usage = {}
+        for log in usage_logs:
+            service = log['service_type']
+            credits = log['credits_used']
+            
+            if service not in service_usage:
+                service_usage[service] = {
+                    'total_credits': 0,
+                    'total_duration': 0,
+                    'usage_count': 0
+                }
+            
+            service_usage[service]['total_credits'] += credits
+            service_usage[service]['total_duration'] += log['audio_duration']
+            service_usage[service]['usage_count'] += 1
+        
+        # Generate usage report
+        print("Credit Usage Analysis:")
+        print(f"Total Available: {balance_data['total_available_credits']} credits")
+        print(f"Total Used: {balance_data['total_credits_used']} credits")
+        print("\nUsage by Service:")
+        
+        for service, data in service_usage.items():
+            avg_credits = data['total_credits'] / data['usage_count']
+            print(f"  {service}:")
+            print(f"    Total Credits: {data['total_credits']}")
+            print(f"    Average per Use: {avg_credits:.2f}")
+            print(f"    Usage Count: {data['usage_count']}")
+        
+        return service_usage
+    
+    # Usage example
+    usage_analysis = analyze_credit_usage("your_api_key")
+    ```
+  </Tab>
+</Tabs>
+
+## Integration Examples
+
+### Real-time Balance Monitoring
+
+```python
+class AudioPodCreditManager:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = "https://api.audiopod.ai/api/v1"
+        self.headers = {"Authorization": f"Bearer {api_key}"}
+    
+    def get_balance(self):
+        """Get current credit balance"""
+        response = requests.get(
+            f"{self.base_url}/credits",
+            headers=self.headers
+        )
+        return response.json()
+    
+    def check_sufficient_credits(self, service_type, duration_seconds=0):
+        """Check if user has enough credits for a service"""
+        # Get current balance
+        balance = self.get_balance()
+        available = balance['total_available_credits']
+        
+        # Get service costs
+        multipliers_response = requests.get(
+            f"{self.base_url}/credits/multipliers",
+            headers=self.headers
+        )
+        costs = multipliers_response.json()
+        
+        # Calculate required credits
+        if service_type == "voice_cloning_generation":
+            required = (duration_seconds / 60) * costs['voice_cloning_generation']
+        elif service_type == "transcription":
+            required = (duration_seconds / 60) * costs['transcription']
+        elif service_type == "music_generation":
+            required = (duration_seconds / 30) * costs['music_generation']
+        else:
+            required = costs.get(service_type, 0)
+        
+        return {
+            'sufficient': available >= required,
+            'available': available,
+            'required': required,
+            'shortfall': max(0, required - available)
+        }
+    
+    def get_usage_summary(self, days=30):
+        """Get usage summary for the last N days"""
+        usage_response = requests.get(
+            f"{self.base_url}/credits/usage",
+            headers=self.headers
+        )
+        
+        usage_logs = usage_response.json()
+        
+        # Filter by date range
+        from datetime import datetime, timedelta
+        cutoff_date = datetime.now() - timedelta(days=days)
+        
+        recent_usage = []
+        for log in usage_logs:
+            log_date = datetime.fromisoformat(log['created_at'].replace('Z', '+00:00'))
+            if log_date >= cutoff_date:
+                recent_usage.append(log)
+        
+        # Summarize
+        total_credits = sum(log['credits_used'] for log in recent_usage)
+        service_breakdown = {}
+        
+        for log in recent_usage:
+            service = log['service_type']
+            service_breakdown[service] = service_breakdown.get(service, 0) + log['credits_used']
+        
+        return {
+            'period_days': days,
+            'total_credits_used': total_credits,
+            'service_breakdown': service_breakdown,
+            'usage_count': len(recent_usage)
+        }
+
+# Usage example
+credit_manager = AudioPodCreditManager("your_api_key")
+
+# Check if user can afford a 2-minute voice generation
+check = credit_manager.check_sufficient_credits("voice_cloning_generation", 120)
+if check['sufficient']:
+    print("User has enough credits")
+else:
+    print(f"Need {check['shortfall']} more credits")
+
+# Get 30-day usage summary
+summary = credit_manager.get_usage_summary(30)
+print(f"Used {summary['total_credits_used']} credits in last 30 days")
+```
 
 ### Cost Estimation
 
-Estimate costs before processing:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /credits/estimate
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
+```python
+def estimate_service_cost(service_type, **params):
+    """Estimate credit cost for different services"""
     
-    {
-      "operations": [
-        {
-          "service": "text-to-speech",
-          "parameters": {
-            "text_length": 1000,
-            "voice_quality": "high"
-          }
-        },
-        {
-          "service": "voice-cloning",
-          "parameters": {
-            "audio_duration": 300,
-            "quality": "premium"
-          }
-        }
-      ]
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # Estimate costs before processing
-    operations = [
-        {
-            "service": "text-to-speech",
-            "parameters": {
-                "text_length": 1000,
-                "voice_quality": "high"
-            }
-        },
-        {
-            "service": "voice-cloning", 
-            "parameters": {
-                "audio_duration": 300,
-                "quality": "premium"
-            }
-        }
-    ]
-    
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/estimate",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={"operations": operations}
+    # Get current multipliers
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/credits/multipliers",
+        headers={"Authorization": f"Bearer {api_key}"}
     )
+    costs = response.json()
     
-    estimate = response.json()
-    
-    print(f"Total estimated credits: {estimate['total_credits']}")
-    print(f"Estimated cost: ${estimate['total_cost_usd']:.2f}")
-    
-    for op in estimate['operations']:
-        print(f"{op['service']}: {op['credits']} credits")
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-```json
-{
-  "total_credits": 70,
-  "total_cost_usd": 3.50,
-  "operations": [
-    {
-      "service": "text-to-speech",
-      "credits": 20,
-      "cost_usd": 1.00,
-      "breakdown": {
-        "base_cost": 10,
-        "quality_multiplier": 2.0,
-        "character_count": 1000
-      }
-    },
-    {
-      "service": "voice-cloning",
-      "credits": 50,
-      "cost_usd": 2.50,
-      "breakdown": {
-        "training_cost": 30,
-        "quality_premium": 20,
-        "audio_minutes": 5.0
-      }
+    estimates = {
+        'voice_cloning_training': lambda: costs['voice_cloning_training'],  # Fixed cost
+        'voice_cloning_generation': lambda: (params.get('duration', 60) / 60) * costs['voice_cloning_generation'],
+        'transcription': lambda: (params.get('duration', 60) / 60) * costs['transcription'],
+        'transcription_with_speakers': lambda: (params.get('duration', 60) / 60) * costs['transcription_with_diarization'],
+        'music_generation': lambda: (params.get('duration', 30) / 30) * costs['music_generation'],
+        'translation': lambda: (params.get('duration', 60) / 60) * costs['translation'],
+        'text_to_speech': lambda: (params.get('characters', 1000) / 1000) * costs['text_to_speech']
     }
-  ],
-  "sufficient_balance": true,
-  "balance_after": 1430
-}
+    
+    if service_type in estimates:
+        credits_needed = estimates[service_type]()
+        usd_cost = credits_needed * 0.001  # $0.001 per credit
+        
+        return {
+            'service': service_type,
+            'credits_needed': int(credits_needed),
+            'usd_cost': round(usd_cost, 4),
+            'parameters': params
+        }
+    
+    return None
+
+# Examples
+print(estimate_service_cost('voice_cloning_generation', duration=120))  # 2 minutes
+print(estimate_service_cost('transcription', duration=1800))  # 30 minutes
+print(estimate_service_cost('music_generation', duration=60))  # 1 minute
+print(estimate_service_cost('text_to_speech', characters=5000))  # 5000 characters
 ```
-
-## Payment Management
-
-### Payment Methods
-
-Manage saved payment methods:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /credits/payment-methods
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/credits/payment-methods",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    
-    payment_methods = response.json()["payment_methods"]
-    
-    for method in payment_methods:
-        print(f"Method: {method['type']}")
-        print(f"  Last 4: {method['last_four']}")
-        print(f"  Expires: {method['expires']}")
-        print(f"  Default: {method['is_default']}")
-    ```
-  </Tab>
-</Tabs>
-
-### Add Payment Method
-
-Add new payment method via Stripe:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /credits/payment-methods
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "stripe_payment_method_id": "pm_1234567890abcdef",
-      "set_as_default": true
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # After collecting payment method with Stripe Elements
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/payment-methods",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "stripe_payment_method_id": payment_method_id,
-            "set_as_default": True
-        }
-    )
-    
-    if response.status_code == 201:
-        print("Payment method added successfully")
-    ```
-  </Tab>
-</Tabs>
-
-### Auto-recharge Settings
-
-Configure automatic credit purchasing:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /credits/auto-recharge
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "enabled": true,
-      "trigger_threshold": 100,
-      "recharge_amount": 500,
-      "payment_method_id": "pm_default",
-      "max_monthly_recharges": 4
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/auto-recharge",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "enabled": True,
-            "trigger_threshold": 100,
-            "recharge_amount": 500,
-            "payment_method_id": "pm_default",
-            "max_monthly_recharges": 4
-        }
-    )
-    
-    if response.status_code == 200:
-        settings = response.json()
-        print("Auto-recharge configured:")
-        print(f"  Trigger: {settings['trigger_threshold']} credits")
-        print(f"  Amount: {settings['recharge_amount']} credits")
-    ```
-  </Tab>
-</Tabs>
-
-## Budget Controls
-
-### Set Spending Limits
-
-Configure spending limits and alerts:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /credits/budget/limits
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "monthly_limit_usd": 200.00,
-      "daily_limit_credits": 100,
-      "per_service_limits": {
-        "music-generation": 500,
-        "voice-cloning": 200
-      },
-      "alert_thresholds": [50, 75, 90],
-      "hard_stop_at_limit": false
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/budget/limits",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "monthly_limit_usd": 200.00,
-            "daily_limit_credits": 100,
-            "per_service_limits": {
-                "music-generation": 500,
-                "voice-cloning": 200
-            },
-            "alert_thresholds": [50, 75, 90],
-            "hard_stop_at_limit": False
-        }
-    )
-    
-    if response.status_code == 200:
-        print("Budget limits configured")
-    ```
-  </Tab>
-</Tabs>
-
-### Budget Alerts
-
-Get budget status and alerts:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /credits/budget/status
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/credits/budget/status",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    
-    budget_status = response.json()
-    
-    print(f"Monthly budget: ${budget_status['monthly_limit_usd']:.2f}")
-    print(f"Used so far: ${budget_status['used_this_month_usd']:.2f}")
-    print(f"Remaining: ${budget_status['remaining_usd']:.2f}")
-    print(f"Percentage used: {budget_status['percentage_used']:.1f}%")
-    
-    if budget_status['alerts']:
-        print("\nActive Alerts:")
-        for alert in budget_status['alerts']:
-            print(f"  {alert['type']}: {alert['message']}")
-    ```
-  </Tab>
-</Tabs>
-
-## Enterprise Features
-
-### Multi-User Billing
-
-Manage credits across team members:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /credits/team/usage?period=30d
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # Enterprise only - requires admin API key
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/credits/team/usage",
-        headers={"Authorization": f"Bearer {admin_access_token}"},
-        params={"period": "30d"}
-    )
-    
-    team_usage = response.json()
-    
-    print(f"Total team usage: {team_usage['total_credits']} credits")
-    
-    for user in team_usage['users']:
-        print(f"{user['name']}: {user['credits']} credits")
-        print(f"  Top service: {user['top_service']}")
-        print(f"  Efficiency: {user['credits_per_request']:.2f}")
-    ```
-  </Tab>
-</Tabs>
-
-### Department Allocation
-
-Allocate credits to departments or projects:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /credits/allocations
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "allocations": [
-        {
-          "name": "Marketing Department",
-          "credits": 1000,
-          "users": ["user1@company.com", "user2@company.com"],
-          "services": ["text-to-speech", "music-generation"]
-        },
-        {
-          "name": "Product Development",
-          "credits": 500,
-          "users": ["dev1@company.com"],
-          "services": ["voice-cloning"]
-        }
-      ]
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/allocations",
-        headers={"Authorization": f"Bearer {admin_access_token}"},
-        json={
-            "allocations": [
-                {
-                    "name": "Marketing Department",
-                    "credits": 1000,
-                    "users": ["user1@company.com", "user2@company.com"],
-                    "services": ["text-to-speech", "music-generation"]
-                },
-                {
-                    "name": "Product Development", 
-                    "credits": 500,
-                    "users": ["dev1@company.com"],
-                    "services": ["voice-cloning"]
-                }
-            ]
-        }
-    )
-    ```
-  </Tab>
-</Tabs>
 
 ## Error Handling
 
-### Common Error Responses
-
 <AccordionGroup>
   <Accordion title="402 Payment Required - Insufficient Credits">
-    ```json
-    {
-      "error": {
-        "code": "insufficient_credits",
-        "message": "Not enough credits to complete operation",
-        "details": {
-          "required_credits": 50,
-          "current_balance": 25,
-          "shortage": 25
-        },
-        "suggestions": [
-          "Purchase additional credits",
-          "Upgrade subscription plan",
-          "Use lower quality settings"
-        ]
-      }
-    }
-    ```
+    **Causes:** - Not enough credits for requested service - Credit balance is zero 
+    **Solutions:** - Purchase additional PAYG credits - Check credit balance before requests - 
+    Upgrade to higher credit plan
   </Accordion>
-  
-  <Accordion title="400 Bad Request - Invalid Purchase Amount">
-    ```json
-    {
-      "error": {
-        "code": "invalid_purchase_amount",
-        "message": "Credit purchase amount is invalid",
-        "details": {
-          "minimum_purchase": 100,
-          "maximum_purchase": 10000,
-          "requested_amount": 50
-        }
-      }
-    }
-    ```
+
+  <Accordion title="400 Bad Request - Invalid Amount">
+    **Causes:** - PAYG amount below minimum ($1) - PAYG amount above maximum ($1000) 
+    **Solutions:** - Use amount between $1-$1000 - Check PAYG info endpoint for current limits
   </Accordion>
-  
-  <Accordion title="409 Conflict - Budget Limit Exceeded">
-    ```json
-    {
-      "error": {
-        "code": "budget_limit_exceeded",
-        "message": "Operation would exceed monthly budget limit",
-        "details": {
-          "monthly_limit": 200.00,
-          "current_usage": 180.00,
-          "operation_cost": 25.00,
-          "available_budget": 20.00
-        }
-      }
-    }
-    ```
-  </Accordion>
-  
-  <Accordion title="403 Forbidden - Payment Method Required">
-    ```json
-    {
-      "error": {
-        "code": "payment_method_required",
-        "message": "Valid payment method required for credit purchase",
-        "suggestion": "Add a payment method to your account"
-      }
-    }
-    ```
+
+  <Accordion title="404 Not Found - No Usage Data">
+    **Causes:** - No credit usage history - User account newly created 
+    **Solutions:** - Use some services to generate usage history - Check after making API calls
   </Accordion>
 </AccordionGroup>
 
-## Webhooks
+## Credit Management Best Practices
 
-### Credit Webhooks
-
-Configure webhooks for credit events:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /credits/webhooks
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "url": "https://myapp.com/webhooks/credits",
-      "events": [
-        "credits.purchased",
-        "credits.low_balance",
-        "credits.monthly_reset",
-        "budget.limit_reached"
-      ],
-      "secret": "webhook_secret_key"
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # Configure webhook endpoint
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/credits/webhooks",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "url": "https://myapp.com/webhooks/credits",
-            "events": [
-                "credits.purchased",
-                "credits.low_balance", 
-                "credits.monthly_reset",
-                "budget.limit_reached"
-            ],
-            "secret": "webhook_secret_key"
-        }
-    )
-    
-    # Handle webhook in your application
-    from flask import Flask, request
-    import hmac
-    import hashlib
-    
-    app = Flask(__name__)
-    
-    @app.route('/webhooks/credits', methods=['POST'])
-    def handle_credit_webhook():
-        # Verify webhook signature
-        signature = request.headers.get('X-AudioPod-Signature')
-        payload = request.get_data()
-        
-        expected_signature = hmac.new(
-            webhook_secret.encode(),
-            payload,
-            hashlib.sha256
-        ).hexdigest()
-        
-        if signature != f"sha256={expected_signature}":
-            return "Invalid signature", 401
-        
-        event = request.json
-        
-        if event['type'] == 'credits.low_balance':
-            # Send notification to user
-            send_low_balance_alert(event['data']['balance'])
-        elif event['type'] == 'credits.purchased':
-            # Update internal tracking
-            update_credit_balance(event['data']['new_balance'])
-        
-        return "OK", 200
-    ```
-  </Tab>
-</Tabs>
-
-## Best Practices
-
-### Cost Optimization
-
-1. **Monitor Usage Patterns**:
-   - Track daily/weekly usage trends
-   - Identify peak usage periods
-   - Optimize service quality settings
-
-2. **Budget Management**:
-   - Set realistic monthly limits
-   - Configure low balance alerts
-   - Use auto-recharge wisely
-
-3. **Service Efficiency**:
-   - Use appropriate quality settings
-   - Batch similar requests
-   - Cache results when possible
-
-### Integration Examples
+### Monitor Usage Regularly
 
 ```python
-# Production credit management system
-class CreditManager:
-    def __init__(self, api_key):
-        self.client = AudioPodClient(api_key)
-        self.alert_thresholds = [100, 50, 25]
+# Set up usage alerts
+def setup_credit_alerts(api_key, warning_threshold=500, critical_threshold=100):
+    """Monitor credits and alert when running low"""
     
-    def ensure_sufficient_credits(self, operation_cost):
-        balance = self.client.credits.get_balance()
-        
-        if balance.balance < operation_cost:
-            # Check if auto-recharge is enabled
-            if balance.auto_recharge_enabled:
-                return True  # Will auto-recharge
-            else:
-                raise InsufficientCreditsError(
-                    f"Need {operation_cost} credits, have {balance.balance}"
-                )
-        
-        # Check if low balance alert needed
-        for threshold in self.alert_thresholds:
-            if balance.balance <= threshold:
-                self.send_low_balance_alert(balance.balance)
-                break
-        
-        return True
+    balance = get_credit_balance(api_key)
+    available = balance['total_available_credits']
     
-    def estimate_monthly_cost(self, usage_pattern):
-        """Estimate monthly cost based on usage pattern"""
-        total_credits = 0
-        
-        for service, usage in usage_pattern.items():
-            service_cost = self.get_service_cost(service, usage)
-            total_credits += service_cost
-        
-        pricing = self.client.credits.get_pricing()
-        cost_per_credit = pricing.packages[0].price_per_credit
-        
-        return total_credits * cost_per_credit
+    if available <= critical_threshold:
+        send_alert(f"CRITICAL: Only {available} credits remaining!")
+        # Auto-purchase more credits
+        purchase_credits(api_key, amount_usd=50)
+    elif available <= warning_threshold:
+        send_alert(f"WARNING: {available} credits remaining")
     
-    def optimize_usage(self, budget_limit):
-        """Suggest optimizations to stay within budget"""
-        current_usage = self.client.credits.get_usage(period="30d")
-        monthly_cost = current_usage.summary.total_cost_usd
-        
-        if monthly_cost > budget_limit:
-            suggestions = []
-            
-            # Identify high-cost services
-            for service in current_usage.by_service:
-                if service.cost_usd > budget_limit * 0.3:
-                    suggestions.append(
-                        f"Reduce {service.service} usage or use lower quality"
-                    )
-            
-            return suggestions
-        
-        return ["Usage is within budget"]
+    return available
+
+# Optimize usage patterns
+def optimize_credit_usage():
+    """Tips for efficient credit usage"""
+    tips = [
+        "Batch similar requests together",
+        "Use appropriate quality settings for your use case", 
+        "Cache results when possible to avoid re-processing",
+        "Choose efficient models (faster-whisper vs whisperx)",
+        "Monitor usage patterns to identify optimization opportunities"
+    ]
+    return tips
 ```
+
+### Bulk Operations
+
+```python
+def process_bulk_efficiently(files, operation_type):
+    """Process multiple files efficiently"""
+    
+    # Check total credit requirement first
+    total_credits_needed = 0
+    for file_info in files:
+        credits = estimate_service_cost(operation_type, **file_info)['credits_needed']
+        total_credits_needed += credits
+    
+    # Verify sufficient credits
+    balance = get_credit_balance(api_key)
+    if balance['total_available_credits'] < total_credits_needed:
+        print(f"Need {total_credits_needed - balance['total_available_credits']} more credits")
+        return False
+    
+    # Process in optimal batches
+    batch_size = 5  # Optimal batch size
+    for i in range(0, len(files), batch_size):
+        batch = files[i:i + batch_size]
+        process_batch(batch, operation_type)
+    
+    return True
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Account Management" icon="user" href="/account/registration">
+    Learn about account setup and credit allocation.
+  </Card>
+  <Card title="API Authentication" icon="key" href="/api-reference/authentication">
+    Set up secure API access for credit management.
+  </Card>
+  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-cloning">
+    Start using your credits for custom voice creation.
+  </Card>
+  <Card title="Text-to-Speech" icon="microphone" href="/api-reference/text-to-speech">
+    Generate speech with your available credits.
+  </Card>
+</Columns>

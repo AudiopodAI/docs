@@ -1,619 +1,684 @@
 ---
-title: "Speech-to-Text (STT)"
-description: "Convert audio to accurate text transcriptions with AudioPod AI's advanced speech recognition, featuring speaker diarization and multi-language support."
+title: "Speech-to-Text API"
+description: "Convert audio and video to accurate text transcriptions with speaker identification, timestamps, and multi-language support."
 ---
 
 ## Overview
 
-AudioPod AI's Speech-to-Text service converts spoken audio into accurate text transcriptions using state-of-the-art automatic speech recognition (ASR) models. Perfect for transcribing meetings, podcasts, interviews, and any audio content.
+AudioPod AI's Speech-to-Text API converts audio and video content into accurate text transcriptions using advanced AI models including WhisperX and Faster-Whisper. Get detailed transcriptions with speaker diarization, word-level timestamps, and confidence scores.
 
 ### Key Features
 
-- **High Accuracy**: 95%+ accuracy for clear audio
-- **64+ Languages**: Support for major languages worldwide
-- **Speaker Diarization**: Identify and separate multiple speakers
-- **Timestamps**: Word-level and sentence-level timing
-- **Custom Vocabulary**: Add domain-specific terms for better accuracy
-- **Real-time Streaming**: Live transcription for real-time applications
-- **Format Support**: MP3, WAV, M4A, FLAC, and more
+- **Multi-Model Support**: WhisperX, Whisper-Timestamped, Faster-Whisper
+- **Speaker Diarization**: Automatic speaker identification and separation
+- **Word-Level Timestamps**: Precise timing for each word
+- **Confidence Scores**: Quality metrics for transcription accuracy
+- **50+ Languages**: Automatic language detection or manual specification
+- **Large File Support**: Handle videos up to 15 hours with chunking
+- **Multiple Sources**: Upload files or provide YouTube/video URLs
+- **Editable Transcripts**: Edit and refine transcription results
 
-## Quick Start
+## Authentication
 
-### Basic Audio Transcription
+All endpoints require authentication:
+- **API Key**: `Authorization: Bearer your_api_key`
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Transcribe from URLs
+
+### Transcribe YouTube Videos
+
+Transcribe audio from YouTube or other video platforms.
 
 <Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/transcription/transcribe
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "source_urls": [
+        "https://youtube.com/watch?v=example123",
+        "https://vimeo.com/123456789"
+      ],
+      "language": "en",
+      "model_type": "whisperx",
+      "enable_speaker_diarization": true,
+      "min_speakers": 2,
+      "max_speakers": 5,
+      "enable_word_timestamps": true,
+      "enable_confidence_scores": true,
+      "chunk_duration": 1800
+    }
+    ```
+  </Tab>
   <Tab title="Python">
     ```python
-    from audiopod import AudioPod
-
-    client = AudioPod(api_key="your_api_key")
-
-    # Transcribe audio file
-    with open("meeting_recording.mp3", "rb") as audio_file:
-        response = client.speech_to_text.transcribe(
-            file=audio_file,
-            language="en",
-            enable_speaker_diarization=True
-        )
-
-    # Print transcript
-    print(response.transcript)
-
-    # Print speaker segments
-    for segment in response.segments:
-        print(f"Speaker {segment.speaker}: {segment.text}")
+    import requests
+    
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/transcription/transcribe",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "source_urls": [
+                "https://youtube.com/watch?v=example123",
+                "https://vimeo.com/123456789"
+            ],
+            "language": "en",  # Optional: auto-detect if not specified
+            "model_type": "whisperx",
+            "enable_speaker_diarization": True,
+            "min_speakers": 2,
+            "max_speakers": 5,
+            "enable_word_timestamps": True,
+            "enable_confidence_scores": True,
+            "chunk_duration": 1800  # 30 minutes
+        }
+    )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        job_id = job_data["job_id"]
+        print(f"Transcription job created: {job_id}")
     ```
-
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    import { AudioPod } from 'audiopod-js';
-    import fs from 'fs';
-
-    const client = new AudioPod({ apiKey: 'your_api_key' });
-
-    const audioFile = fs.readFileSync('meeting_recording.mp3');
-
-    const response = await client.speechToText.transcribe({
-      file: audioFile,
-      language: 'en',
-      enableSpeakerDiarization: true
-    });
-
-    console.log('Transcript:', response.transcript);
-
-    // Print speaker segments
-    response.segments.forEach(segment => {
-      console.log(`Speaker ${segment.speaker}: ${segment.text}`);
-    });
-    ```
-
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/speech-to-text" \
+    curl -X POST "https://api.audiopod.ai/api/v1/transcription/transcribe" \
       -H "Authorization: Bearer your_api_key" \
-      -F "file=@meeting_recording.mp3" \
-      -F "language=en" \
-      -F "enable_speaker_diarization=true"
+      -H "Content-Type: application/json" \
+      -d '{
+        "source_urls": ["https://youtube.com/watch?v=example123"],
+        "language": "en",
+        "model_type": "whisperx",
+        "enable_speaker_diarization": true,
+        "enable_word_timestamps": true
+      }'
     ```
   </Tab>
 </Tabs>
 
-### Response Format
+**Response:**
 
 ```json
 {
-  "transcript": "Hello everyone, welcome to today's meeting. Let's start with the quarterly review.",
-  "language": "en",
-  "duration": 125.4,
-  "confidence": 0.94,
-  "segments": [
-    {
-      "text": "Hello everyone, welcome to today's meeting.",
-      "start_time": 0.0,
-      "end_time": 3.2,
-      "speaker": "Speaker_1",
-      "confidence": 0.96
-    },
-    {
-      "text": "Let's start with the quarterly review.",
-      "start_time": 3.5,
-      "end_time": 6.1,
-      "speaker": "Speaker_1",
-      "confidence": 0.92
-    }
-  ],
-  "speakers": {
-    "Speaker_1": "Primary presenter",
-    "Speaker_2": "Participant"
-  }
+  "job_id": 123,
+  "task_id": "celery_task_uuid_here",
+  "status": "PENDING",
+  "message": "Transcription job created successfully",
+  "estimated_credits": 150,
+  "estimated_duration": 1800.0,
+  "source_urls": [
+    "https://youtube.com/watch?v=example123"
+  ]
 }
 ```
 
-## Advanced Features
+## Transcribe from Files
 
-### Speaker Diarization
+### Upload Audio/Video Files
 
-Automatically identify and separate different speakers in your audio:
+Transcribe from uploaded audio or video files.
 
-```python
-response = client.speech_to_text.transcribe(
-    file=audio_file,
-    language="en",
-    enable_speaker_diarization=True,
-    max_speakers=4,  # Limit to 4 speakers
-    speaker_labels=["John", "Sarah", "Mike", "Emily"]  # Optional custom labels
-)
-
-# Access speaker information
-for segment in response.segments:
-    speaker_name = segment.speaker_label or segment.speaker
-    print(f"{speaker_name}: {segment.text}")
-    print(f"  Time: {segment.start_time:.1f}s - {segment.end_time:.1f}s")
-    print(f"  Confidence: {segment.confidence:.2f}")
-```
-
-### Custom Vocabulary
-
-Improve accuracy for domain-specific terms:
-
-```python
-# Add custom vocabulary for better recognition
-custom_vocab = [
-    "AudioPod",
-    "API endpoints",
-    "neural networks",
-    "machine learning",
-    "Kubernetes",
-    "microservices"
-]
-
-response = client.speech_to_text.transcribe(
-    file=audio_file,
-    language="en",
-    custom_vocabulary=custom_vocab,
-    vocabulary_weight=0.3  # How heavily to weight custom terms
-)
-```
-
-### Streaming Transcription
-
-For real-time applications:
-
-```python
-def transcription_callback(partial_result):
-    print(f"Partial: {partial_result.text}")
-    if partial_result.is_final:
-        print(f"Final: {partial_result.text}")
-
-# Start streaming transcription
-stream = client.speech_to_text.stream(
-    language="en",
-    callback=transcription_callback,
-    interim_results=True
-)
-
-# Send audio chunks
-with open("live_audio.wav", "rb") as audio:
-    chunk_size = 1024
-    while True:
-        chunk = audio.read(chunk_size)
-        if not chunk:
-            break
-        stream.send_audio(chunk)
-
-stream.close()
-```
-
-### Batch Processing
-
-Process multiple files efficiently:
-
-```python
-audio_files = ["meeting1.mp3", "interview2.wav", "podcast3.m4a"]
-
-# Submit batch job
-batch_job = client.speech_to_text.batch_transcribe(
-    files=audio_files,
-    language="en",
-    enable_speaker_diarization=True,
-    webhook_url="https://your-app.com/webhook/transcription"
-)
-
-print(f"Batch job ID: {batch_job.id}")
-
-# Check status
-status = client.speech_to_text.get_batch_status(batch_job.id)
-print(f"Status: {status.status}")  # pending, processing, completed, failed
-
-# Get results when ready
-if status.status == "completed":
-    results = client.speech_to_text.get_batch_results(batch_job.id)
-    for result in results:
-        print(f"File: {result.filename}")
-        print(f"Transcript: {result.transcript}")
-```
-
-## Language Support
-
-AudioPod AI supports 64+ languages with varying levels of accuracy:
-
-### Tier 1 Languages (95%+ accuracy)
-
-- **English** (`en`, `en-US`, `en-GB`, `en-AU`)
-- **Spanish** (`es`, `es-ES`, `es-MX`)
-- **French** (`fr`, `fr-FR`, `fr-CA`)
-- **German** (`de`, `de-DE`)
-- **Italian** (`it`)
-- **Portuguese** (`pt`, `pt-BR`)
-
-### Tier 2 Languages (90%+ accuracy)
-
-- **Chinese** (`zh`, `zh-CN`, `zh-TW`)
-- **Japanese** (`ja`)
-- **Korean** (`ko`)
-- **Russian** (`ru`)
-- **Dutch** (`nl`)
-- **Polish** (`pl`)
-
-### Multi-language Detection
-
-Automatically detect the spoken language:
-
-```python
-response = client.speech_to_text.transcribe(
-    file=audio_file,
-    language="auto",  # Automatic language detection
-    detect_language=True
-)
-
-print(f"Detected language: {response.detected_language}")
-print(f"Confidence: {response.language_confidence}")
-```
-
-### Code-switching Support
-
-Handle conversations with multiple languages:
-
-```python
-response = client.speech_to_text.transcribe(
-    file=audio_file,
-    languages=["en", "es", "fr"],  # Support code-switching
-    enable_code_switching=True
-)
-
-# Each segment includes detected language
-for segment in response.segments:
-    print(f"[{segment.language}] {segment.text}")
-```
-
-## Audio Quality and Formats
-
-### Supported Formats
-
-| Format | Extension | Quality   | Notes                            |
-| ------ | --------- | --------- | -------------------------------- |
-| WAV    | `.wav`    | Best      | Uncompressed, ideal for accuracy |
-| FLAC   | `.flac`   | Excellent | Lossless compression             |
-| MP3    | `.mp3`    | Good      | Most common format               |
-| M4A    | `.m4a`    | Good      | Apple audio format               |
-| OGG    | `.ogg`    | Good      | Open source format               |
-| WEBM   | `.webm`   | Good      | Web-optimized format             |
-
-### Audio Requirements
-
-**Recommended Settings:**
-
-- **Sample Rate**: 16kHz or higher
-- **Bit Depth**: 16-bit minimum
-- **Channels**: Mono or stereo
-- **Duration**: Up to 4 hours per file
-- **File Size**: Up to 500MB
-
-**For Best Results:**
-
-- Clear audio with minimal background noise
-- Speakers at reasonable distance from microphone
-- Consistent volume levels
-- Minimal overlapping speech
-
-### Pre-processing Audio
-
-```python
-# Enhance audio quality before transcription
-response = client.speech_to_text.transcribe(
-    file=audio_file,
-    language="en",
-    # Audio enhancement options
-    enhance_audio=True,        # Apply noise reduction
-    normalize_volume=True,     # Normalize audio levels
-    remove_silence=True,       # Remove long silent periods
-    filter_profanity=False     # Keep all content
-)
-```
-
-## Use Cases & Examples
-
-### Meeting Transcription
-
-```python
-def transcribe_meeting(audio_file, attendees=None):
-    """Transcribe a business meeting with speaker identification"""
-
-    response = client.speech_to_text.transcribe(
-        file=audio_file,
-        language="en",
-        enable_speaker_diarization=True,
-        max_speakers=len(attendees) if attendees else 10,
-        speaker_labels=attendees,
-        custom_vocabulary=[
-            "quarterly results", "KPIs", "ROI", "stakeholders",
-            "deliverables", "action items", "follow-up"
-        ]
-    )
-
-    # Generate meeting minutes
-    meeting_minutes = {
-        "transcript": response.transcript,
-        "duration": f"{response.duration:.1f} minutes",
-        "speakers": list(response.speakers.keys()),
-        "segments": []
-    }
-
-    for segment in response.segments:
-        meeting_minutes["segments"].append({
-            "speaker": segment.speaker_label or segment.speaker,
-            "text": segment.text,
-            "timestamp": f"{segment.start_time:.1f}s"
-        })
-
-    return meeting_minutes
-```
-
-### Podcast Transcription
-
-```python
-def transcribe_podcast(audio_file, show_info):
-    """Transcribe a podcast episode with metadata"""
-
-    # Custom vocabulary for this podcast
-    podcast_vocab = [
-        show_info["podcast_name"],
-        show_info["host_name"],
-        *show_info.get("guest_names", []),
-        *show_info.get("topics", [])
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/transcription/transcribe-upload
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    files: (audio/video files)
+    language: en
+    model_type: whisperx
+    enable_speaker_diarization: true
+    min_speakers: 1
+    max_speakers: 10
+    enable_word_timestamps: true
+    enable_confidence_scores: true
+    chunk_duration: 1800
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    files_to_transcribe = [
+        "meeting_recording.mp3",
+        "interview.wav",
+        "presentation.mp4"
     ]
-
-    response = client.speech_to_text.transcribe(
-        file=audio_file,
-        language="en",
-        enable_speaker_diarization=True,
-        speaker_labels=[show_info["host_name"]] + show_info.get("guest_names", []),
-        custom_vocabulary=podcast_vocab,
-        include_timestamps=True
+    
+    files = []
+    for file_path in files_to_transcribe:
+        files.append(('files', open(file_path, 'rb')))
+    
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/transcription/transcribe-upload",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "language": "en",
+            "model_type": "whisperx",
+            "enable_speaker_diarization": True,
+            "min_speakers": 1,
+            "max_speakers": 10,
+            "enable_word_timestamps": True,
+            "enable_confidence_scores": True,
+            "chunk_duration": 1800
+        },
+        files=files
     )
+    
+    # Close files
+    for _, file_obj in files:
+        file_obj.close()
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        print(f"Upload transcription job: {job_data['job_id']}")
+    ```
+  </Tab>
+</Tabs>
 
-    # Format for podcast platforms
-    transcript_with_timestamps = []
-    for segment in response.segments:
-        timestamp = format_timestamp(segment.start_time)
-        transcript_with_timestamps.append(
-            f"[{timestamp}] {segment.speaker}: {segment.text}"
+## Job Management
+
+### Get Transcription Status
+
+Check the progress and status of transcription jobs.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/transcription/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    job_status = response.json()
+    print(f"Status: {job_status['status']}")
+    print(f"Progress: {job_status['progress']}%")
+    
+    if job_status["status"] == "COMPLETED":
+        print(f"Transcript ready! Duration: {job_status['total_duration']} seconds")
+        print(f"Detected language: {job_status['detected_language']}")
+        print(f"Confidence: {job_status['confidence_score']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response (Completed):**
+
+```json
+{
+  "id": 123,
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
+  "source_urls": ["https://youtube.com/watch?v=example123"],
+  "language": "en",
+  "model_type": "whisperx",
+  "enable_speaker_diarization": true,
+  "min_speakers": 2,
+  "max_speakers": 5,
+  "status": "COMPLETED",
+  "progress": 100,
+  "transcript_path": "/transcripts/job_123.json",
+  "total_duration": 1847.5,
+  "detected_language": "en",
+  "confidence_score": 0.92,
+  "created_at": "2024-01-15T10:30:00Z",
+  "completed_at": "2024-01-15T10:45:30Z",
+  "estimated_credits": 150,
+  "display_name": "YouTube Video Transcription"
+}
+```
+
+### List Transcription Jobs
+
+Get all transcription jobs for the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/transcription/jobs?status=COMPLETED&limit=50&offset=0
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/transcription/jobs",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "status": "COMPLETED",  # Optional filter
+            "limit": 50,
+            "offset": 0
+        }
+    )
+    
+    jobs = response.json()
+    for job in jobs:
+        print(f"Job {job['id']}: {job['status']} - {job['total_duration']}s")
+    ```
+  </Tab>
+</Tabs>
+
+## Download Transcripts
+
+### Get Transcript in Multiple Formats
+
+Download transcripts in various formats including JSON, TXT, PDF, SRT, VTT, DOCX, and HTML.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/transcription/jobs/{job_id}/transcript?format=json
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Download as JSON with full details
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/transcript",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"format": "json"}
+    )
+    
+    transcript_data = response.json()
+    
+    # Download as SRT subtitle file
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/transcript",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"format": "srt"}
+    )
+    
+    with open("transcript.srt", "w") as f:
+        f.write(response.text)
+    
+    # Download as PDF document
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/transcript",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"format": "pdf"}
+    )
+    
+    with open("transcript.pdf", "wb") as f:
+        f.write(response.content)
+    ```
+  </Tab>
+</Tabs>
+
+**JSON Response Format:**
+
+```json
+{
+  "job_id": 123,
+  "detected_language": "en",
+  "confidence_score": 0.92,
+  "total_duration": 1847.5,
+  "segments": [
+    {
+      "id": 1,
+      "start": 0.0,
+      "end": 4.5,
+      "text": "Welcome to our podcast about artificial intelligence.",
+      "confidence": 0.95,
+      "speaker_id": 0,
+      "words": [
+        {
+          "word": "Welcome",
+          "start": 0.0,
+          "end": 0.8,
+          "confidence": 0.98
+        },
+        {
+          "word": "to",
+          "start": 0.8,
+          "end": 1.0,
+          "confidence": 0.99
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "start": 5.0,
+      "end": 8.2,
+      "text": "Thank you for having me on the show.",
+      "confidence": 0.89,
+      "speaker_id": 1,
+      "words": [...]
+    }
+  ],
+  "speakers": [
+    {
+      "id": 0,
+      "label": "SPEAKER_00",
+      "total_speaking_time": 920.3
+    },
+    {
+      "id": 1,
+      "label": "SPEAKER_01", 
+      "total_speaking_time": 827.2
+    }
+  ],
+  "video_metadata": [
+    {
+      "video_id": "example123",
+      "title": "AI Technology Discussion",
+      "description": "A deep dive into AI technology trends",
+      "duration": 1847.5,
+      "uploader": "Tech Channel",
+      "upload_date": "20240115"
+    }
+  ]
+}
+```
+
+## Edit Transcripts
+
+### Get Editable Transcript
+
+Retrieve transcript in editable format for corrections.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/transcription/jobs/{job_id}/edit
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/edit",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    editable_transcript = response.json()
+    print(f"Found {len(editable_transcript['segments'])} segments to edit")
+    ```
+  </Tab>
+</Tabs>
+
+### Update Transcript
+
+Submit edited transcript with corrections.
+
+<Tabs>
+  <Tab title="PUT">
+    ```http
+    PUT /api/v1/transcription/jobs/{job_id}/edit
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "segments": [
+        {
+          "id": 1,
+          "start": 0.0,
+          "end": 4.5,
+          "text": "Welcome to our podcast about artificial intelligence.",
+          "speaker_label": "SPEAKER_00",
+          "confidence": 0.95
+        }
+      ],
+      "edit_notes": "Corrected technical terms and speaker labels"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Get current transcript
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/edit",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    transcript = response.json()
+    segments = transcript["segments"]
+    
+    # Make edits
+    segments[0]["text"] = "Welcome to our podcast about artificial intelligence."
+    segments[0]["speaker_label"] = "Host"
+    
+    # Submit updates
+    response = requests.put(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/edit",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "segments": segments,
+            "edit_notes": "Corrected speaker labels and technical terms"
+        }
+    )
+    
+    if response.status_code == 200:
+        update_info = response.json()
+        print(f"Updated {update_info['changes_count']} segments")
+    ```
+  </Tab>
+</Tabs>
+
+### Get Transcript Versions
+
+View edit history and versions of transcripts.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/transcription/jobs/{job_id}/versions
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/versions",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    versions = response.json()
+    for version in versions["versions"]:
+        print(f"Version {version['version']}: {version['edit_notes']}")
+        print(f"  Updated: {version['updated_at']}")
+        print(f"  Changes: {version['changes_count']}")
+    ```
+  </Tab>
+</Tabs>
+
+## Extract Audio
+
+### Download Extracted Audio
+
+Get clean audio files extracted from videos during transcription.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/transcription/jobs/{job_id}/audio/{audio_index}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Download first audio file (index 0)
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/audio/0",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        with open("extracted_audio.wav", "wb") as f:
+            f.write(response.content)
+        print("Audio file downloaded")
+    ```
+  </Tab>
+</Tabs>
+
+## Delete Jobs
+
+### Delete Transcription Job
+
+Remove transcription jobs and associated data.
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /api/v1/transcription/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 204:
+        print("Transcription job deleted successfully")
+    ```
+  </Tab>
+</Tabs>
+
+## Supported Languages
+
+AudioPod AI supports automatic language detection or manual specification for 50+ languages:
+
+| Language | Code | Quality | Notes |
+|----------|------|---------|-------|
+| English | `en` | Excellent | Best supported language |
+| Spanish | `es` | Excellent | High accuracy |
+| French | `fr` | Excellent | Good speaker diarization |
+| German | `de` | Excellent | Technical content support |
+| Portuguese | `pt` | Very Good | Brazilian and European |
+| Italian | `it` | Very Good | Good word timestamps |
+| Russian | `ru` | Very Good | Cyrillic text support |
+| Japanese | `ja` | Good | Hiragana/Katakana/Kanji |
+| Chinese | `zh` | Good | Simplified and Traditional |
+| Arabic | `ar` | Good | RTL text support |
+| Hindi | `hi` | Good | Devanagari script |
+| Korean | `ko` | Good | Hangul script |
+
+## Model Comparison
+
+Choose the best model for your use case:
+
+| Model | Speed | Accuracy | Speaker Diarization | Best For |
+|-------|-------|----------|-------------------|----------|
+| **whisperx** | Medium | Highest | Excellent | Production transcription |
+| **faster-whisper** | Fastest | High | Good | Real-time applications |
+| **whisper-timestamped** | Slow | High | Good | Detailed analysis |
+
+## Best Practices
+
+### Audio Quality Guidelines
+
+For best transcription results:
+
+```python
+# Recommended audio specifications
+audio_requirements = {
+    "sample_rate": "16kHz or higher",
+    "format": "WAV, MP3, M4A, or video formats",
+    "duration": "Up to 15 hours supported",
+    "background_noise": "Minimize for better accuracy",
+    "speech_clarity": "Clear articulation preferred",
+    "multiple_speakers": "Distinct voices work best"
+}
+
+# Chunking for long content
+chunking_strategy = {
+    "chunk_duration": 1800,  # 30 minutes per chunk
+    "overlap": 30,           # 30 seconds overlap
+    "boundary_detection": "sentence_level"  # Smart chunk boundaries
+}
+```
+
+### Cost Optimization
+
+```python
+# Efficient transcription workflow
+def transcribe_efficiently(audio_files, language="auto"):
+    # Use appropriate model based on needs
+    model_choice = {
+        "speed_priority": "faster-whisper",
+        "accuracy_priority": "whisperx", 
+        "analysis_priority": "whisper-timestamped"
+    }
+    
+    # Batch similar files together
+    batch_files = group_by_language_and_type(audio_files)
+    
+    for batch in batch_files:
+        job = create_transcription_job(
+            files=batch,
+            language=language,
+            model_type=model_choice["accuracy_priority"],
+            enable_speaker_diarization=True,
+            chunk_duration=1800  # Optimal chunk size
         )
-
-    return "\n".join(transcript_with_timestamps)
-
-def format_timestamp(seconds):
-    """Convert seconds to MM:SS format"""
-    minutes = int(seconds // 60)
-    seconds = int(seconds % 60)
-    return f"{minutes:02d}:{seconds:02d}"
+        
+        monitor_job_progress(job["job_id"])
 ```
-
-### Interview Analysis
-
-```python
-def analyze_interview(audio_file, interviewer_name, candidate_name):
-    """Transcribe and analyze a job interview"""
-
-    response = client.speech_to_text.transcribe(
-        file=audio_file,
-        language="en",
-        enable_speaker_diarization=True,
-        speaker_labels=[interviewer_name, candidate_name],
-        enable_sentiment_analysis=True,  # Analyze tone and sentiment
-        include_confidence_scores=True
-    )
-
-    # Analyze speaking patterns
-    speaking_time = {interviewer_name: 0, candidate_name: 0}
-    question_count = 0
-
-    for segment in response.segments:
-        speaker = segment.speaker_label
-        duration = segment.end_time - segment.start_time
-        speaking_time[speaker] += duration
-
-        # Count questions (simple heuristic)
-        if segment.text.strip().endswith('?'):
-            question_count += 1
-
-    analysis = {
-        "transcript": response.transcript,
-        "speaking_time": speaking_time,
-        "questions_asked": question_count,
-        "average_confidence": sum(s.confidence for s in response.segments) / len(response.segments),
-        "segments": response.segments
-    }
-
-    return analysis
-```
-
-### Call Center Transcription
-
-```python
-def transcribe_customer_call(audio_file):
-    """Transcribe customer service calls with quality metrics"""
-
-    response = client.speech_to_text.transcribe(
-        file=audio_file,
-        language="en",
-        enable_speaker_diarization=True,
-        max_speakers=2,
-        speaker_labels=["Agent", "Customer"],
-        custom_vocabulary=[
-            "account number", "billing", "technical support",
-            "warranty", "refund", "cancellation"
-        ],
-        enable_sentiment_analysis=True,
-        detect_keywords=["frustrated", "satisfied", "complaint", "compliment"]
-    )
-
-    # Extract call metrics
-    call_analysis = {
-        "call_duration": response.duration,
-        "transcript": response.transcript,
-        "sentiment_analysis": response.sentiment,
-        "keywords_detected": response.keywords,
-        "quality_score": response.confidence
-    }
-
-    return call_analysis
-```
-
-## Configuration Options
-
-### Transcription Settings
-
-```python
-response = client.speech_to_text.transcribe(
-    file=audio_file,
-    # Basic settings
-    language="en",
-    model="premium",  # standard, premium, or domain-specific
-
-    # Speaker diarization
-    enable_speaker_diarization=True,
-    max_speakers=5,
-    speaker_labels=["John", "Sarah", "Mike"],
-
-    # Output formatting
-    include_timestamps=True,
-    timestamp_granularity="word",  # word, sentence, or segment
-    include_confidence_scores=True,
-
-    # Advanced features
-    custom_vocabulary=["AudioPod", "API", "webhook"],
-    vocabulary_weight=0.4,
-    enable_profanity_filter=False,
-    enable_filler_word_detection=True,
-
-    # Audio processing
-    enhance_audio=True,
-    noise_reduction_level="medium",  # low, medium, high
-    normalize_volume=True
-)
-```
-
-### Model Selection
-
-| Model      | Accuracy  | Speed  | Cost | Best For              |
-| ---------- | --------- | ------ | ---- | --------------------- |
-| `standard` | Good      | Fast   | 1x   | General transcription |
-| `premium`  | Excellent | Medium | 1.5x | High accuracy needs   |
-| `meeting`  | Very Good | Medium | 1.2x | Business meetings     |
-| `phone`    | Good      | Fast   | 1x   | Phone call quality    |
-| `medical`  | Excellent | Slow   | 2x   | Medical terminology   |
-| `legal`    | Excellent | Slow   | 2x   | Legal terminology     |
 
 ## Error Handling
 
-### Common Issues and Solutions
-
 <AccordionGroup>
-  <Accordion title="Low Accuracy Results">
-    **Common causes:** - Poor audio quality - Background noise - Multiple
-    overlapping speakers - Unclear speech or strong accents **Solutions:** - Use
-    audio enhancement options - Add custom vocabulary for domain terms - Use
-    higher quality audio files - Consider speaker separation preprocessing
+  <Accordion title="400 Bad Request - Invalid Audio">
+    **Causes:** - Unsupported audio format - Corrupted audio file - Audio too short 
+    **Solutions:** - Use supported formats (WAV, MP3, M4A, MP4) - Verify file integrity - 
+    Ensure minimum 10 seconds audio
   </Accordion>
 
-  <Accordion title="Speaker Diarization Issues">
-    **Common causes:** - Similar-sounding voices - Frequent speaker changes -
-    Too many speakers specified **Solutions:** - Provide accurate max_speakers
-    count - Use speaker labels when known - Consider shorter audio segments
+  <Accordion title="413 Payload Too Large">
+    **Causes:** - File size exceeds limits - Too many files in single request 
+    **Solutions:** - Split large files into smaller chunks - Reduce number of files per request - 
+    Use URL transcription for large videos
   </Accordion>
 
-  <Accordion title="File Format Not Supported">
-    **Solutions:** - Convert to supported format (WAV, MP3, M4A, etc.) - Check
-    file is not corrupted - Verify file size is under 500MB
+  <Accordion title="422 Processing Error">
+    **Causes:** - Audio has no speech content - Extremely poor audio quality 
+    **Solutions:** - Verify audio contains speech - Improve audio quality - 
+    Try different transcription model
   </Accordion>
 </AccordionGroup>
 
-### Error Handling Code
-
-```python
-import time
-from audiopod.exceptions import AudioPodError
-
-def transcribe_with_retry(audio_file, max_retries=3):
-    """Transcribe audio with automatic retry on failures"""
-
-    for attempt in range(max_retries):
-        try:
-            response = client.speech_to_text.transcribe(
-                file=audio_file,
-                language="en",
-                enable_speaker_diarization=True
-            )
-            return response
-
-        except AudioPodError as e:
-            if e.status_code == 400:
-                # Bad request - check file format
-                raise Exception(f"Invalid audio file: {e.message}")
-            elif e.status_code == 429:
-                # Rate limit - wait and retry
-                wait_time = (2 ** attempt) * 60  # Exponential backoff
-                print(f"Rate limited. Waiting {wait_time}s before retry...")
-                time.sleep(wait_time)
-            elif e.status_code >= 500:
-                # Server error - retry
-                print(f"Server error (attempt {attempt + 1}): {e.message}")
-                time.sleep(30)
-            else:
-                raise e
-
-    raise Exception("Max retries exceeded")
-```
-
 ## Pricing
 
-Speech-to-Text pricing is based on audio duration:
+Transcription pricing is based on audio duration:
 
-- **10 credits per minute of audio**
-- Minimum charge: 1 credit per request
-- Speaker diarization: No additional cost
-- Premium models: 1.5x multiplier
+| Service | Cost | Description |
+|---------|------|-------------|
+| Basic Transcription | 10 credits/minute | Text-only transcription |
+| With Speaker Diarization | 12 credits/minute | Speaker identification included |
+| With Word Timestamps | +2 credits/minute | Word-level timing data |
+| Transcript Editing | Free | No additional cost for edits |
 
 ### Cost Examples
 
-| Audio Length | Credits Used  | USD Cost |
-| ------------ | ------------- | -------- |
-| 30 seconds   | 5 credits     | $0.005   |
-| 5 minutes    | 50 credits    | $0.05    |
-| 30 minutes   | 300 credits   | $0.30    |
-| 2 hours      | 1,200 credits | $1.20    |
-
-### Cost Optimization Tips
-
-1. **Use appropriate models**: Standard model for general use
-2. **Batch processing**: Process multiple files together
-3. **Audio preprocessing**: Clean audio reduces processing time
-4. **Streaming for long audio**: Use streaming for files over 1 hour
+| Duration | Features | Credits | USD Cost |
+|----------|----------|---------|----------|
+| 10 minutes | Basic transcription | 100 | $0.10 |
+| 30 minutes | With speakers + timestamps | 420 | $0.42 |
+| 1 hour | Full features | 840 | $0.84 |
+| 2 hours | Full features | 1,680 | $1.68 |
 
 ## Next Steps
 
 <Columns cols={2}>
-  <Card
-    title="Speaker Extraction"
-    icon="users"
-    href="/features/speaker-extraction"
-  >
-    Advanced speaker separation and identification.
+  <Card title="Speech Translation" icon="language" href="/api-reference/speech-translation">
+    Translate transcribed speech while preserving timing and speakers.
   </Card>
-  <Card
-    title="Text-to-Speech"
-    icon="microphone"
-    href="/features/text-to-speech"
-  >
-    Convert your transcripts back to speech.
+  <Card title="Speaker Extraction" icon="users" href="/api-reference/speaker-extraction">
+    Extract and separate individual speakers from audio.
   </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/speech-to-text">
-    Detailed API documentation and parameters.
+  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-cloning">
+    Create custom voices from transcribed speech samples.
   </Card>
-  <Card title="Voice Analysis" icon="chart-line" href="/features/voice-changer">
-    Analyze and modify voice characteristics.
+  <Card title="Noise Reduction" icon="volume-x" href="/api-reference/noise-reduction">
+    Clean up audio before transcription for better accuracy.
   </Card>
 </Columns>

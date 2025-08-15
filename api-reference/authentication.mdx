@@ -27,7 +27,7 @@ Authenticate with email/password to receive JWT tokens.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /auth/token
+    POST /api/v1/auth/token
     Content-Type: application/x-www-form-urlencoded
     
     username=user@example.com&password=secure_password
@@ -66,17 +66,23 @@ Authenticate with email/password to receive JWT tokens.
 
 ```json
 {
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "full_name": "John Doe",
+    "is_active": true,
+    "is_verified": true,
+    "created_at": "2024-01-15T10:30:00Z",
+    "credits": {
+      "credits_balance": 1500,
+      "payg_balance": 500,
+      "total_available_credits": 2000
+    }
+  },
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer",
-  "expires_in": 3600,
-  "user": {
-    "id": 12345,
-    "email": "user@example.com",
-    "name": "John Doe",
-    "subscription_plan": "pro",
-    "credits_remaining": 1500
-  }
+  "expires_in": 3600
 }
 ```
 
@@ -192,7 +198,7 @@ Create a new API key for programmatic access.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /auth/api-keys
+    POST /api/v1/api-keys
     Authorization: Bearer {access_token}
     Content-Type: application/json
     
@@ -206,7 +212,7 @@ Create a new API key for programmatic access.
   <Tab title="Python">
     ```python
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/api-keys",
+        "https://api.audiopod.ai/api/v1/api-keys",
         headers={"Authorization": f"Bearer {access_token}"},
         json={
             "name": "Production API Key",
@@ -227,13 +233,14 @@ Create a new API key for programmatic access.
 
 ```json
 {
-  "id": "ak_abc123def456",
-  "api_key": "ap_live_sk_1234567890abcdef",
+  "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Production API Key",
+  "api_key": "ap_live_sk_1234567890abcdef",
   "scopes": ["voice:read", "voice:write", "music:generate"],
   "created_at": "2024-01-15T10:30:00Z",
   "expires_at": "2025-01-15T10:30:00Z",
-  "last_used_at": null
+  "last_used_at": null,
+  "revoked_at": null
 }
 ```
 
@@ -244,18 +251,18 @@ Get all API keys for the authenticated user.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /auth/api-keys
+    GET /api/v1/api-keys?status=active
     Authorization: Bearer {access_token}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/auth/api-keys",
+        "https://api.audiopod.ai/api/v1/api-keys?status=active",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     
-    api_keys = response.json()["api_keys"]
+    api_keys = response.json()
     for key in api_keys:
         print(f"Key: {key['name']} - Last used: {key['last_used_at']}")
     ```
@@ -269,14 +276,14 @@ Disable an API key permanently.
 <Tabs>
   <Tab title="DELETE">
     ```http
-    DELETE /auth/api-keys/{api_key_id}
+    DELETE /api/v1/api-keys/{key_id}
     Authorization: Bearer {access_token}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.delete(
-        f"https://api.audiopod.ai/api/v1/auth/api-keys/{api_key_id}",
+        f"https://api.audiopod.ai/api/v1/api-keys/{key_id}",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     ```
@@ -285,69 +292,104 @@ Disable an API key permanently.
 
 ## User Registration
 
-### Create Account
+### Step 1: Initiate Registration
 
-Register a new user account.
+Start the registration process and receive verification code.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /auth/register
+    POST /api/v1/auth/initiate-registration
     Content-Type: application/json
     
     {
       "email": "newuser@example.com",
       "password": "secure_password123",
-      "name": "Jane Doe",
-      "terms_accepted": true,
-      "newsletter_subscription": false
+      "full_name": "Jane Doe"
     }
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/register",
+        "https://api.audiopod.ai/api/v1/auth/initiate-registration",
         json={
             "email": "newuser@example.com",
             "password": "secure_password123",
-            "name": "Jane Doe",
-            "terms_accepted": True,
-            "newsletter_subscription": False
+            "full_name": "Jane Doe"
         }
     )
     
-    if response.status_code == 201:
-        user_data = response.json()
-        print(f"User created: {user_data['user']['id']}")
+    if response.status_code == 202:
+        print("Verification code sent to email")
     ```
   </Tab>
 </Tabs>
 
-### Email Verification
+**Response:**
+```json
+{
+  "message": "Verification code sent to email",
+  "email": "newuser@example.com"
+}
+```
 
-Verify email address after registration.
+### Step 2: Verify Registration
+
+Complete registration with verification code from email.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /auth/verify-email
+    POST /api/v1/auth/verify-registration
     Content-Type: application/json
     
     {
-      "token": "verification_token_from_email"
+      "email": "newuser@example.com",
+      "verification_code": "123456"
     }
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/verify-email",
-        json={"token": "verification_token_from_email"}
+        "https://api.audiopod.ai/api/v1/auth/verify-registration",
+        json={
+            "email": "newuser@example.com",
+            "verification_code": "123456"
+        }
     )
+    
+    if response.status_code == 200:
+        user_data = response.json()
+        access_token = user_data["access_token"]
+        print(f"Registration complete! User ID: {user_data['user']['id']}")
     ```
   </Tab>
 </Tabs>
+
+**Response:**
+```json
+{
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "newuser@example.com",
+    "full_name": "Jane Doe",
+    "is_active": true,
+    "is_verified": true,
+    "created_at": "2024-01-15T10:30:00Z",
+    "credits": {
+      "credits_balance": 5000,
+      "payg_balance": 0,
+      "total_available_credits": 5000
+    }
+  },
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600
+}
+```
 
 ### Password Reset
 
@@ -356,7 +398,7 @@ Request and confirm password reset.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /auth/password-reset-request
+    POST /api/v1/auth/forgot-password
     Content-Type: application/json
     
     {
@@ -368,13 +410,13 @@ Request and confirm password reset.
     ```python
     # Request password reset
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/password-reset-request",
+        "https://api.audiopod.ai/api/v1/auth/forgot-password",
         json={"email": "user@example.com"}
     )
     
     # Confirm password reset with token from email
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/password-reset-confirm",
+        "https://api.audiopod.ai/api/v1/auth/reset-password",
         json={
             "token": "reset_token_from_email",
             "new_password": "new_secure_password123"

@@ -31,41 +31,45 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "Authentication",
-            "pages": ["api-reference/authentication"]
+            "group": "Authentication & Account",
+            "pages": [
+              "api-reference/authentication",
+              "api-reference/account",
+              "api-reference/credits"
+            ]
           },
           {
-            "group": "Voice APIs",
+            "group": "Voice & Speech APIs",
             "pages": [
               "api-reference/text-to-speech",
               "api-reference/voice-cloning",
               "api-reference/voice-changer",
-              "api-reference/voice-management"
+              "api-reference/voice-management",
+              "api-reference/speech-to-text",
+              "api-reference/speech-translation"
             ]
           },
           {
-            "group": "Music APIs",
-            "pages": [
-              "api-reference/music-generation",
-              "api-reference/stem-separation",
-              "api-reference/noise-reduction"
-            ]
-          },
-          {
-            "group": "Speech APIs",
+            "group": "Audio Processing APIs",
             "pages": [
               "api-reference/speaker-extraction",
-              "api-reference/speech-translation",
-              "api-reference/speech-to-text"
+              "api-reference/noise-reduction",
+              "api-reference/stem-separation"
             ]
           },
           {
-            "group": "Utilities",
-            "pages": ["api-reference/media-extraction"]
+            "group": "Content Generation APIs",
+            "pages": [
+              "api-reference/music-generation",
+              "api-reference/karaoke-generation"
+            ]
           },
           {
-            "group": "Account & Credits APIs",
-            "pages": ["api-reference/account", "api-reference/credits"]
+            "group": "Media & Utilities",
+            "pages": [
+              "api-reference/media-extraction",
+              "api-reference/contact"
+            ]
           }
         ]
       }

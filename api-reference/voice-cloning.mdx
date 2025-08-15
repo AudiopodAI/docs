@@ -1,629 +1,662 @@
 ---
-title: "Voice Cloning"
-description: "Create custom AI voices from audio samples with AudioPod AI's advanced voice cloning technology. Generate personalized speech with just 10 seconds of audio."
+title: "Voice Cloning API"
+description: "Create custom AI voices from audio samples and generate natural speech with personalized voice models."
 ---
 
 ## Overview
 
-AudioPod AI's Voice Cloning technology uses advanced XTTS V2 (Cross-lingual Text-to-Speech) models to create custom AI voices from just 10 seconds of audio input. Our state-of-the-art system supports 22+ languages and preserves speaker characteristics while enabling cross-lingual voice cloning.
+AudioPod AI's Voice Cloning API allows you to create custom voice models from audio samples and generate speech using those personalized voices. Train high-quality voice models with just 10 seconds of clean audio.
 
 ### Key Features
 
-- **Quick Training**: Create voices from 10 seconds to 5 minutes of audio
-- **High Fidelity**: Maintain speaker characteristics and emotional tone
-- **Multi-Language**: XTTS V2 enables cloning across 22+ languages including English, Spanish, French, German, Italian, Portuguese, Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese, Japanese, Hungarian, Korean, Hindi, and more
-- **Real-Time Generation**: Use cloned voices immediately after training
-- **Emotional Control**: Generate speech with different emotions and styles
-- **Voice Preservation**: Archive and preserve unique voices
+- **Quick Training**: Create voice models from 10+ seconds of audio
+- **Multi-Sample Support**: Upload up to 5 audio samples for better quality
+- **Real-time Generation**: Generate speech with custom voices instantly
+- **Multiple Languages**: Support for 50+ languages
+- **Voice Collections**: Organize and manage voice models
+- **Preview Generation**: Test voices before using them in production
 
-## Quick Start
+## Authentication
 
-### Creating Your First Voice Clone
+All voice cloning endpoints require authentication using either:
+- **API Key**: `Authorization: Bearer your_api_key`
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
 
-Voice cloning involves three steps that your frontend application can call directly:
+## Create Voice Model
 
-**Step 1: Create Voice Clone**
-```bash
-curl -X POST "https://api.audiopod.ai/api/v1/voice/clone/" \
-  -H "Authorization: Bearer your_api_key" \
-  -F "name=John's Voice" \
-  -F "description=Professional male voice for presentations" \
-  -F "sample_audio=@voice_sample.mp3" \
-  -F "language=en" \
-  -F "enhance_audio=true"
-```
+### Upload Single Audio Sample
 
-**Request Schema:**
-- `name` (required): Voice clone name
-- `description` (optional): Voice description  
-- `sample_audio` (required): Audio file (10 seconds - 5 minutes)
-- `language` (required): Language code (en, es, fr, de, it, pt, etc.)
-- `enhance_audio` (optional): Auto-enhance audio quality (default: true)
+Create a voice model from a single audio file.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voice-profiles
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    name: My Custom Voice
+    description: Professional voice for presentations
+    file: (audio file)
+    denoise: true
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    with open("voice_sample.wav", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/voice/voice-profiles",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "name": "My Custom Voice",
+                "description": "Professional voice for presentations",
+                "denoise": True
+            },
+            files={"file": audio_file}
+        )
+    
+    if response.status_code == 200:
+        voice_data = response.json()
+        voice_id = voice_data["id"]
+        print(f"Voice created with ID: {voice_id}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-profiles" \
+      -H "Authorization: Bearer your_api_key" \
+      -F "name=My Custom Voice" \
+      -F "description=Professional voice for presentations" \
+      -F "denoise=true" \
+      -F "file=@voice_sample.wav"
+    ```
+  </Tab>
+</Tabs>
 
 **Response:**
+
 ```json
 {
-  "id": "voice_clone_abc123",
-  "name": "John's Voice", 
-  "status": "processing",
-  "language": "en",
+  "id": 123,
+  "uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "name": "My Custom Voice",
+  "description": "Professional voice for presentations",
+  "voice_type": "CUSTOM",
+  "provider": "AUDIOPOD_SONIC",
+  "status": "PROCESSING",
   "created_at": "2024-01-15T10:30:00Z",
-  "estimated_completion": "2024-01-15T10:35:00Z",
-  "credits_used": 10
+  "processed_at": null,
+  "is_public": false,
+  "file_path": "/voices/custom/voice_123.wav"
 }
 ```
 
-**Step 2: Check Training Status**
-```bash
-curl -X GET "https://api.audiopod.ai/api/v1/voice/clone/{clone_id}" \
-  -H "Authorization: Bearer your_api_key"
-```
+### Upload Multiple Audio Samples
+
+Create a higher-quality voice model using multiple audio samples.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voice-profiles/multi-sample
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    name: High Quality Voice
+    description: Multi-sample voice for better quality
+    is_public: false
+    voice_files: (multiple audio files)
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    voice_files = [
+        "sample1.wav",
+        "sample2.wav", 
+        "sample3.wav"
+    ]
+    
+    files = []
+    for i, file_path in enumerate(voice_files):
+        files.append(('voice_files', open(file_path, 'rb')))
+    
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voice-profiles/multi-sample",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "name": "High Quality Voice",
+            "description": "Multi-sample voice for better quality",
+            "is_public": False
+        },
+        files=files
+    )
+    
+    # Close files
+    for _, file_obj in files:
+        file_obj.close()
+    ```
+  </Tab>
+</Tabs>
+
+## Generate Speech with Custom Voice
+
+### Create Voice Generation Job
+
+Generate speech using a custom voice model.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voice-clone
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "voice_id": 123,
+      "input_text": "Hello! This is my custom AI voice speaking.",
+      "target_language": "en",
+      "generation_params": {
+        "speed": 1.0,
+        "pitch": 1.0,
+        "emotion": "neutral"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voice-clone",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "voice_id": 123,
+            "input_text": "Hello! This is my custom AI voice speaking.",
+            "target_language": "en",
+            "generation_params": {
+                "speed": 1.0,
+                "pitch": 1.0,
+                "emotion": "neutral"
+            }
+        }
+    )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        job_id = job_data["id"]
+        print(f"Generation job created: {job_id}")
+    ```
+  </Tab>
+</Tabs>
 
 **Response:**
+
 ```json
 {
-  "id": "voice_clone_abc123",
-  "status": "ready", // processing, ready, failed
-  "progress": 100,
-  "voice_preview_url": "https://api.audiopod.ai/previews/voice_clone_abc123.mp3"
+  "id": 456,
+  "voice_id": 123,
+  "status": "PROCESSING",
+  "progress": 0,
+  "input_text": "Hello! This is my custom AI voice speaking.",
+  "target_language": "en",
+  "generation_params": {
+    "speed": 1.0,
+    "pitch": 1.0,
+    "emotion": "neutral"
+  },
+  "created_at": "2024-01-15T10:35:00Z",
+  "completed_at": null,
+  "output_path": null,
+  "task_id": "celery_task_uuid_here"
 }
 ```
 
-**Step 3: Generate Speech with Cloned Voice**
-```bash
-curl -X POST "https://api.audiopod.ai/api/v1/text-to-speech" \
-  -H "Authorization: Bearer your_api_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "text": "Hello! This is my cloned voice speaking.",
-    "voice_id": "voice_clone_abc123",
-    "output_format": "mp3"
-  }' \
-  --output cloned_speech.mp3
+### Check Generation Status
+
+Monitor the progress of voice generation jobs.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/voice/clone/{job_id}/status
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/voice/clone/{job_id}/status",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    job_status = response.json()
+    print(f"Status: {job_status['status']}")
+    print(f"Progress: {job_status['progress']}%")
+    
+    if job_status["status"] == "COMPLETED":
+        print(f"Audio ready: {job_status['output_url']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response (Completed):**
+
+```json
+{
+  "id": 456,
+  "voice_id": 123,
+  "status": "COMPLETED",
+  "progress": 100,
+  "input_text": "Hello! This is my custom AI voice speaking.",
+  "target_language": "en",
+  "created_at": "2024-01-15T10:35:00Z",
+  "completed_at": "2024-01-15T10:36:30Z",
+  "output_path": "/generated/voice_456.wav",
+  "output_url": "https://api.audiopod.ai/download/voice_456.wav",
+  "duration": 3.2,
+  "credits_used": 15
+}
 ```
 
-## Audio Requirements
+## Stream Voice Generation
 
-### Sample Quality Guidelines
+### Real-time Voice Streaming
 
-For best results, provide audio samples that are:
+Generate and stream audio in real-time for low-latency applications.
 
-**✅ Recommended:**
-
-- **Duration**: 30 seconds to 5 minutes (minimum 10 seconds)
-- **Quality**: Clear, high-quality recording
-- **Content**: Natural speech, not singing or whispering
-- **Environment**: Minimal background noise
-- **Speaker**: Single speaker only
-- **Format**: WAV, MP3, or M4A
-
-**❌ Avoid:**
-
-- Noisy or low-quality recordings
-- Multiple speakers in same file
-- Music or sound effects
-- Extremely short samples (under 10 seconds)
-- Heavily processed audio (too much reverb, effects)
-
-### Sample Content Recommendations
-
-```python
-# Good sample content examples
-good_samples = [
-    "Reading a short paragraph of natural speech",
-    "Describing your day or interests",
-    "Reading a news article aloud",
-    "Explaining a concept you're familiar with",
-    "Casual conversation in a quiet environment"
-]
-
-# Avoid these types of content
-avoid_samples = [
-    "Singing or musical content",
-    "Whispered or shouted speech",
-    "Heavily accented or character voices",
-    "Phone call recordings with poor quality",
-    "Content with background music or noise"
-]
-```
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/clone/stream
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    voice_id: 123
+    input_text: Hello, this is streaming voice generation!
+    target_language: en
+    speed: 1.0
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/clone/stream",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "voice_id": 123,
+            "input_text": "Hello, this is streaming voice generation!",
+            "target_language": "en",
+            "speed": 1.0
+        },
+        stream=True
+    )
+    
+    # Stream audio chunks
+    with open("streamed_voice.wav", "wb") as f:
+        for chunk in response.iter_content(chunk_size=8192):
+            if chunk:
+                f.write(chunk)
+    ```
+  </Tab>
+</Tabs>
 
 ## Voice Management
 
-### Listing Your Voice Clones
-
-```python
-# Get all your voice clones
-voices = client.voice_cloning.list()
-
-for voice in voices:
-    print(f"Name: {voice.name}")
-    print(f"ID: {voice.id}")
-    print(f"Status: {voice.status}")
-    print(f"Created: {voice.created_at}")
-    print(f"Language: {voice.language}")
-    print("---")
-```
-
-### Voice Clone Details
-
-```python
-# Get detailed information about a voice clone
-voice = client.voice_cloning.get(voice_id)
-
-print(f"Name: {voice.name}")
-print(f"Description: {voice.description}")
-print(f"Status: {voice.status}")
-print(f"Training Progress: {voice.training_progress}%")
-print(f"Quality Score: {voice.quality_score}")
-print(f"Languages: {', '.join(voice.supported_languages)}")
-print(f"Created: {voice.created_at}")
-print(f"Last Used: {voice.last_used_at}")
-```
-
-### Updating Voice Information
-
-```python
-# Update voice clone metadata
-updated_voice = client.voice_cloning.update(
-    voice_id=voice_id,
-    name="Updated Voice Name",
-    description="New description for the voice",
-    tags=["business", "professional", "presentations"]
-)
-```
-
-### Deleting Voice Clones
-
-```python
-# Delete a voice clone
-client.voice_cloning.delete(voice_id)
-print("Voice clone deleted successfully")
-```
-
-<Warning>
-  Deleting a voice clone is permanent and cannot be undone. All generated audio
-  using this voice will continue to work, but you cannot generate new audio with
-  the deleted voice.
-</Warning>
-
-## Advanced Features
-
-### Multi-Sample Training
-
-For higher quality, provide multiple audio samples:
-
-```python
-# Use multiple samples for better quality
-sample_files = [
-    "sample1_reading.mp3",
-    "sample2_conversation.mp3",
-    "sample3_presentation.mp3"
-]
-
-voice_clone = client.voice_cloning.create(
-    name="High Quality Voice",
-    description="Voice trained on multiple samples",
-    sample_files=sample_files,  # Multiple files
-    language="en",
-    training_mode="premium"  # Higher quality training
-)
-```
-
-### Cross-Language Voice Cloning
-
-Train a voice in one language and use it in others:
-
-```python
-# Train voice in English
-voice_clone = client.voice_cloning.create(
-    name="Multilingual Voice",
-    sample_audio=english_sample,
-    language="en",
-    enable_multilingual=True  # Enable cross-language use
-)
-
-# Use the English-trained voice for Spanish text
-spanish_speech = client.text_to_speech.create(
-    text="Hola, este es mi voz clonada hablando en español.",
-    voice_id=voice_clone.id,
-    target_language="es"  # Generate Spanish speech
-)
-```
-
-### Emotional Style Control
-
-Generate speech with different emotional styles:
-
-```python
-# Generate speech with different emotions
-emotions = ["neutral", "happy", "sad", "excited", "calm", "angry"]
-
-for emotion in emotions:
-    response = client.text_to_speech.create(
-        text="This is an example of emotional speech generation.",
-        voice_id=voice_clone.id,
-        emotion=emotion,
-        emotion_intensity=0.7  # 0.0 to 1.0
-    )
-
-    with open(f"speech_{emotion}.mp3", "wb") as f:
-        f.write(response.audio_data)
-```
-
-### Voice Similarity Analysis
-
-Compare voices and find similar ones:
-
-```python
-# Analyze similarity between voices
-similarity = client.voice_cloning.analyze_similarity(
-    voice_id_1=voice_clone.id,
-    voice_id_2="another_voice_id"
-)
-
-print(f"Similarity score: {similarity.score:.2f}")
-print(f"Characteristics: {similarity.shared_characteristics}")
-
-# Find similar voices in your collection
-similar_voices = client.voice_cloning.find_similar(
-    voice_id=voice_clone.id,
-    threshold=0.7  # Minimum similarity score
-)
-```
-
-## Use Cases & Examples
-
-### Personal Assistant Voice
-
-```python
-def create_personal_assistant_voice(sample_audio_path, assistant_name):
-    """Create a voice for a personal assistant application"""
-
-    with open(sample_audio_path, "rb") as audio_file:
-        voice = client.voice_cloning.create(
-            name=f"{assistant_name} Assistant Voice",
-            description=f"Personal assistant voice for {assistant_name}",
-            sample_audio=audio_file,
-            language="en",
-            use_case="assistant",  # Optimized for assistant responses
-            enable_multilingual=True
-        )
-
-    # Wait for training
-    voice = client.voice_cloning.wait_for_completion(voice.id)
-
-    if voice.status == "ready":
-        # Test the voice with common assistant phrases
-        test_phrases = [
-            "Hello! How can I help you today?",
-            "I found several results for your query.",
-            "Would you like me to schedule that appointment?",
-            "The weather today is sunny with a high of 75 degrees."
-        ]
-
-        for i, phrase in enumerate(test_phrases):
-            audio = client.text_to_speech.create(
-                text=phrase,
-                voice_id=voice.id,
-                emotion="friendly",
-                speed=0.95  # Slightly slower for clarity
-            )
-
-            with open(f"assistant_test_{i+1}.mp3", "wb") as f:
-                f.write(audio.audio_data)
-
-    return voice
-```
-
-### Content Creator Voice Preservation
-
-```python
-def preserve_creator_voice(creator_audio_samples, creator_info):
-    """Preserve a content creator's voice for future use"""
-
-    # Combine multiple samples for best quality
-    voice = client.voice_cloning.create(
-        name=f"{creator_info['name']} - Content Voice",
-        description=f"Voice preserved for {creator_info['channel_name']}",
-        sample_files=creator_audio_samples,
-        language=creator_info.get("primary_language", "en"),
-        training_mode="premium",
-        enable_multilingual=True,
-        preserve_style=True,  # Maintain speaking style
-        tags=["content-creation", "youtube", "podcast"]
-    )
-
-    # Monitor training progress
-    while voice.status == "training":
-        voice = client.voice_cloning.get(voice.id)
-        print(f"Training progress: {voice.training_progress}%")
-        time.sleep(30)
-
-    if voice.status == "ready":
-        # Generate sample content
-        sample_script = """
-        Hey everyone, welcome back to the channel!
-        Today we're going to be talking about voice cloning technology
-        and how it can help content creators like us.
-        """
-
-        preserved_audio = client.text_to_speech.create(
-            text=sample_script,
-            voice_id=voice.id,
-            emotion="enthusiastic",
-            style="conversational"
-        )
-
-        return voice, preserved_audio
-
-    return voice, None
-```
-
-### Character Voice Creation
-
-```python
-def create_character_voices(character_profiles):
-    """Create voices for fictional characters or game NPCs"""
-
-    character_voices = {}
-
-    for character in character_profiles:
-        # Create voice for each character
-        with open(character["sample_audio"], "rb") as audio:
-            voice = client.voice_cloning.create(
-                name=f"{character['name']} - {character['role']}",
-                description=character["description"],
-                sample_audio=audio,
-                language=character.get("language", "en"),
-                character_type=character["type"],  # hero, villain, narrator, etc.
-                age_category=character.get("age", "adult"),
-                gender=character.get("gender", "neutral")
-            )
-
-        # Wait for completion
-        voice = client.voice_cloning.wait_for_completion(voice.id)
-        character_voices[character["name"]] = voice
-
-    # Generate sample dialogue
-    dialogue_samples = {}
-    for char_name, voice in character_voices.items():
-        if voice.status == "ready":
-            character = next(c for c in character_profiles if c["name"] == char_name)
-
-            sample_dialogue = client.text_to_speech.create(
-                text=character["sample_dialogue"],
-                voice_id=voice.id,
-                emotion=character.get("default_emotion", "neutral"),
-                style=character.get("speaking_style", "conversational")
-            )
-
-            dialogue_samples[char_name] = sample_dialogue.audio_data
-
-    return character_voices, dialogue_samples
-```
-
-### Voice Banking for Medical Use
-
-```python
-def voice_banking_session(patient_info, session_recordings):
-    """Create voice bank for patients who may lose their voice"""
-
-    # Create comprehensive voice model
-    voice_bank = client.voice_cloning.create(
-        name=f"Voice Bank - {patient_info['name']}",
-        description=f"Voice preservation for medical use",
-        sample_files=session_recordings,
-        language=patient_info["primary_language"],
-        training_mode="medical",  # Specialized for medical voice banking
-        preserve_nuances=True,   # Preserve subtle speech patterns
-        high_fidelity=True,      # Maximum quality preservation
-        medical_use=True         # Enables medical-specific features
-    )
-
-    # Enhanced training for medical use
-    voice_bank = client.voice_cloning.wait_for_completion(
-        voice_bank.id,
-        timeout=1800  # Allow longer training time
-    )
-
-    if voice_bank.status == "ready":
-        # Test with common phrases patients might need
-        essential_phrases = [
-            "I need help.",
-            "I'm in pain.",
-            "Thank you.",
-            "I love you.",
-            "Please call the doctor.",
-            "I'm feeling better today."
-        ]
-
-        essential_audio = {}
-        for phrase in essential_phrases:
-            audio = client.text_to_speech.create(
-                text=phrase,
-                voice_id=voice_bank.id,
-                emotion="natural",
-                clarity_enhanced=True  # Enhanced clarity for medical use
-            )
-            essential_audio[phrase] = audio.audio_data
-
-        return voice_bank, essential_audio
-
-    return voice_bank, None
-```
-
-## Quality Optimization
-
-### Improving Voice Quality
-
-```python
-def optimize_voice_quality(voice_id):
-    """Analyze and improve voice clone quality"""
-
-    # Get quality analysis
-    analysis = client.voice_cloning.analyze_quality(voice_id)
-
-    print(f"Current quality score: {analysis.overall_score}")
-    print("Quality metrics:")
-    for metric, score in analysis.metrics.items():
-        print(f"  {metric}: {score}")
-
-    # Get improvement suggestions
-    suggestions = analysis.improvement_suggestions
-
-    if "additional_samples" in suggestions:
-        print("Recommendation: Add more training samples")
-        print(f"Suggested sample types: {suggestions['sample_types']}")
-
-    if "audio_quality" in suggestions:
-        print("Recommendation: Improve audio quality")
-        print(f"Issues found: {suggestions['quality_issues']}")
-
-    return analysis
-```
-
-### Voice Testing and Validation
-
-```python
-def test_voice_quality(voice_id, test_scenarios):
-    """Test voice across different scenarios"""
-
-    test_results = {}
-
-    for scenario_name, test_config in test_scenarios.items():
-        print(f"Testing scenario: {scenario_name}")
-
-        audio = client.text_to_speech.create(
-            text=test_config["text"],
-            voice_id=voice_id,
-            emotion=test_config.get("emotion", "neutral"),
-            speed=test_config.get("speed", 1.0),
-            pitch=test_config.get("pitch", 1.0)
-        )
-
-        # Analyze generated audio quality
-        quality_analysis = client.audio_analysis.analyze_quality(
-            audio_data=audio.audio_data
-        )
-
-        test_results[scenario_name] = {
-            "audio": audio.audio_data,
-            "quality_score": quality_analysis.quality_score,
-            "naturalness": quality_analysis.naturalness_score,
-            "clarity": quality_analysis.clarity_score
+### List Voice Models
+
+Get all voice models for the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/voice/voice-profiles?voice_type=CUSTOM&include_public=true
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/voice/voice-profiles",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "voice_type": "CUSTOM",
+            "include_public": True,
+            "skip": 0,
+            "limit": 50
         }
+    )
+    
+    voices = response.json()
+    for voice in voices:
+        print(f"Voice: {voice['name']} - Status: {voice['status']}")
+    ```
+  </Tab>
+</Tabs>
 
-    return test_results
+### Get Voice Preview
 
-# Example test scenarios
-test_scenarios = {
-    "casual_conversation": {
-        "text": "Hey, how's it going? I was just thinking about our conversation yesterday.",
-        "emotion": "friendly"
-    },
-    "professional_presentation": {
-        "text": "Good morning everyone. Today I'll be presenting our quarterly results.",
-        "emotion": "professional",
-        "speed": 0.9
-    },
-    "emotional_expression": {
-        "text": "I'm so excited to share this news with you!",
-        "emotion": "excited"
-    },
-    "technical_content": {
-        "text": "The API endpoint returns a JSON response with authentication headers.",
-        "emotion": "neutral",
-        "speed": 0.85
+Generate a preview sample for a voice model.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/voice/voice-profiles/{voice_id}/preview?generate_if_missing=true
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/voice/voice-profiles/{voice_id}/preview",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"generate_if_missing": True}
+    )
+    
+    if response.status_code == 200:
+        with open(f"voice_{voice_id}_preview.mp3", "wb") as f:
+            f.write(response.content)
+        print("Preview audio saved")
+    ```
+  </Tab>
+</Tabs>
+
+### Update Voice Model
+
+Modify voice model metadata and settings.
+
+<Tabs>
+  <Tab title="PATCH">
+    ```http
+    PATCH /api/v1/voice/voices/{voice_id}
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "name": "Updated Voice Name",
+      "description": "Updated description",
+      "is_public": false
     }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.patch(
+        f"https://api.audiopod.ai/api/v1/voice/voices/{voice_id}",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "name": "Updated Voice Name",
+            "description": "Updated description",
+            "is_public": False
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Voice Model
+
+Permanently delete a custom voice model.
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /api/v1/voice/voices/{voice_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/voice/voices/{voice_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 204:
+        print("Voice model deleted successfully")
+    ```
+  </Tab>
+</Tabs>
+
+## Voice Collections
+
+### Create Voice Collection
+
+Organize voices into collections for better management.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/collections
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "name": "Podcast Voices",
+      "description": "Collection of voices for podcast production",
+      "is_public": false,
+      "voice_ids": [123, 124, 125]
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/collections",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "name": "Podcast Voices",
+            "description": "Collection of voices for podcast production",
+            "is_public": False,
+            "voice_ids": [123, 124, 125]
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### List Voice Collections
+
+Get all voice collections for the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/voice/collections?include_voices=true
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/voice/collections",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"include_voices": True}
+    )
+    
+    collections = response.json()
+    for collection in collections:
+        print(f"Collection: {collection['name']} - {collection['voice_count']} voices")
+    ```
+  </Tab>
+</Tabs>
+
+## Multi-Voice Generation
+
+### Generate Multi-Speaker Content
+
+Create audio with multiple speakers using different voice models.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/multi-voice-tts
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "segments": [
+        {
+          "text": "Hello, I'm the first speaker.",
+          "voice_id": 123,
+          "speaker_label": "Host"
+        },
+        {
+          "text": "And I'm the second speaker.",
+          "voice_id": 124,
+          "speaker_label": "Guest"
+        }
+      ],
+      "mix_mode": "sequential",
+      "output_format": "wav",
+      "silence_duration": 0.5
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/multi-voice-tts",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json={
+            "segments": [
+                {
+                    "text": "Hello, I'm the first speaker.",
+                    "voice_id": 123,
+                    "speaker_label": "Host"
+                },
+                {
+                    "text": "And I'm the second speaker.",
+                    "voice_id": 124,
+                    "speaker_label": "Guest"
+                }
+            ],
+            "mix_mode": "sequential",
+            "output_format": "wav",
+            "silence_duration": 0.5
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Voice Conversion
+
+### Convert Audio to Different Voice
+
+Transform existing audio to use a different voice model.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voice-convert
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    voice_uuid: 550e8400-e29b-41d4-a716-446655440000
+    file: (source audio file)
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    with open("source_audio.wav", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/voice/voice-convert",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={"voice_uuid": "550e8400-e29b-41d4-a716-446655440000"},
+            files={"file": audio_file}
+        )
+    
+    if response.status_code == 200:
+        conversion_job = response.json()
+        print(f"Conversion job created: {conversion_job['id']}")
+    ```
+  </Tab>
+</Tabs>
+
+## Best Practices
+
+### Audio Quality Requirements
+
+For best voice cloning results:
+
+- **Duration**: 10-60 seconds of clean audio
+- **Format**: WAV, MP3, or M4A
+- **Sample Rate**: 22kHz or higher
+- **Quality**: Clear speech without background noise
+- **Content**: Natural speech with varied intonation
+
+### Training Tips
+
+```python
+# Good training audio characteristics
+training_requirements = {
+    "duration": "10-60 seconds",
+    "background_noise": "minimal",
+    "speech_style": "natural and conversational",
+    "emotions": "varied but not extreme",
+    "volume": "consistent throughout",
+    "breathing": "natural pauses included"
 }
+
+# Multiple samples for better quality
+sample_types = [
+    "conversational_speech.wav",  # Natural conversation
+    "reading_aloud.wav",         # Clear articulation
+    "emotional_speech.wav"       # Some emotional variation
+]
 ```
+
+### Cost Optimization
+
+- **Voice Model Training**: 500 credits per voice model
+- **Speech Generation**: 5 credits per minute of generated audio
+- **Voice Conversion**: 8 credits per minute of source audio
+
+## Error Handling
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - Invalid Audio">
+    **Causes:** - Audio file too short (<10 seconds) - Unsupported audio format - 
+    Corrupted audio file **Solutions:** - Use WAV/MP3 files with clear speech - 
+    Ensure minimum 10 seconds duration - Check audio file integrity
+  </Accordion>
+
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    **Causes:** - Not enough credits for voice training - Account credit limit exceeded
+    **Solutions:** - Purchase additional credits - Check credit balance before training
+  </Accordion>
+
+  <Accordion title="404 Not Found - Voice Model Missing">
+    **Causes:** - Voice ID doesn't exist - Voice model was deleted - Access denied to voice
+    **Solutions:** - Verify voice ID is correct - Check if voice model is still active
+  </Accordion>
+</AccordionGroup>
 
 ## Pricing
 
-Voice cloning uses a one-time training cost plus standard TTS usage:
+Voice cloning costs are based on training and generation:
 
-### Training Costs
-
-- **Basic Training**: 500 credits (10-60 seconds of sample audio)
-- **Premium Training**: 1,000 credits (multiple samples, higher quality)
-- **Medical/Professional**: 2,000 credits (specialized training)
-
-### Usage Costs
-
-- Same as standard Text-to-Speech: 1 credit per 1,000 characters
-- No additional cost for using cloned voices
-
-### Cost Examples
-
-| Training Type | Sample Length | Training Cost         | Usage Cost         |
-| ------------- | ------------- | --------------------- | ------------------ |
-| Basic         | 30 seconds    | 500 credits ($0.50)   | Standard TTS rates |
-| Premium       | 2-5 minutes   | 1,000 credits ($1.00) | Standard TTS rates |
-| Multi-sample  | 3-10 samples  | 1,500 credits ($1.50) | Standard TTS rates |
-| Medical       | 10+ minutes   | 2,000 credits ($2.00) | Standard TTS rates |
-
-## Legal and Ethical Considerations
-
-### Usage Guidelines
-
-**✅ Permitted Uses:**
-
-- Cloning your own voice
-- Cloning voices with explicit written consent
-- Creating fictional character voices from voice actors
-- Medical voice preservation with patient consent
-- Educational and research purposes
-
-**❌ Prohibited Uses:**
-
-- Cloning voices without permission
-- Impersonating others for deceptive purposes
-- Creating fake audio for misinformation
-- Violating privacy or consent
-
-### Consent and Documentation
-
-```python
-# Example consent verification system
-def create_voice_with_consent(sample_audio, consent_info):
-    """Create voice clone with proper consent documentation"""
-
-    voice = client.voice_cloning.create(
-        name=consent_info["voice_name"],
-        sample_audio=sample_audio,
-        language=consent_info["language"],
-        # Consent documentation
-        consent_provided=True,
-        consent_document_id=consent_info["consent_id"],
-        voice_owner=consent_info["owner_name"],
-        use_case=consent_info["intended_use"],
-        consent_date=consent_info["consent_date"]
-    )
-
-    return voice
-```
+| Operation | Cost | Description |
+|-----------|------|-------------|
+| Voice Model Training | 500 credits | Per voice model created |
+| Speech Generation | 5 credits/minute | Generated audio duration |
+| Voice Conversion | 8 credits/minute | Source audio duration |
+| Multi-Voice Generation | 7 credits/minute | Combined output duration |
 
 ## Next Steps
 
 <Columns cols={2}>
-  <Card title="Voice Changer" icon="magic-wand" href="/features/voice-changer">
-    Transform and modify voice characteristics in real-time.
+  <Card title="Text-to-Speech" icon="microphone" href="/api-reference/text-to-speech">
+    Use built-in voices for immediate speech generation.
   </Card>
-  <Card
-    title="Text-to-Speech"
-    icon="microphone"
-    href="/features/text-to-speech"
-  >
-    Use your cloned voices to generate speech.
+  <Card title="Voice Management" icon="settings" href="/api-reference/voice-management">
+    Explore available voice options and management features.
   </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/voice-cloning">
-    Detailed API documentation for voice cloning.
+  <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
+    Convert speech back to text with transcription services.
   </Card>
-  <Card
-    title="Best Practices"
-    icon="lightbulb"
-    href="/guides/voice-cloning-best-practices"
-  >
-    Learn advanced techniques for high-quality voice cloning.
+  <Card title="Audio Processing" icon="volume" href="/api-reference/noise-reduction">
+    Enhance audio quality before voice training.
   </Card>
 </Columns>
