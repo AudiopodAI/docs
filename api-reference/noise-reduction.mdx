@@ -1,857 +1,342 @@
 ---
 title: "Noise Reduction API"
-description: "Advanced AI-powered audio denoising and enhancement using deep learning models and spectral processing"
+description: "Remove background noise, enhance audio quality, and clean up recordings using AudioPod AI's advanced noise reduction technology."
 ---
 
 ## Overview
 
-The AudioPod AI Noise Reduction API provides state-of-the-art audio denoising capabilities using deep learning models and spectral gating techniques. Our advanced system removes background noise, enhances speech clarity, and improves overall audio quality for podcasts, recordings, and real-time communication applications.
+AudioPod AI's Noise Reduction API uses advanced AI models to remove background noise, enhance speech clarity, and improve overall audio quality. Process recordings to eliminate unwanted sounds while preserving the natural characteristics of speech and music.
 
-<Info>
-  Our noise reduction system combines multiple approaches including deep learning neural networks, advanced spectral gating algorithms, and adaptive filtering to achieve superior results across different noise types and audio conditions. The system automatically selects the best approach based on audio characteristics.
-</Info>
+### Key Features
 
-## Quick Start
+- **AI-Powered Denoising**: Advanced neural networks for intelligent noise removal
+- **Multiple Quality Modes**: Balanced, aggressive, and preserving modes
+- **Spectral Processing**: Traditional spectral subtraction for specific noise types
+- **Voice Preservation**: Maintain natural speech characteristics during cleanup
+- **Video Support**: Process audio from video files while preserving video streams
+- **Batch Processing**: Handle multiple files efficiently
 
-### Basic Noise Reduction
+## Authentication
+
+All endpoints require authentication:
+- **API Key**: `Authorization: Bearer your_api_key`
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## AI Noise Reduction
+
+### Standard Denoising
+
+Remove background noise using AI-powered denoising models.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /denoiser/process
-    Authorization: Bearer {access_token}
+    POST /api/v1/denoiser/denoise
+    Authorization: Bearer {api_key}
     Content-Type: multipart/form-data
     
-    file: audio_file.wav
-    strength: 0.8
+    file: (audio/video file)
+    quality_mode: balanced
     ```
   </Tab>
   <Tab title="Python">
     ```python
     import requests
     
-    # Process audio file
-    with open("noisy_audio.wav", "rb") as audio_file:
+    with open("noisy_recording.wav", "rb") as audio_file:
         response = requests.post(
-            "https://api.audiopod.ai/api/v1/denoiser/process",
-            headers={"Authorization": f"Bearer {access_token}"},
-            files={"file": audio_file},
-            data={"strength": 0.8}
+            "https://api.audiopod.ai/api/v1/denoiser/denoise",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "quality_mode": "balanced"  # "balanced", "aggressive", "preserving"
+            },
+            files={"file": audio_file}
         )
     
     if response.status_code == 200:
-        result = response.json()
-        denoised_url = result["denoised_audio_url"]
-        print(f"Denoised audio: {denoised_url}")
+        job_data = response.json()
+        job_id = job_data["id"]
+        print(f"Denoising job created: {job_id}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/denoiser/process" \
-      -H "Authorization: Bearer YOUR_TOKEN" \
-      -F "file=@noisy_audio.wav" \
-      -F "strength=0.8"
+    curl -X POST "https://api.audiopod.ai/api/v1/denoiser/denoise" \
+      -H "Authorization: Bearer your_api_key" \
+      -F "file=@noisy_recording.wav" \
+      -F "quality_mode=balanced"
     ```
   </Tab>
 </Tabs>
 
-## Core Features
+### Denoise from URL
 
-### Advanced Denoising
-
-Remove various types of background noise while preserving audio quality.
+Process audio/video from URLs (YouTube, etc.) to remove noise.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /denoiser/advanced
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
+    POST /api/v1/denoiser/denoise
+    Authorization: Bearer {api_key}
+    Content-Type: application/x-www-form-urlencoded
     
-    {
-      "audio_url": "https://example.com/audio.wav",
-      "method": "deep_learning",
-      "noise_profile": "office",
-      "strength": 0.75,
-      "preserve_speech": true,
-      "output_format": "wav"
-    }
+    url=https://youtube.com/watch?v=example123&quality_mode=aggressive
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/denoiser/advanced",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "audio_url": "https://example.com/audio.wav",
-            "method": "deep_learning",
-            "noise_profile": "office",
-            "strength": 0.75,
-            "preserve_speech": True,
-            "output_format": "wav"
+        "https://api.audiopod.ai/api/v1/denoiser/denoise",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "url": "https://youtube.com/watch?v=example123",
+            "quality_mode": "aggressive"  # More aggressive noise removal
         }
     )
     
-    result = response.json()
-    job_id = result["job_id"]
-    
-    # Poll for completion
-    status_response = requests.get(
-        f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
+    if response.status_code == 200:
+        job_data = response.json()
+        print(f"URL denoising started: {job_data['id']}")
     ```
   </Tab>
 </Tabs>
+
+**Quality Modes:**
+- **`balanced`**: Good balance between noise removal and audio preservation
+- **`aggressive`**: Maximum noise removal, may slightly affect audio quality
+- **`preserving`**: Conservative approach, preserves original audio characteristics
 
 **Response:**
 
 ```json
 {
-  "job_id": "job_denoise_abc123",
-  "status": "processing",
-  "estimated_completion": "2024-01-15T10:35:00Z",
-  "method": "deep_learning",
-  "input_audio": {
-    "url": "https://example.com/audio.wav",
-    "duration": 120.5,
-    "format": "wav",
-    "sample_rate": 44100
-  }
+  "id": 123,
+  "status": "PROCESSING",
+  "progress": 0,
+  "input_path": "/uploads/noisy_recording.wav",
+  "is_video": false,
+  "task_id": "celery_task_uuid_here",
+  "created_at": "2024-01-15T10:30:00Z",
+  "original_filename": "noisy_recording.wav",
+  "quality_mode": "balanced"
 }
 ```
 
-### Real-time Denoising
+## Spectral Noise Reduction
 
-Process audio streams in real-time for live applications.
+### Advanced Spectral Processing
 
-<Tabs>
-  <Tab title="WebSocket">
-    ```javascript
-    // WebSocket real-time denoising
-    const ws = new WebSocket('wss://api.audiopod.ai/ws/v1/denoiser');
-    
-    ws.onopen = () => {
-      // Authenticate
-      ws.send(JSON.stringify({
-        type: 'auth',
-        token: 'your_access_token',
-        config: {
-          method: 'spectral_gating',
-          strength: 0.7,
-          latency_mode: 'low'
-        }
-      }));
-    };
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      
-      if (data.type === 'audio_processed') {
-        // Received denoised audio chunk
-        const cleanAudio = data.audio_data;
-        playAudioChunk(cleanAudio);
-      }
-    };
-    
-    // Send audio chunks for processing
-    function sendAudioChunk(audioBuffer) {
-      ws.send(JSON.stringify({
-        type: 'process_chunk',
-        audio_data: arrayBufferToBase64(audioBuffer)
-      }));
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import asyncio
-    import websockets
-    import json
-    import base64
-    
-    async def real_time_denoise():
-        uri = "wss://api.audiopod.ai/ws/v1/denoiser"
-        
-        async with websockets.connect(uri) as websocket:
-            # Authenticate
-            auth_message = {
-                "type": "auth",
-                "token": access_token,
-                "config": {
-                    "method": "spectral_gating",
-                    "strength": 0.7,
-                    "latency_mode": "low"
-                }
-            }
-            await websocket.send(json.dumps(auth_message))
-            
-            # Process audio chunks
-            async for message in websocket:
-                data = json.loads(message)
-                
-                if data["type"] == "audio_processed":
-                    clean_audio = base64.b64decode(data["audio_data"])
-                    # Handle denoised audio
-                    process_clean_audio(clean_audio)
-    
-    asyncio.run(real_time_denoise())
-    ```
-  </Tab>
-</Tabs>
-
-### Batch Processing
-
-Process multiple audio files efficiently.
+Use traditional spectral subtraction for specific noise types and fine control.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /denoiser/batch
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
+    POST /api/v1/denoiser/spectral/denoise
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
     
-    {
-      "files": [
-        {
-          "url": "https://example.com/audio1.wav",
-          "name": "interview_part1"
-        },
-        {
-          "url": "https://example.com/audio2.mp3",
-          "name": "interview_part2"
-        }
-      ],
-      "settings": {
-        "method": "deep_learning",
-        "strength": 0.8,
-        "output_format": "mp3",
-        "noise_profile": "interview"
-      }
-    }
+    file: (audio file)
+    noise_type: general
+    prop_decrease: 0.8
+    stationary: true
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    files_to_process = [
-        {"url": "https://example.com/audio1.wav", "name": "interview_part1"},
-        {"url": "https://example.com/audio2.mp3", "name": "interview_part2"}
-    ]
-    
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/denoiser/batch",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "files": files_to_process,
-            "settings": {
-                "method": "deep_learning",
-                "strength": 0.8,
-                "output_format": "mp3",
-                "noise_profile": "interview"
-            }
-        }
-    )
-    
-    batch_job = response.json()
-    batch_id = batch_job["batch_id"]
-    
-    # Monitor batch progress
-    while True:
-        status_response = requests.get(
-            f"https://api.audiopod.ai/api/v1/denoiser/batch/{batch_id}",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        
-        status = status_response.json()
-        if status["status"] == "completed":
-            break
-        
-        print(f"Progress: {status['completed_files']}/{status['total_files']}")
-        time.sleep(5)
-    ```
-  </Tab>
-</Tabs>
-
-## Denoising Methods
-
-### Deep Learning Model
-
-Our primary denoising method using advanced neural networks.
-
-**Features:**
-
-- Superior noise reduction quality
-- Preserves speech naturalness
-- Handles complex noise patterns
-- Adaptive to different audio types
-
-**Configuration:**
-
-```json
-{
-  "method": "deep_learning",
-  "model_variant": "v2",
-  "strength": 0.8,
-  "preserve_speech": true,
-  "adaptive_threshold": true
-}
-```
-
-### Spectral Gating
-
-Traditional but effective spectral subtraction method.
-
-**Features:**
-
-- Fast processing
-- Low computational requirements
-- Good for stationary noise
-- Real-time capable
-
-**Configuration:**
-
-```json
-{
-  "method": "spectral_gating",
-  "gate_threshold": -20,
-  "frequency_smoothing": 0.05,
-  "time_smoothing": 0.1
-}
-```
-
-### Hybrid Approach
-
-Combines multiple denoising techniques for optimal results.
-
-**Configuration:**
-
-```json
-{
-  "method": "hybrid",
-  "primary_method": "deep_learning",
-  "fallback_method": "spectral_gating",
-  "quality_threshold": 0.85
-}
-```
-
-## Noise Profiles
-
-### Predefined Profiles
-
-Choose from optimized profiles for common scenarios:
-
-| Profile        | Description                | Best For              |
-| -------------- | -------------------------- | --------------------- |
-| `general`      | Balanced noise reduction   | Mixed content         |
-| `speech`       | Optimized for voice        | Podcasts, interviews  |
-| `music`        | Preserves musical quality  | Music recordings      |
-| `office`       | Office/indoor environments | Meetings, calls       |
-| `outdoor`      | Wind and outdoor noise     | Field recordings      |
-| `traffic`      | Vehicle and road noise     | Urban recordings      |
-| `cafe`         | Background chatter         | Restaurant recordings |
-| `construction` | Heavy machinery noise      | Industrial settings   |
-
-### Custom Noise Profiles
-
-Create custom profiles for specific environments:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /denoiser/profiles
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "name": "my_studio_profile",
-      "description": "Custom profile for my recording studio",
-      "noise_sample_url": "https://example.com/studio_noise.wav",
-      "settings": {
-        "frequency_range": [100, 8000],
-        "sensitivity": 0.7,
-        "adaptation_rate": 0.3
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # Create custom noise profile
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/denoiser/profiles",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "name": "my_studio_profile",
-            "description": "Custom profile for my recording studio",
-            "noise_sample_url": "https://example.com/studio_noise.wav",
-            "settings": {
-                "frequency_range": [100, 8000],
-                "sensitivity": 0.7,
-                "adaptation_rate": 0.3
-            }
-        }
-    )
-    
-    profile = response.json()
-    profile_id = profile["profile_id"]
-    
-    # Use custom profile
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/denoiser/process",
-        headers={"Authorization": f"Bearer {access_token}"},
-        files={"file": open("audio.wav", "rb")},
-        data={"noise_profile": profile_id}
-    )
-    ```
-  </Tab>
-</Tabs>
-
-## Quality Enhancement
-
-### Audio Enhancement Features
-
-Beyond noise reduction, enhance overall audio quality:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /denoiser/enhance
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "audio_url": "https://example.com/audio.wav",
-      "enhancements": {
-        "noise_reduction": true,
-        "volume_normalization": true,
-        "dynamic_range_compression": false,
-        "eq_adjustment": true,
-        "reverb_reduction": true
-      },
-      "target_quality": "broadcast"
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/denoiser/enhance",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "audio_url": "https://example.com/audio.wav",
-            "enhancements": {
-                "noise_reduction": True,
-                "volume_normalization": True,
-                "dynamic_range_compression": False,
-                "eq_adjustment": True,
-                "reverb_reduction": True
+    with open("recording_with_hum.wav", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/denoiser/spectral/denoise",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "noise_type": "electrical_hum",  # Specific noise type
+                "prop_decrease": 0.8,            # 80% noise reduction
+                "stationary": True,              # Constant noise
+                "time_constant_s": 2.0,          # Adaptation time
+                "freq_mask_smooth_hz": 500,      # Frequency smoothing
+                "time_mask_smooth_ms": 50        # Time smoothing
             },
-            "target_quality": "broadcast"
-        }
-    )
+            files={"file": audio_file}
+        )
     
-    enhancement_job = response.json()
+    if response.status_code == 200:
+        job_data = response.json()
+        print(f"Spectral denoising job: {job_data['id']}")
     ```
   </Tab>
 </Tabs>
 
-### Quality Metrics
+**Noise Types:**
+- **`general`**: General background noise
+- **`electrical_hum`**: 50/60Hz electrical interference
+- **`air_conditioning`**: HVAC and fan noise
+- **`traffic`**: Vehicle and road noise
+- **`crowd`**: Background conversations and crowd noise
 
-Get detailed quality analysis before and after processing:
+## Job Management
+
+### Get Job Status
+
+Monitor the progress of noise reduction jobs.
 
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /denoiser/jobs/{job_id}/metrics
-    Authorization: Bearer {access_token}
+    GET /api/v1/denoiser/jobs/{job_id}
+    Authorization: Bearer {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}/metrics",
-        headers={"Authorization": f"Bearer {access_token}"}
+        f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
     )
     
-    metrics = response.json()
-    print(f"SNR improvement: {metrics['snr_improvement_db']} dB")
-    print(f"Quality score: {metrics['quality_score']}/10")
+    if response.status_code == 200:
+        job_status = response.json()
+        print(f"Status: {job_status['status']}")
+        print(f"Progress: {job_status['progress']}%")
+        
+        if job_status["status"] == "COMPLETED":
+            print("Denoising complete!")
+            print(f"Output URL: {job_status['output_url']}")
     ```
   </Tab>
 </Tabs>
 
-**Response:**
+**Response (Completed):**
 
 ```json
 {
-  "job_id": "job_denoise_abc123",
-  "metrics": {
-    "original_quality": {
-      "snr_db": -5.2,
-      "thd_percent": 2.1,
-      "dynamic_range_db": 45.3,
-      "quality_score": 3.2
-    },
-    "processed_quality": {
-      "snr_db": 18.7,
-      "thd_percent": 0.8,
-      "dynamic_range_db": 52.1,
-      "quality_score": 8.6
-    },
-    "improvements": {
-      "snr_improvement_db": 23.9,
-      "noise_reduction_percent": 87.3,
-      "clarity_improvement": 5.4
-    }
+  "id": 123,
+  "status": "COMPLETED",
+  "progress": 100,
+  "input_path": "/uploads/noisy_recording.wav",
+  "output_path": "/processed/clean_recording_123.wav",
+  "video_output_path": null,
+  "is_video": false,
+  "task_id": "celery_task_uuid_here",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:32:15Z",
+  "completed_at": "2024-01-15T10:32:15Z",
+  "output_url": "https://api.audiopod.ai/download/clean_recording_123.wav",
+  "video_output_url": null,
+  "original_filename": "noisy_recording.wav",
+  "display_name": "Clean Recording",
+  "stats": {
+    "noise_reduction_db": 15.2,
+    "snr_improvement": 8.7,
+    "processing_time": 135.4,
+    "audio_duration": 180.0
   }
 }
 ```
 
-## Job Management
+### List Denoising Jobs
 
-### Check Job Status
-
-Monitor processing progress for long-running jobs:
+Get all noise reduction jobs for the authenticated user.
 
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /denoiser/jobs/{job_id}
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    def wait_for_completion(job_id, timeout=300):
-        start_time = time.time()
-        
-        while time.time() - start_time < timeout:
-            response = requests.get(
-                f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}",
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-            
-            job = response.json()
-            status = job["status"]
-            
-            if status == "completed":
-                return job["result"]
-            elif status == "failed":
-                raise Exception(f"Job failed: {job['error']}")
-            
-            print(f"Status: {status} - Progress: {job.get('progress', 0)}%")
-            time.sleep(5)
-        
-        raise TimeoutError("Job did not complete within timeout")
-    
-    result = wait_for_completion(job_id)
-    ```
-  </Tab>
-</Tabs>
-
-### List User Jobs
-
-Get all denoising jobs for the authenticated user:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /denoiser/jobs?status=completed&limit=20
-    Authorization: Bearer {access_token}
+    GET /api/v1/denoiser/jobs?limit=50&skip=0
+    Authorization: Bearer {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/denoiser/jobs",
-        headers={"Authorization": f"Bearer {access_token}"},
+        headers={"Authorization": f"Bearer {api_key}"},
         params={
-            "status": "completed",
-            "limit": 20,
-            "order_by": "created_at",
-            "order": "desc"
+            "limit": 50,
+            "skip": 0
         }
     )
     
-    jobs = response.json()["jobs"]
-    for job in jobs:
-        print(f"Job {job['id']}: {job['input_filename']} -> {job['status']}")
+    if response.status_code == 200:
+        jobs = response.json()
+        for job in jobs:
+            print(f"Job {job['id']}: {job['status']} - {job['original_filename']}")
     ```
   </Tab>
 </Tabs>
 
-### Cancel Job
+### Retry Failed Job
 
-Cancel a running denoising job:
+Retry a failed noise reduction job.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/denoiser/jobs/{job_id}/retry
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Job
+
+Remove a completed job and its results.
 
 <Tabs>
   <Tab title="DELETE">
     ```http
-    DELETE /denoiser/jobs/{job_id}
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.delete(
-        f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {access_token}"}
-    )
-    
-    if response.status_code == 200:
-        print("Job cancelled successfully")
+    DELETE /api/v1/denoiser/jobs/{job_id}
+    Authorization: Bearer {api_key}
     ```
   </Tab>
 </Tabs>
 
-## Advanced Configuration
-
-### Processing Parameters
-
-Fine-tune the denoising process with advanced parameters:
-
-| Parameter          | Type    | Description                    | Range       |
-| ------------------ | ------- | ------------------------------ | ----------- |
-| `strength`         | float   | Noise reduction strength       | 0.0 - 1.0   |
-| `preserve_speech`  | boolean | Prioritize speech preservation | true/false  |
-| `frequency_range`  | array   | Target frequency range (Hz)    | [20, 20000] |
-| `gate_threshold`   | float   | Spectral gate threshold (dB)   | -40 to 0    |
-| `adaptation_rate`  | float   | Model adaptation speed         | 0.0 - 1.0   |
-| `smoothing_factor` | float   | Temporal smoothing             | 0.0 - 1.0   |
-
-### Output Formats
-
-Supported audio output formats:
-
-| Format | Extension | Quality  | Use Case           |
-| ------ | --------- | -------- | ------------------ |
-| WAV    | .wav      | Lossless | Professional audio |
-| MP3    | .mp3      | Lossy    | Web streaming      |
-| FLAC   | .flac     | Lossless | Archival           |
-| AAC    | .aac      | Lossy    | Mobile apps        |
-| OGG    | .ogg      | Lossy    | Open source        |
-
 ## Error Handling
 
-### Common Error Responses
-
 <AccordionGroup>
-  <Accordion title="400 Bad Request - Invalid Audio Format">
-    ```json
-    {
-      "error": {
-        "code": "invalid_audio_format",
-        "message": "Unsupported audio format",
-        "details": {
-          "supported_formats": ["wav", "mp3", "flac", "aac", "ogg"],
-          "received_format": "wma"
-        }
-      }
-    }
-    ```
+  <Accordion title="400 Bad Request - Invalid Audio">
+    **Causes:** - Audio file corrupted or invalid format - File contains no audio content - Unsupported codec
+    **Solutions:** - Use supported formats (WAV, MP3, M4A, MP4) - Verify file integrity - Check audio content exists
   </Accordion>
-  
-  <Accordion title="400 Bad Request - Invalid Parameters">
-    ```json
-    {
-      "error": {
-        "code": "invalid_parameters",
-        "message": "Invalid denoising parameters",
-        "details": {
-          "strength": ["Must be between 0.0 and 1.0"],
-          "method": ["Unknown method 'invalid_method'"]
-        }
-      }
-    }
-    ```
+
+  <Accordion title="422 Processing Error - Denoising Failed">
+    **Causes:** - Audio quality too poor for processing - Extreme noise levels - Very short audio duration
+    **Solutions:** - Try different quality mode - Use spectral processing for specific noise types - Ensure minimum 5 seconds duration
   </Accordion>
-  
-  <Accordion title="413 Payload Too Large - File Size Limit">
-    ```json
-    {
-      "error": {
-        "code": "file_too_large",
-        "message": "Audio file exceeds maximum size limit",
-        "details": {
-          "max_size_mb": 500,
-          "received_size_mb": 750
-        }
-      }
-    }
-    ```
-  </Accordion>
-  
-  <Accordion title="422 Unprocessable Entity - Poor Audio Quality">
-    ```json
-    {
-      "error": {
-        "code": "poor_audio_quality",
-        "message": "Audio quality too poor for effective denoising",
-        "suggestion": "Try using a higher quality recording or different settings"
-      }
-    }
-    ```
-  </Accordion>
-  
-  <Accordion title="429 Rate Limited">
-    ```json
-    {
-      "error": {
-        "code": "rate_limit_exceeded",
-        "message": "Too many denoising requests",
-        "retry_after": 60
-      }
-    }
-    ```
+
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    **Causes:** - Not enough credits for processing duration
+    **Solutions:** - Purchase additional credits - Check credit requirements before processing
   </Accordion>
 </AccordionGroup>
 
-## Rate Limits & Costs
+## Pricing
 
-### Rate Limiting
+Noise reduction pricing is based on audio duration:
 
-| Endpoint             | Rate Limit  | Window   |
-| -------------------- | ----------- | -------- |
-| `/denoiser/process`  | 10 requests | 1 minute |
-| `/denoiser/advanced` | 5 requests  | 1 minute |
-| `/denoiser/batch`    | 2 requests  | 1 minute |
-| Real-time WebSocket  | 100 chunks  | 1 minute |
+| Service | Cost | Description |
+|---------|------|-------------|
+| AI Denoising | 5 credits/minute | Advanced neural network processing |
+| Spectral Processing | 3 credits/minute | Traditional spectral subtraction |
 
-### Credit Costs
+### Cost Examples
 
-| Operation               | Credits per Minute |
-| ----------------------- | ------------------ |
-| Basic denoising         | 2 credits          |
-| Advanced denoising      | 5 credits          |
-| Real-time denoising     | 8 credits          |
-| Quality enhancement     | 3 credits          |
-| Custom profile creation | 10 credits         |
+| Duration | Method | Credits | USD Cost |
+|----------|--------|---------|----------|
+| 10 minutes | AI Denoising | 50 | $0.05 |
+| 30 minutes | Spectral | 90 | $0.09 |
+| 1 hour | AI Denoising | 300 | $0.30 |
 
-## SDK Examples
+## Next Steps
 
-### Python SDK
-
-```python
-from audiopod import AudioPodClient
-
-# Initialize client
-client = AudioPodClient(api_key="your_api_key")
-
-# Simple denoising
-result = client.denoiser.process(
-    file_path="noisy_audio.wav",
-    strength=0.8,
-    method="deep_learning"
-)
-
-# Advanced denoising with custom settings
-advanced_result = client.denoiser.advanced_process(
-    file_path="complex_noise.wav",
-    settings={
-        "method": "hybrid",
-        "noise_profile": "office",
-        "enhancements": {
-            "volume_normalization": True,
-            "eq_adjustment": True
-        }
-    }
-)
-
-# Real-time denoising
-with client.denoiser.real_time_session(
-    method="spectral_gating",
-    latency_mode="low"
-) as session:
-    for audio_chunk in audio_stream:
-        clean_chunk = session.process_chunk(audio_chunk)
-        output_stream.write(clean_chunk)
-```
-
-### JavaScript SDK
-
-```javascript
-import { AudioPodClient } from "@audiopod/js-sdk";
-
-const client = new AudioPodClient({
-  apiKey: "your_api_key",
-});
-
-// Process audio file
-const result = await client.denoiser.process({
-  file: audioFile,
-  strength: 0.8,
-  method: "deep_learning",
-});
-
-// Real-time WebSocket denoising
-const denoiser = await client.denoiser.createRealTimeSession({
-  method: "spectral_gating",
-  strength: 0.7,
-});
-
-denoiser.on("processed", (cleanAudio) => {
-  playAudioChunk(cleanAudio);
-});
-
-// Send audio chunks
-mediaRecorder.ondataavailable = (event) => {
-  denoiser.processChunk(event.data);
-};
-```
-
-## Best Practices
-
-### Optimization Tips
-
-1. **Choose the right method**: Deep learning for quality, spectral gating for speed
-2. **Use appropriate noise profiles**: Improves results significantly
-3. **Adjust strength carefully**: Too high may degrade speech quality
-4. **Preprocess when possible**: Remove obvious artifacts before denoising
-5. **Monitor quality metrics**: Use feedback to tune parameters
-6. **Batch similar content**: Group files with similar characteristics
-
-### Quality Guidelines
-
-1. **Input Requirements**:
-
-   - Minimum sample rate: 16 kHz
-   - Recommended: 44.1 kHz or higher
-   - Avoid heavily compressed audio
-   - Ensure sufficient audio levels
-
-2. **Parameter Selection**:
-   - Start with strength 0.7-0.8
-   - Use preserve_speech for voice content
-   - Custom profiles for consistent environments
-   - Real-time mode for latency-critical applications
-
-### Integration Examples
-
-```python
-# Production pipeline example
-class AudioProcessor:
-    def __init__(self, api_key):
-        self.client = AudioPodClient(api_key)
-        self.quality_threshold = 0.7
-
-    def process_audio(self, file_path, output_path):
-        # Analyze quality first
-        quality = self.client.audio.analyze_quality(file_path)
-
-        if quality.noise_level > self.quality_threshold:
-            # Apply denoising
-            result = self.client.denoiser.process(
-                file_path=file_path,
-                method="deep_learning",
-                strength=min(quality.noise_level, 0.9)
-            )
-
-            # Download processed audio
-            self.client.download_file(result.audio_url, output_path)
-            return result.metrics
-        else:
-            # Audio quality sufficient, no processing needed
-            shutil.copy(file_path, output_path)
-            return quality
-```
+<Columns cols={2}>
+  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-cloning">
+    Use cleaned audio for better voice model training.
+  </Card>
+  <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
+    Improve transcription accuracy with clean audio.
+  </Card>
+  <Card title="Speaker Extraction" icon="users" href="/api-reference/speaker-extraction">
+    Better speaker separation with noise-free audio.
+  </Card>
+  <Card title="Media Extraction" icon="download" href="/api-reference/media-extraction">
+    Extract high-quality audio from videos for processing.
+  </Card>
+</Columns>
