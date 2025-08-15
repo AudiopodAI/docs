@@ -80,11 +80,6 @@
           "icon": "house"
         },
         {
-          "anchor": "API Playground",
-          "href": "https://api.audiopod.ai/api/v1/docs",
-          "icon": "code"
-        },
-        {
           "anchor": "Discord Community",
           "href": "https://discord.gg/audiopod",
           "icon": "discord"
