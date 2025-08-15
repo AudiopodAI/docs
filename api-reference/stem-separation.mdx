@@ -1,0 +1,727 @@
+---
+title: "Stem Separation"
+description: "Isolate individual instruments, vocals, and audio components from mixed tracks using AudioPod AI's advanced source separation technology."
+---
+
+## Overview
+
+AudioPod AI's Stem Separation technology uses advanced AI to isolate individual instruments, vocals, and audio components from mixed audio tracks. Perfect for remixing, karaoke creation, music production, and audio analysis.
+
+### Key Features
+
+- **Multi-Stem Separation**: Extract up to 8 individual stems from mixed audio
+- **High-Quality Isolation**: Studio-grade separation with minimal artifacts
+- **Multiple Formats**: Support for various audio formats and quality levels
+- **Batch Processing**: Process multiple tracks efficiently
+- **Custom Separation**: Target specific instruments or frequency ranges
+- **Real-time Processing**: Live stem separation for performances
+- **Stem Analysis**: Get detailed information about separated components
+
+## Quick Start
+
+### Basic Stem Separation
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="your_api_key")
+
+    # Separate stems from mixed audio
+    with open("mixed_song.mp3", "rb") as audio_file:
+        response = client.stem_separation.separate(
+            audio=audio_file,
+            output_stems=["vocals", "drums", "bass", "other"],
+            quality="high"
+        )
+
+    # Save individual stems
+    for stem_name, stem_data in response.stems.items():
+        with open(f"{stem_name}.wav", "wb") as f:
+            f.write(stem_data)
+
+    print(f"Separated {len(response.stems)} stems successfully!")
+    print(f"Original duration: {response.duration}s")
+    print(f"Quality score: {response.quality_score}")
+    ```
+
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import { AudioPod } from 'audiopod-js';
+    import fs from 'fs';
+
+    const client = new AudioPod({ apiKey: 'your_api_key' });
+
+    const audioFile = fs.readFileSync('mixed_song.mp3');
+
+    const response = await client.stemSeparation.separate({
+      audio: audioFile,
+      outputStems: ['vocals', 'drums', 'bass', 'other'],
+      quality: 'high'
+    });
+
+    // Save individual stems
+    for (const [stemName, stemData] of Object.entries(response.stems)) {
+      fs.writeFileSync(`${stemName}.wav`, stemData);
+    }
+
+    console.log(`Separated ${Object.keys(response.stems).length} stems successfully!`);
+    console.log(`Original duration: ${response.duration}s`);
+    console.log(`Quality score: ${response.qualityScore}`);
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-separation" \
+      -H "Authorization: Bearer your_api_key" \
+      -F "audio=@mixed_song.mp3" \
+      -F "output_stems=vocals,drums,bass,other" \
+      -F "quality=high" \
+      -o stems.zip
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "stems": {
+    "vocals": "base64_encoded_vocal_stem",
+    "drums": "base64_encoded_drum_stem",
+    "bass": "base64_encoded_bass_stem",
+    "other": "base64_encoded_other_stem"
+  },
+  "duration": 180.5,
+  "quality_score": 0.87,
+  "separation_info": {
+    "model_used": "udx_v4",
+    "processing_time": 45.2,
+    "artifacts_detected": false,
+    "frequency_analysis": {
+      "vocals": { "range": "80-8000 Hz", "prominence": 0.73 },
+      "drums": { "range": "20-15000 Hz", "prominence": 0.68 },
+      "bass": { "range": "20-250 Hz", "prominence": 0.82 },
+      "other": { "range": "100-20000 Hz", "prominence": 0.45 }
+    }
+  },
+  "metadata": {
+    "credits_used": 120,
+    "processing_id": "sep_abc123"
+  }
+}
+```
+
+## Stem Types and Categories
+
+### Standard Stem Categories
+
+<Tabs>
+  <Tab title="4-Stem (Basic)">
+    - **Vocals** - Lead and backing vocals - **Drums** - Kick, snare, hi-hats,
+    cymbals - **Bass** - Bass guitar, bass synth, sub-bass - **Other** - All
+    other instruments (guitars, keys, etc.) *Best for: General remixing, karaoke
+    creation*
+  </Tab>
+  <Tab title="5-Stem (Enhanced)">
+    - **Vocals** - Lead and backing vocals - **Drums** - Full drum kit -
+    **Bass** - Bass instruments - **Piano** - Piano, keyboard, organ - **Other**
+    - Guitars, strings, brass, etc. *Best for: Music production, detailed
+    remixing*
+  </Tab>
+  <Tab title="8-Stem (Professional)">
+    - **Lead Vocals** - Main vocal track - **Backing Vocals** - Harmony and
+    backing vocals - **Kick Drum** - Kick drum isolated - **Snare/Drums** -
+    Snare and other percussion - **Bass** - Bass instruments - **Piano** - Piano
+    and keyboard - **Guitar** - Electric and acoustic guitars - **Other** -
+    Strings, brass, effects *Best for: Professional mixing, mastering*
+  </Tab>
+  <Tab title="Custom">
+    Define your own stem categories: - **Lead Guitar** - Electric guitar leads -
+    **Rhythm Guitar** - Chord progressions - **Strings** - Violin, viola, cello
+    sections - **Brass** - Trumpet, trombone, saxophone - **Percussion** -
+    Non-kit percussion - **Effects** - Reverb, ambient sounds *Best for:
+    Specialized production needs*
+  </Tab>
+</Tabs>
+
+## Advanced Separation Options
+
+### High-Quality Separation
+
+For professional music production:
+
+```python
+response = client.stem_separation.separate(
+    audio=audio_file,
+    output_stems=["vocals", "drums", "bass", "piano", "guitar", "other"],
+
+    # Quality settings
+    quality="premium",              # standard, high, premium
+    model="professional_v4",        # Latest professional model
+    sample_rate=48000,             # High sample rate
+    bit_depth=24,                  # Professional bit depth
+
+    # Advanced processing
+    artifact_reduction=True,        # Minimize separation artifacts
+    harmonic_preservation=True,     # Preserve harmonic content
+    stereo_separation=True,         # Maintain stereo imaging
+
+    # Analysis options
+    include_analysis=True,          # Detailed stem analysis
+    confidence_scores=True,         # Separation confidence per stem
+    spectral_analysis=True          # Frequency analysis
+)
+
+# Access detailed analysis
+for stem_name, analysis in response.stem_analysis.items():
+    print(f"{stem_name}:")
+    print(f"  Confidence: {analysis.separation_confidence}")
+    print(f"  Dominant frequencies: {analysis.frequency_peaks}")
+    print(f"  Dynamic range: {analysis.dynamic_range}")
+```
+
+### Genre-Specific Separation
+
+Optimize for different music genres:
+
+```python
+# Rock/Metal separation
+rock_separation = client.stem_separation.separate(
+    audio=audio_file,
+    genre_optimization="rock",
+    output_stems=["vocals", "lead_guitar", "rhythm_guitar", "bass", "drums"],
+    enhance_distortion_handling=True,
+    preserve_guitar_harmonics=True
+)
+
+# Electronic music separation
+electronic_separation = client.stem_separation.separate(
+    audio=audio_file,
+    genre_optimization="electronic",
+    output_stems=["vocals", "synth_lead", "synth_pad", "bass", "drums", "effects"],
+    preserve_synthesizer_textures=True,
+    sub_bass_isolation=True
+)
+
+# Classical music separation
+classical_separation = client.stem_separation.separate(
+    audio=audio_file,
+    genre_optimization="classical",
+    output_stems=["strings", "woodwinds", "brass", "percussion", "piano"],
+    preserve_orchestral_blend=True,
+    harmonic_sensitivity="high"
+)
+```
+
+### Custom Instrument Targeting
+
+Target specific instruments for isolation:
+
+```python
+# Target specific instruments
+custom_separation = client.stem_separation.separate(
+    audio=audio_file,
+    custom_targets=[
+        {
+            "name": "lead_guitar",
+            "frequency_range": [80, 5000],
+            "characteristics": ["distorted", "melodic"],
+            "isolation_strength": 0.8
+        },
+        {
+            "name": "saxophone",
+            "frequency_range": [146, 1500],
+            "characteristics": ["wind", "brass"],
+            "isolation_strength": 0.9
+        }
+    ],
+    adaptive_separation=True
+)
+```
+
+## Real-time Stem Separation
+
+For live performances and DJ applications:
+
+```python
+# Initialize real-time stem separator
+live_separator = client.stem_separation.create_stream(
+    output_stems=["vocals", "drums", "bass", "other"],
+    latency="ultra_low",           # <100ms latency
+    buffer_size=1024,              # Small buffer for responsiveness
+    quality="balanced",            # Balance quality vs speed
+    real_time_optimization=True
+)
+
+# Process audio stream
+def process_live_audio():
+    while streaming:
+        # Get audio from input source
+        audio_chunk = get_audio_input()
+
+        # Separate stems in real-time
+        separated_stems = live_separator.process(audio_chunk)
+
+        # Route stems to different outputs
+        for stem_name, stem_audio in separated_stems.items():
+            route_to_output(stem_name, stem_audio)
+
+# DJ mixing example
+def dj_stem_control():
+    """Control individual stems during live performance"""
+
+    while performing:
+        stems = live_separator.get_current_stems()
+
+        # Apply real-time effects to individual stems
+        stems["vocals"] = apply_reverb(stems["vocals"], reverb_level)
+        stems["drums"] = apply_eq(stems["drums"], eq_settings)
+        stems["bass"] = apply_filter(stems["bass"], filter_cutoff)
+
+        # Mix stems with individual volume controls
+        mixed_output = mix_stems(stems, volume_levels)
+        output_audio(mixed_output)
+
+live_separator.close()
+```
+
+## Use Cases & Examples
+
+### Karaoke Creation
+
+```python
+def create_karaoke_version(song_file, options=None):
+    """Create karaoke version by removing vocals"""
+
+    # Separate vocals from instrumental
+    response = client.stem_separation.separate(
+        audio=song_file,
+        output_stems=["vocals", "instrumental"],
+
+        # Karaoke-specific settings
+        vocal_isolation_strength=0.95,  # Strong vocal removal
+        preserve_backing_vocals=options.get("keep_backing", False),
+        harmonic_suppression=True,      # Remove vocal harmonics
+        center_channel_focus=True       # Focus on center-panned vocals
+    )
+
+    # Create different karaoke versions
+    karaoke_versions = {}
+
+    # Pure instrumental (no vocals)
+    karaoke_versions["instrumental"] = response.stems["instrumental"]
+
+    # Vocal guide track (reduced vocals)
+    if options and options.get("vocal_guide"):
+        guide_track = mix_stems({
+            "instrumental": response.stems["instrumental"],
+            "vocals": apply_volume(response.stems["vocals"], 0.3)  # 30% vocal volume
+        })
+        karaoke_versions["vocal_guide"] = guide_track
+
+    # Backing vocals only
+    if "backing_vocals" in response.stems:
+        backing_only = mix_stems({
+            "instrumental": response.stems["instrumental"],
+            "backing_vocals": response.stems["backing_vocals"]
+        })
+        karaoke_versions["backing_only"] = backing_only
+
+    return karaoke_versions
+
+# Example usage
+karaoke_tracks = create_karaoke_version(
+    "popular_song.mp3",
+    options={
+        "keep_backing": True,
+        "vocal_guide": True
+    }
+)
+```
+
+### Remix Production
+
+```python
+def prepare_remix_stems(original_track, remix_style="edm"):
+    """Prepare stems for remixing with genre-specific processing"""
+
+    # Get high-quality stem separation
+    separated = client.stem_separation.separate(
+        audio=original_track,
+        output_stems=["vocals", "drums", "bass", "melody", "harmony"],
+        quality="premium",
+        include_analysis=True
+    )
+
+    # Process stems based on remix style
+    processed_stems = {}
+
+    if remix_style == "edm":
+        # EDM remix processing
+        processed_stems["vocals"] = process_vocals_for_edm(
+            separated.stems["vocals"],
+            effects=["autotune", "reverb", "delay"]
+        )
+
+        processed_stems["drums"] = enhance_drums_for_edm(
+            separated.stems["drums"],
+            add_sidechain=True,
+            boost_kick=True
+        )
+
+        processed_stems["bass"] = process_bass_for_edm(
+            separated.stems["bass"],
+            synthesize=True,
+            sub_bass_boost=True
+        )
+
+    elif remix_style == "hip_hop":
+        # Hip-hop remix processing
+        processed_stems["vocals"] = process_vocals_for_hiphop(
+            separated.stems["vocals"],
+            chop_and_screw=True,
+            vocal_chops=True
+        )
+
+        processed_stems["drums"] = create_hiphop_drums(
+            separated.stems["drums"],
+            swing_quantize=True,
+            add_808s=True
+        )
+
+    # Provide tempo and key information for remix
+    track_info = analyze_track_for_remix(separated)
+
+    return {
+        "stems": processed_stems,
+        "original_tempo": track_info.bpm,
+        "original_key": track_info.key,
+        "suggested_tempo_range": track_info.remix_tempo_range,
+        "harmonic_content": track_info.harmonic_analysis
+    }
+
+def process_vocals_for_edm(vocal_stem, effects):
+    """Process vocals specifically for EDM production"""
+
+    # Apply EDM-style vocal processing
+    processed = client.audio_processing.apply_effects(
+        audio=vocal_stem,
+        effects_chain=[
+            {"type": "pitch_correction", "strength": 0.8},
+            {"type": "compression", "ratio": 4.0, "attack": 1, "release": 100},
+            {"type": "reverb", "room_size": 0.7, "wet_level": 0.3},
+            {"type": "delay", "time": "1/8", "feedback": 0.4, "wet_level": 0.2}
+        ],
+        style="edm_vocal"
+    )
+
+    return processed.audio_data
+```
+
+### Music Analysis and Education
+
+```python
+def analyze_song_structure(song_file, educational_purpose=True):
+    """Analyze song structure for music education"""
+
+    # Separate all possible stems
+    separation = client.stem_separation.separate(
+        audio=song_file,
+        output_stems=["vocals", "drums", "bass", "guitar", "piano", "strings", "other"],
+        include_analysis=True,
+        detailed_metrics=True
+    )
+
+    # Analyze each stem
+    analysis_report = {
+        "song_info": {
+            "duration": separation.duration,
+            "overall_quality": separation.quality_score,
+            "complexity_score": calculate_complexity(separation)
+        },
+        "instruments_present": [],
+        "stem_analysis": {}
+    }
+
+    for stem_name, stem_data in separation.stems.items():
+        stem_analysis = analyze_individual_stem(stem_data, stem_name)
+
+        if stem_analysis.prominence > 0.1:  # Significant presence
+            analysis_report["instruments_present"].append(stem_name)
+            analysis_report["stem_analysis"][stem_name] = {
+                "prominence": stem_analysis.prominence,
+                "frequency_range": stem_analysis.frequency_range,
+                "playing_technique": stem_analysis.detected_technique,
+                "rhythmic_pattern": stem_analysis.rhythm_analysis,
+                "harmonic_content": stem_analysis.harmonic_analysis
+            }
+
+    # Educational insights
+    if educational_purpose:
+        analysis_report["educational_notes"] = generate_educational_insights(
+            analysis_report,
+            include_theory=True,
+            suggest_exercises=True
+        )
+
+    return analysis_report
+
+def create_practice_tracks(original_song, instrument_to_remove):
+    """Create practice tracks for musicians"""
+
+    # Separate the instrument to be practiced
+    separation = client.stem_separation.separate(
+        audio=original_song,
+        output_stems=["target_instrument", "accompaniment"],
+        custom_targets=[{
+            "name": "target_instrument",
+            "instrument_type": instrument_to_remove,
+            "isolation_strength": 0.9
+        }]
+    )
+
+    practice_tracks = {
+        # Track without the target instrument (for practice)
+        "practice_track": separation.stems["accompaniment"],
+
+        # Isolated instrument (for reference)
+        "reference_track": separation.stems["target_instrument"],
+
+        # Mixed with reduced instrument volume (for learning)
+        "learning_track": mix_stems({
+            "accompaniment": separation.stems["accompaniment"],
+            "target_instrument": apply_volume(
+                separation.stems["target_instrument"],
+                0.3  # 30% volume
+            )
+        })
+    }
+
+    return practice_tracks
+```
+
+### Audio Forensics and Restoration
+
+```python
+def audio_forensic_analysis(audio_file, investigation_type="general"):
+    """Analyze audio for forensic purposes"""
+
+    # Perform detailed stem separation
+    forensic_separation = client.stem_separation.separate(
+        audio=audio_file,
+        output_stems=["speech", "background_noise", "music", "effects"],
+
+        # Forensic-specific settings
+        preserve_artifacts=True,        # Keep processing artifacts for analysis
+        maximum_sensitivity=True,       # Highest sensitivity
+        frequency_preservation=True,    # Preserve all frequency content
+        include_phase_info=True        # Include phase relationships
+    )
+
+    forensic_report = {
+        "separation_quality": forensic_separation.quality_score,
+        "detected_sources": [],
+        "anomalies": [],
+        "recommendations": []
+    }
+
+    # Analyze each separated component
+    for stem_name, stem_data in forensic_separation.stems.items():
+        component_analysis = analyze_audio_component(
+            stem_data,
+            analysis_type="forensic"
+        )
+
+        forensic_report["detected_sources"].append({
+            "component": stem_name,
+            "confidence": component_analysis.detection_confidence,
+            "characteristics": component_analysis.audio_characteristics,
+            "potential_source": component_analysis.source_identification,
+            "quality_indicators": component_analysis.quality_metrics
+        })
+
+        # Check for anomalies
+        if component_analysis.anomalies_detected:
+            forensic_report["anomalies"].extend(
+                component_analysis.detected_anomalies
+            )
+
+    # Generate forensic recommendations
+    if investigation_type == "authentication":
+        forensic_report["recommendations"] = generate_authentication_analysis(
+            forensic_separation
+        )
+    elif investigation_type == "enhancement":
+        forensic_report["recommendations"] = generate_enhancement_suggestions(
+            forensic_separation
+        )
+
+    return forensic_report
+```
+
+## Batch Processing
+
+Process multiple tracks efficiently:
+
+```python
+# Batch separate multiple songs
+batch_job = client.stem_separation.batch_separate(
+    files=[
+        {"file": "album_track_01.mp3", "stems": ["vocals", "instrumental"]},
+        {"file": "album_track_02.mp3", "stems": ["vocals", "drums", "bass", "other"]},
+        {"file": "album_track_03.mp3", "stems": ["vocals", "guitar", "piano", "drums", "bass"]}
+    ],
+
+    # Batch settings
+    quality="high",
+    priority="normal",              # low, normal, high, urgent
+    parallel_processing=True,       # Process multiple files simultaneously
+    webhook_url="https://your-app.com/webhook/separation-complete",
+
+    # Output settings
+    output_format="wav",            # wav, flac, mp3
+    normalize_levels=True,          # Normalize stem volumes
+    include_metadata=True           # Include separation metadata
+)
+
+# Monitor batch progress
+status = client.stem_separation.get_batch_status(batch_job.id)
+print(f"Progress: {status.completed}/{status.total} tracks")
+
+# Get results when complete
+if status.status == "completed":
+    results = client.stem_separation.get_batch_results(batch_job.id)
+
+    for result in results:
+        print(f"Track: {result.filename}")
+        print(f"Stems created: {list(result.stems.keys())}")
+        print(f"Quality score: {result.quality_score}")
+```
+
+## Configuration Options
+
+### Quality Settings
+
+```python
+response = client.stem_separation.separate(
+    audio=audio_file,
+
+    # Model selection
+    model="professional_v4",        # standard_v3, professional_v4, experimental_v5
+    genre_optimization="auto",      # auto, rock, pop, electronic, classical, jazz
+
+    # Quality vs Speed
+    processing_priority="quality",  # speed, balanced, quality
+    quality_level="premium",        # standard, high, premium
+
+    # Output configuration
+    output_stems=["vocals", "drums", "bass", "other"],
+    output_format="wav",            # wav, flac, mp3, aac
+    sample_rate=48000,              # 44100, 48000, 96000
+    bit_depth=24,                   # 16, 24, 32
+
+    # Processing options
+    artifact_reduction=True,        # Reduce separation artifacts
+    stereo_preservation=True,       # Maintain stereo imaging
+    harmonic_enhancement=True,      # Enhance harmonic content
+    noise_reduction=True,           # Clean up background noise
+
+    # Analysis options
+    include_confidence_scores=True, # Per-stem confidence
+    include_spectral_analysis=True, # Frequency analysis
+    include_timing_info=True        # Temporal analysis
+)
+```
+
+## Pricing
+
+Stem separation pricing is based on audio duration and number of stems:
+
+### Base Pricing
+
+- **20 credits per minute** for 4-stem separation
+- **30 credits per minute** for 5-8 stem separation
+- **40 credits per minute** for custom/professional separation
+
+### Quality Multipliers
+
+- Standard quality: 1x base price
+- High quality: 1.5x base price
+- Premium quality: 2x base price
+
+### Cost Examples
+
+| Audio Length | Stems   | Quality  | Credits | USD Cost |
+| ------------ | ------- | -------- | ------- | -------- |
+| 3 minutes    | 4 stems | Standard | 60      | $0.06    |
+| 4 minutes    | 8 stems | High     | 180     | $0.18    |
+| 5 minutes    | Custom  | Premium  | 400     | $0.40    |
+| 30 minutes   | 4 stems | Standard | 600     | $0.60    |
+
+## Best Practices
+
+### Input Audio Guidelines
+
+**✅ Recommended:**
+
+- High-quality source material (lossless preferred)
+- Minimal compression artifacts
+- Full-range frequency content
+- Professional mixing and mastering
+- Clear instrument separation in original mix
+
+**❌ Avoid:**
+
+- Heavily compressed MP3s (< 192 kbps)
+- Mono audio for stereo separation
+- Audio with severe clipping or distortion
+- Very quiet or low-dynamic-range material
+
+### Optimization Tips
+
+```python
+# Good: Process in appropriate quality for use case
+demo_separation = client.stem_separation.separate(
+    audio=audio_file,
+    quality="standard",             # Sufficient for demos
+    output_stems=["vocals", "instrumental"]
+)
+
+# Production: Use high quality for professional work
+production_separation = client.stem_separation.separate(
+    audio=audio_file,
+    quality="premium",              # Best quality
+    model="professional_v4",        # Latest model
+    output_format="wav",            # Lossless output
+    sample_rate=48000               # Professional sample rate
+)
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card
+    title="Music Generation"
+    icon="musical-note"
+    href="/features/music-generation"
+  >
+    Create new music using separated stems as inspiration.
+  </Card>
+  <Card title="Voice Cloning" icon="user-clone" href="/features/voice-cloning">
+    Clone voices from separated vocal stems.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/stem-separation">
+    Detailed API documentation for stem separation.
+  </Card>
+  <Card
+    title="Audio Processing"
+    icon="waveform"
+    href="/features/noise-reduction"
+  >
+    Further process separated stems with audio enhancement.
+  </Card>
+</Columns>

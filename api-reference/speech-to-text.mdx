@@ -1,0 +1,619 @@
+---
+title: "Speech-to-Text (STT)"
+description: "Convert audio to accurate text transcriptions with AudioPod AI's advanced speech recognition, featuring speaker diarization and multi-language support."
+---
+
+## Overview
+
+AudioPod AI's Speech-to-Text service converts spoken audio into accurate text transcriptions using state-of-the-art automatic speech recognition (ASR) models. Perfect for transcribing meetings, podcasts, interviews, and any audio content.
+
+### Key Features
+
+- **High Accuracy**: 95%+ accuracy for clear audio
+- **64+ Languages**: Support for major languages worldwide
+- **Speaker Diarization**: Identify and separate multiple speakers
+- **Timestamps**: Word-level and sentence-level timing
+- **Custom Vocabulary**: Add domain-specific terms for better accuracy
+- **Real-time Streaming**: Live transcription for real-time applications
+- **Format Support**: MP3, WAV, M4A, FLAC, and more
+
+## Quick Start
+
+### Basic Audio Transcription
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="your_api_key")
+
+    # Transcribe audio file
+    with open("meeting_recording.mp3", "rb") as audio_file:
+        response = client.speech_to_text.transcribe(
+            file=audio_file,
+            language="en",
+            enable_speaker_diarization=True
+        )
+
+    # Print transcript
+    print(response.transcript)
+
+    # Print speaker segments
+    for segment in response.segments:
+        print(f"Speaker {segment.speaker}: {segment.text}")
+    ```
+
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import { AudioPod } from 'audiopod-js';
+    import fs from 'fs';
+
+    const client = new AudioPod({ apiKey: 'your_api_key' });
+
+    const audioFile = fs.readFileSync('meeting_recording.mp3');
+
+    const response = await client.speechToText.transcribe({
+      file: audioFile,
+      language: 'en',
+      enableSpeakerDiarization: true
+    });
+
+    console.log('Transcript:', response.transcript);
+
+    // Print speaker segments
+    response.segments.forEach(segment => {
+      console.log(`Speaker ${segment.speaker}: ${segment.text}`);
+    });
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/speech-to-text" \
+      -H "Authorization: Bearer your_api_key" \
+      -F "file=@meeting_recording.mp3" \
+      -F "language=en" \
+      -F "enable_speaker_diarization=true"
+    ```
+  </Tab>
+</Tabs>
+
+### Response Format
+
+```json
+{
+  "transcript": "Hello everyone, welcome to today's meeting. Let's start with the quarterly review.",
+  "language": "en",
+  "duration": 125.4,
+  "confidence": 0.94,
+  "segments": [
+    {
+      "text": "Hello everyone, welcome to today's meeting.",
+      "start_time": 0.0,
+      "end_time": 3.2,
+      "speaker": "Speaker_1",
+      "confidence": 0.96
+    },
+    {
+      "text": "Let's start with the quarterly review.",
+      "start_time": 3.5,
+      "end_time": 6.1,
+      "speaker": "Speaker_1",
+      "confidence": 0.92
+    }
+  ],
+  "speakers": {
+    "Speaker_1": "Primary presenter",
+    "Speaker_2": "Participant"
+  }
+}
+```
+
+## Advanced Features
+
+### Speaker Diarization
+
+Automatically identify and separate different speakers in your audio:
+
+```python
+response = client.speech_to_text.transcribe(
+    file=audio_file,
+    language="en",
+    enable_speaker_diarization=True,
+    max_speakers=4,  # Limit to 4 speakers
+    speaker_labels=["John", "Sarah", "Mike", "Emily"]  # Optional custom labels
+)
+
+# Access speaker information
+for segment in response.segments:
+    speaker_name = segment.speaker_label or segment.speaker
+    print(f"{speaker_name}: {segment.text}")
+    print(f"  Time: {segment.start_time:.1f}s - {segment.end_time:.1f}s")
+    print(f"  Confidence: {segment.confidence:.2f}")
+```
+
+### Custom Vocabulary
+
+Improve accuracy for domain-specific terms:
+
+```python
+# Add custom vocabulary for better recognition
+custom_vocab = [
+    "AudioPod",
+    "API endpoints",
+    "neural networks",
+    "machine learning",
+    "Kubernetes",
+    "microservices"
+]
+
+response = client.speech_to_text.transcribe(
+    file=audio_file,
+    language="en",
+    custom_vocabulary=custom_vocab,
+    vocabulary_weight=0.3  # How heavily to weight custom terms
+)
+```
+
+### Streaming Transcription
+
+For real-time applications:
+
+```python
+def transcription_callback(partial_result):
+    print(f"Partial: {partial_result.text}")
+    if partial_result.is_final:
+        print(f"Final: {partial_result.text}")
+
+# Start streaming transcription
+stream = client.speech_to_text.stream(
+    language="en",
+    callback=transcription_callback,
+    interim_results=True
+)
+
+# Send audio chunks
+with open("live_audio.wav", "rb") as audio:
+    chunk_size = 1024
+    while True:
+        chunk = audio.read(chunk_size)
+        if not chunk:
+            break
+        stream.send_audio(chunk)
+
+stream.close()
+```
+
+### Batch Processing
+
+Process multiple files efficiently:
+
+```python
+audio_files = ["meeting1.mp3", "interview2.wav", "podcast3.m4a"]
+
+# Submit batch job
+batch_job = client.speech_to_text.batch_transcribe(
+    files=audio_files,
+    language="en",
+    enable_speaker_diarization=True,
+    webhook_url="https://your-app.com/webhook/transcription"
+)
+
+print(f"Batch job ID: {batch_job.id}")
+
+# Check status
+status = client.speech_to_text.get_batch_status(batch_job.id)
+print(f"Status: {status.status}")  # pending, processing, completed, failed
+
+# Get results when ready
+if status.status == "completed":
+    results = client.speech_to_text.get_batch_results(batch_job.id)
+    for result in results:
+        print(f"File: {result.filename}")
+        print(f"Transcript: {result.transcript}")
+```
+
+## Language Support
+
+AudioPod AI supports 64+ languages with varying levels of accuracy:
+
+### Tier 1 Languages (95%+ accuracy)
+
+- **English** (`en`, `en-US`, `en-GB`, `en-AU`)
+- **Spanish** (`es`, `es-ES`, `es-MX`)
+- **French** (`fr`, `fr-FR`, `fr-CA`)
+- **German** (`de`, `de-DE`)
+- **Italian** (`it`)
+- **Portuguese** (`pt`, `pt-BR`)
+
+### Tier 2 Languages (90%+ accuracy)
+
+- **Chinese** (`zh`, `zh-CN`, `zh-TW`)
+- **Japanese** (`ja`)
+- **Korean** (`ko`)
+- **Russian** (`ru`)
+- **Dutch** (`nl`)
+- **Polish** (`pl`)
+
+### Multi-language Detection
+
+Automatically detect the spoken language:
+
+```python
+response = client.speech_to_text.transcribe(
+    file=audio_file,
+    language="auto",  # Automatic language detection
+    detect_language=True
+)
+
+print(f"Detected language: {response.detected_language}")
+print(f"Confidence: {response.language_confidence}")
+```
+
+### Code-switching Support
+
+Handle conversations with multiple languages:
+
+```python
+response = client.speech_to_text.transcribe(
+    file=audio_file,
+    languages=["en", "es", "fr"],  # Support code-switching
+    enable_code_switching=True
+)
+
+# Each segment includes detected language
+for segment in response.segments:
+    print(f"[{segment.language}] {segment.text}")
+```
+
+## Audio Quality and Formats
+
+### Supported Formats
+
+| Format | Extension | Quality   | Notes                            |
+| ------ | --------- | --------- | -------------------------------- |
+| WAV    | `.wav`    | Best      | Uncompressed, ideal for accuracy |
+| FLAC   | `.flac`   | Excellent | Lossless compression             |
+| MP3    | `.mp3`    | Good      | Most common format               |
+| M4A    | `.m4a`    | Good      | Apple audio format               |
+| OGG    | `.ogg`    | Good      | Open source format               |
+| WEBM   | `.webm`   | Good      | Web-optimized format             |
+
+### Audio Requirements
+
+**Recommended Settings:**
+
+- **Sample Rate**: 16kHz or higher
+- **Bit Depth**: 16-bit minimum
+- **Channels**: Mono or stereo
+- **Duration**: Up to 4 hours per file
+- **File Size**: Up to 500MB
+
+**For Best Results:**
+
+- Clear audio with minimal background noise
+- Speakers at reasonable distance from microphone
+- Consistent volume levels
+- Minimal overlapping speech
+
+### Pre-processing Audio
+
+```python
+# Enhance audio quality before transcription
+response = client.speech_to_text.transcribe(
+    file=audio_file,
+    language="en",
+    # Audio enhancement options
+    enhance_audio=True,        # Apply noise reduction
+    normalize_volume=True,     # Normalize audio levels
+    remove_silence=True,       # Remove long silent periods
+    filter_profanity=False     # Keep all content
+)
+```
+
+## Use Cases & Examples
+
+### Meeting Transcription
+
+```python
+def transcribe_meeting(audio_file, attendees=None):
+    """Transcribe a business meeting with speaker identification"""
+
+    response = client.speech_to_text.transcribe(
+        file=audio_file,
+        language="en",
+        enable_speaker_diarization=True,
+        max_speakers=len(attendees) if attendees else 10,
+        speaker_labels=attendees,
+        custom_vocabulary=[
+            "quarterly results", "KPIs", "ROI", "stakeholders",
+            "deliverables", "action items", "follow-up"
+        ]
+    )
+
+    # Generate meeting minutes
+    meeting_minutes = {
+        "transcript": response.transcript,
+        "duration": f"{response.duration:.1f} minutes",
+        "speakers": list(response.speakers.keys()),
+        "segments": []
+    }
+
+    for segment in response.segments:
+        meeting_minutes["segments"].append({
+            "speaker": segment.speaker_label or segment.speaker,
+            "text": segment.text,
+            "timestamp": f"{segment.start_time:.1f}s"
+        })
+
+    return meeting_minutes
+```
+
+### Podcast Transcription
+
+```python
+def transcribe_podcast(audio_file, show_info):
+    """Transcribe a podcast episode with metadata"""
+
+    # Custom vocabulary for this podcast
+    podcast_vocab = [
+        show_info["podcast_name"],
+        show_info["host_name"],
+        *show_info.get("guest_names", []),
+        *show_info.get("topics", [])
+    ]
+
+    response = client.speech_to_text.transcribe(
+        file=audio_file,
+        language="en",
+        enable_speaker_diarization=True,
+        speaker_labels=[show_info["host_name"]] + show_info.get("guest_names", []),
+        custom_vocabulary=podcast_vocab,
+        include_timestamps=True
+    )
+
+    # Format for podcast platforms
+    transcript_with_timestamps = []
+    for segment in response.segments:
+        timestamp = format_timestamp(segment.start_time)
+        transcript_with_timestamps.append(
+            f"[{timestamp}] {segment.speaker}: {segment.text}"
+        )
+
+    return "\n".join(transcript_with_timestamps)
+
+def format_timestamp(seconds):
+    """Convert seconds to MM:SS format"""
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    return f"{minutes:02d}:{seconds:02d}"
+```
+
+### Interview Analysis
+
+```python
+def analyze_interview(audio_file, interviewer_name, candidate_name):
+    """Transcribe and analyze a job interview"""
+
+    response = client.speech_to_text.transcribe(
+        file=audio_file,
+        language="en",
+        enable_speaker_diarization=True,
+        speaker_labels=[interviewer_name, candidate_name],
+        enable_sentiment_analysis=True,  # Analyze tone and sentiment
+        include_confidence_scores=True
+    )
+
+    # Analyze speaking patterns
+    speaking_time = {interviewer_name: 0, candidate_name: 0}
+    question_count = 0
+
+    for segment in response.segments:
+        speaker = segment.speaker_label
+        duration = segment.end_time - segment.start_time
+        speaking_time[speaker] += duration
+
+        # Count questions (simple heuristic)
+        if segment.text.strip().endswith('?'):
+            question_count += 1
+
+    analysis = {
+        "transcript": response.transcript,
+        "speaking_time": speaking_time,
+        "questions_asked": question_count,
+        "average_confidence": sum(s.confidence for s in response.segments) / len(response.segments),
+        "segments": response.segments
+    }
+
+    return analysis
+```
+
+### Call Center Transcription
+
+```python
+def transcribe_customer_call(audio_file):
+    """Transcribe customer service calls with quality metrics"""
+
+    response = client.speech_to_text.transcribe(
+        file=audio_file,
+        language="en",
+        enable_speaker_diarization=True,
+        max_speakers=2,
+        speaker_labels=["Agent", "Customer"],
+        custom_vocabulary=[
+            "account number", "billing", "technical support",
+            "warranty", "refund", "cancellation"
+        ],
+        enable_sentiment_analysis=True,
+        detect_keywords=["frustrated", "satisfied", "complaint", "compliment"]
+    )
+
+    # Extract call metrics
+    call_analysis = {
+        "call_duration": response.duration,
+        "transcript": response.transcript,
+        "sentiment_analysis": response.sentiment,
+        "keywords_detected": response.keywords,
+        "quality_score": response.confidence
+    }
+
+    return call_analysis
+```
+
+## Configuration Options
+
+### Transcription Settings
+
+```python
+response = client.speech_to_text.transcribe(
+    file=audio_file,
+    # Basic settings
+    language="en",
+    model="premium",  # standard, premium, or domain-specific
+
+    # Speaker diarization
+    enable_speaker_diarization=True,
+    max_speakers=5,
+    speaker_labels=["John", "Sarah", "Mike"],
+
+    # Output formatting
+    include_timestamps=True,
+    timestamp_granularity="word",  # word, sentence, or segment
+    include_confidence_scores=True,
+
+    # Advanced features
+    custom_vocabulary=["AudioPod", "API", "webhook"],
+    vocabulary_weight=0.4,
+    enable_profanity_filter=False,
+    enable_filler_word_detection=True,
+
+    # Audio processing
+    enhance_audio=True,
+    noise_reduction_level="medium",  # low, medium, high
+    normalize_volume=True
+)
+```
+
+### Model Selection
+
+| Model      | Accuracy  | Speed  | Cost | Best For              |
+| ---------- | --------- | ------ | ---- | --------------------- |
+| `standard` | Good      | Fast   | 1x   | General transcription |
+| `premium`  | Excellent | Medium | 1.5x | High accuracy needs   |
+| `meeting`  | Very Good | Medium | 1.2x | Business meetings     |
+| `phone`    | Good      | Fast   | 1x   | Phone call quality    |
+| `medical`  | Excellent | Slow   | 2x   | Medical terminology   |
+| `legal`    | Excellent | Slow   | 2x   | Legal terminology     |
+
+## Error Handling
+
+### Common Issues and Solutions
+
+<AccordionGroup>
+  <Accordion title="Low Accuracy Results">
+    **Common causes:** - Poor audio quality - Background noise - Multiple
+    overlapping speakers - Unclear speech or strong accents **Solutions:** - Use
+    audio enhancement options - Add custom vocabulary for domain terms - Use
+    higher quality audio files - Consider speaker separation preprocessing
+  </Accordion>
+
+  <Accordion title="Speaker Diarization Issues">
+    **Common causes:** - Similar-sounding voices - Frequent speaker changes -
+    Too many speakers specified **Solutions:** - Provide accurate max_speakers
+    count - Use speaker labels when known - Consider shorter audio segments
+  </Accordion>
+
+  <Accordion title="File Format Not Supported">
+    **Solutions:** - Convert to supported format (WAV, MP3, M4A, etc.) - Check
+    file is not corrupted - Verify file size is under 500MB
+  </Accordion>
+</AccordionGroup>
+
+### Error Handling Code
+
+```python
+import time
+from audiopod.exceptions import AudioPodError
+
+def transcribe_with_retry(audio_file, max_retries=3):
+    """Transcribe audio with automatic retry on failures"""
+
+    for attempt in range(max_retries):
+        try:
+            response = client.speech_to_text.transcribe(
+                file=audio_file,
+                language="en",
+                enable_speaker_diarization=True
+            )
+            return response
+
+        except AudioPodError as e:
+            if e.status_code == 400:
+                # Bad request - check file format
+                raise Exception(f"Invalid audio file: {e.message}")
+            elif e.status_code == 429:
+                # Rate limit - wait and retry
+                wait_time = (2 ** attempt) * 60  # Exponential backoff
+                print(f"Rate limited. Waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+            elif e.status_code >= 500:
+                # Server error - retry
+                print(f"Server error (attempt {attempt + 1}): {e.message}")
+                time.sleep(30)
+            else:
+                raise e
+
+    raise Exception("Max retries exceeded")
+```
+
+## Pricing
+
+Speech-to-Text pricing is based on audio duration:
+
+- **10 credits per minute of audio**
+- Minimum charge: 1 credit per request
+- Speaker diarization: No additional cost
+- Premium models: 1.5x multiplier
+
+### Cost Examples
+
+| Audio Length | Credits Used  | USD Cost |
+| ------------ | ------------- | -------- |
+| 30 seconds   | 5 credits     | $0.005   |
+| 5 minutes    | 50 credits    | $0.05    |
+| 30 minutes   | 300 credits   | $0.30    |
+| 2 hours      | 1,200 credits | $1.20    |
+
+### Cost Optimization Tips
+
+1. **Use appropriate models**: Standard model for general use
+2. **Batch processing**: Process multiple files together
+3. **Audio preprocessing**: Clean audio reduces processing time
+4. **Streaming for long audio**: Use streaming for files over 1 hour
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card
+    title="Speaker Extraction"
+    icon="users"
+    href="/features/speaker-extraction"
+  >
+    Advanced speaker separation and identification.
+  </Card>
+  <Card
+    title="Text-to-Speech"
+    icon="microphone"
+    href="/features/text-to-speech"
+  >
+    Convert your transcripts back to speech.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/speech-to-text">
+    Detailed API documentation and parameters.
+  </Card>
+  <Card title="Voice Analysis" icon="chart-line" href="/features/voice-changer">
+    Analyze and modify voice characteristics.
+  </Card>
+</Columns>

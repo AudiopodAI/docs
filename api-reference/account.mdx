@@ -1,0 +1,1199 @@
+---
+title: "Account Management API"
+description: "Comprehensive account management endpoints for user profiles, preferences, usage analytics, and subscription management"
+---
+
+## Overview
+
+The AudioPod AI Account Management API provides complete control over user accounts, including profile management, usage tracking, subscription handling, and administrative functions. Manage user data, monitor API usage, and configure account settings programmatically.
+
+<Info>
+  Account management endpoints require proper authentication and may have
+  different permission levels. Some operations require administrative privileges
+  or specific API key scopes.
+</Info>
+
+## User Profile Management
+
+### Get User Profile
+
+Retrieve complete user profile information:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/profile
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/profile",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    if response.status_code == 200:
+        profile = response.json()
+        print(f"User: {profile['name']} ({profile['email']})")
+        print(f"Plan: {profile['subscription']['plan']}")
+        print(f"Credits: {profile['credits']['balance']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/account/profile" \
+      -H "Authorization: Bearer YOUR_TOKEN"
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "id": 12345,
+  "email": "user@example.com",
+  "name": "John Doe",
+  "avatar_url": "https://cdn.audiopod.ai/avatars/user_12345.jpg",
+  "created_at": "2023-06-15T10:30:00Z",
+  "last_login": "2024-01-15T08:45:00Z",
+  "email_verified": true,
+  "subscription": {
+    "plan": "pro",
+    "status": "active",
+    "expires_at": "2024-02-15T10:30:00Z",
+    "auto_renew": true
+  },
+  "credits": {
+    "balance": 1500,
+    "monthly_allowance": 2000,
+    "used_this_month": 500,
+    "next_reset": "2024-02-01T00:00:00Z"
+  },
+  "preferences": {
+    "default_voice": "aura-en-female",
+    "email_notifications": true,
+    "api_usage_alerts": true,
+    "newsletter_subscription": false
+  },
+  "limits": {
+    "max_file_size_mb": 500,
+    "max_monthly_uploads": 1000,
+    "api_rate_limit": 100
+  }
+}
+```
+
+### Update Profile
+
+Modify user profile information:
+
+<Tabs>
+  <Tab title="PATCH">
+    ```http
+    PATCH /account/profile
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "name": "John Updated Doe",
+      "preferences": {
+        "default_voice": "nova-en-male",
+        "email_notifications": false,
+        "api_usage_alerts": true
+      },
+      "notification_settings": {
+        "job_completion": true,
+        "credit_low_warning": true,
+        "subscription_expiry": true
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.patch(
+        "https://api.audiopod.ai/api/v1/account/profile",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "name": "John Updated Doe",
+            "preferences": {
+                "default_voice": "nova-en-male",
+                "email_notifications": False,
+                "api_usage_alerts": True
+            },
+            "notification_settings": {
+                "job_completion": True,
+                "credit_low_warning": True,
+                "subscription_expiry": True
+            }
+        }
+    )
+    
+    if response.status_code == 200:
+        updated_profile = response.json()
+        print("Profile updated successfully")
+    ```
+  </Tab>
+</Tabs>
+
+### Upload Avatar
+
+Update user profile picture:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/profile/avatar
+    Authorization: Bearer {access_token}
+    Content-Type: multipart/form-data
+    
+    file: avatar_image.jpg
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    with open("avatar.jpg", "rb") as avatar_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/account/profile/avatar",
+            headers={"Authorization": f"Bearer {access_token}"},
+            files={"file": avatar_file}
+        )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Avatar updated: {result['avatar_url']}")
+    ```
+  </Tab>
+</Tabs>
+
+## Usage Analytics
+
+### Get Usage Statistics
+
+Retrieve detailed usage analytics:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/usage?period=30d&breakdown=service
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/usage",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={
+            "period": "30d",
+            "breakdown": "service",
+            "include_costs": True
+        }
+    )
+    
+    usage_data = response.json()
+    
+    print(f"Total API calls: {usage_data['summary']['total_requests']}")
+    print(f"Credits used: {usage_data['summary']['credits_used']}")
+    
+    for service in usage_data['breakdown']:
+        print(f"{service['name']}: {service['requests']} calls, {service['credits']} credits")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "period": "30d",
+  "summary": {
+    "total_requests": 1250,
+    "credits_used": 3450,
+    "total_processing_time": 18750,
+    "success_rate": 98.4
+  },
+  "breakdown": [
+    {
+      "service": "text-to-speech",
+      "requests": 450,
+      "credits": 1800,
+      "success_rate": 99.1,
+      "avg_processing_time": 3.2
+    },
+    {
+      "service": "voice-cloning",
+      "requests": 25,
+      "credits": 750,
+      "success_rate": 96.0,
+      "avg_processing_time": 45.8
+    },
+    {
+      "service": "music-generation",
+      "requests": 15,
+      "credits": 900,
+      "success_rate": 100.0,
+      "avg_processing_time": 65.3
+    }
+  ],
+  "daily_usage": [
+    {
+      "date": "2024-01-15",
+      "requests": 45,
+      "credits": 125,
+      "top_service": "text-to-speech"
+    }
+  ]
+}
+```
+
+### Usage by Date Range
+
+Get usage analytics for specific time periods:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/usage/range?start_date=2024-01-01&end_date=2024-01-15&granularity=daily
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from datetime import datetime, timedelta
+    
+    end_date = datetime.now()
+    start_date = end_date - timedelta(days=30)
+    
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/usage/range",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "granularity": "daily",
+            "group_by": "service"
+        }
+    )
+    
+    usage_range = response.json()
+    
+    # Plot usage over time
+    import matplotlib.pyplot as plt
+    
+    dates = [item['date'] for item in usage_range['data']]
+    credits = [item['credits'] for item in usage_range['data']]
+    
+    plt.plot(dates, credits)
+    plt.title('Daily Credit Usage')
+    plt.xlabel('Date')
+    plt.ylabel('Credits Used')
+    plt.show()
+    ```
+  </Tab>
+</Tabs>
+
+### Export Usage Data
+
+Export detailed usage data for analysis:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/usage/export
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "format": "csv",
+      "date_range": {
+        "start": "2024-01-01",
+        "end": "2024-01-31"
+      },
+      "include": [
+        "requests",
+        "credits",
+        "errors",
+        "processing_times"
+      ],
+      "group_by": "service"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/account/usage/export",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "format": "csv",
+            "date_range": {
+                "start": "2024-01-01",
+                "end": "2024-01-31"
+            },
+            "include": [
+                "requests",
+                "credits", 
+                "errors",
+                "processing_times"
+            ],
+            "group_by": "service"
+        }
+    )
+    
+    export_job = response.json()
+    job_id = export_job["job_id"]
+    
+    # Poll for completion
+    while True:
+        status_response = requests.get(
+            f"https://api.audiopod.ai/api/v1/account/usage/export/{job_id}",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        
+        status = status_response.json()
+        if status["status"] == "completed":
+            download_url = status["download_url"]
+            print(f"Export ready: {download_url}")
+            break
+        
+        time.sleep(2)
+    ```
+  </Tab>
+</Tabs>
+
+## API Key Management
+
+### List API Keys
+
+Get all API keys for the account:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/api-keys
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/api-keys",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    api_keys = response.json()["api_keys"]
+    
+    for key in api_keys:
+        print(f"Key: {key['name']}")
+        print(f"  ID: {key['id']}")
+        print(f"  Created: {key['created_at']}")
+        print(f"  Last used: {key['last_used_at'] or 'Never'}")
+        print(f"  Scopes: {', '.join(key['scopes'])}")
+        print(f"  Status: {key['status']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Create API Key
+
+Generate a new API key with specific scopes:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/api-keys
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "name": "Production API Key",
+      "description": "Main API key for production environment",
+      "scopes": [
+        "voice:read",
+        "voice:write", 
+        "music:generate",
+        "credits:read"
+      ],
+      "expires_in_days": 365,
+      "ip_whitelist": [
+        "192.168.1.0/24",
+        "10.0.0.1"
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/account/api-keys",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "name": "Production API Key",
+            "description": "Main API key for production environment",
+            "scopes": [
+                "voice:read",
+                "voice:write",
+                "music:generate", 
+                "credits:read"
+            ],
+            "expires_in_days": 365,
+            "ip_whitelist": [
+                "192.168.1.0/24",
+                "10.0.0.1"
+            ]
+        }
+    )
+    
+    if response.status_code == 201:
+        new_key = response.json()
+        api_key = new_key["api_key"]
+        
+        # Store securely - this is the only time the full key is shown
+        print(f"New API key created: {api_key}")
+        print("Store this key securely - it won't be shown again!")
+    ```
+  </Tab>
+</Tabs>
+
+### Update API Key
+
+Modify API key settings:
+
+<Tabs>
+  <Tab title="PATCH">
+    ```http
+    PATCH /account/api-keys/{key_id}
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "name": "Updated Production Key",
+      "scopes": [
+        "voice:read",
+        "voice:write",
+        "music:generate",
+        "credits:read",
+        "translation:use"
+      ],
+      "ip_whitelist": [
+        "192.168.1.0/24",
+        "10.0.0.1",
+        "203.0.113.0/24"
+      ],
+      "rate_limit": 200
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.patch(
+        f"https://api.audiopod.ai/api/v1/account/api-keys/{key_id}",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "name": "Updated Production Key",
+            "scopes": [
+                "voice:read",
+                "voice:write",
+                "music:generate",
+                "credits:read",
+                "translation:use"
+            ],
+            "ip_whitelist": [
+                "192.168.1.0/24",
+                "10.0.0.1", 
+                "203.0.113.0/24"
+            ],
+            "rate_limit": 200
+        }
+    )
+    
+    if response.status_code == 200:
+        updated_key = response.json()
+        print("API key updated successfully")
+    ```
+  </Tab>
+</Tabs>
+
+### Revoke API Key
+
+Permanently disable an API key:
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /account/api-keys/{key_id}
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/account/api-keys/{key_id}",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    if response.status_code == 200:
+        print("API key revoked successfully")
+    ```
+  </Tab>
+</Tabs>
+
+## Subscription Management
+
+### Get Subscription Details
+
+Retrieve current subscription information:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/subscription
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/subscription",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    subscription = response.json()
+    print(f"Plan: {subscription['plan']}")
+    print(f"Status: {subscription['status']}")
+    print(f"Expires: {subscription['expires_at']}")
+    print(f"Next billing: {subscription['next_billing_date']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "id": "sub_abc123",
+  "plan": "pro",
+  "status": "active",
+  "created_at": "2023-06-15T10:30:00Z",
+  "expires_at": "2024-02-15T10:30:00Z",
+  "next_billing_date": "2024-02-15T10:30:00Z",
+  "auto_renew": true,
+  "payment_method": {
+    "type": "card",
+    "last_four": "4242",
+    "expires": "12/25"
+  },
+  "billing_history": [
+    {
+      "date": "2024-01-15T10:30:00Z",
+      "amount": 29.99,
+      "status": "paid",
+      "invoice_url": "https://invoice.audiopod.ai/inv_123"
+    }
+  ],
+  "usage_limits": {
+    "monthly_credits": 2000,
+    "max_file_size_mb": 500,
+    "concurrent_jobs": 5,
+    "api_rate_limit": 100
+  }
+}
+```
+
+### Change Subscription Plan
+
+Upgrade or downgrade subscription:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/subscription/change-plan
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "new_plan": "enterprise",
+      "billing_cycle": "annual",
+      "prorate": true
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/account/subscription/change-plan",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "new_plan": "enterprise",
+            "billing_cycle": "annual",
+            "prorate": True
+        }
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Plan changed to: {result['new_plan']}")
+        print(f"Effective date: {result['effective_date']}")
+        if result.get('proration_amount'):
+            print(f"Proration: ${result['proration_amount']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Update Payment Method
+
+Change billing information:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/subscription/payment-method
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "stripe_payment_method_id": "pm_1234567890abcdef",
+      "set_as_default": true
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Using Stripe Elements to collect payment method
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/account/subscription/payment-method",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "stripe_payment_method_id": payment_method_id,
+            "set_as_default": True
+        }
+    )
+    
+    if response.status_code == 200:
+        print("Payment method updated successfully")
+    ```
+  </Tab>
+</Tabs>
+
+### Cancel Subscription
+
+Cancel or pause subscription:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/subscription/cancel
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "cancel_at_period_end": true,
+      "reason": "switching_to_different_plan",
+      "feedback": "Need more credits for current usage"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/account/subscription/cancel",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "cancel_at_period_end": True,
+            "reason": "switching_to_different_plan",
+            "feedback": "Need more credits for current usage"
+        }
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Subscription will cancel on: {result['cancellation_date']}")
+    ```
+  </Tab>
+</Tabs>
+
+## Account Security
+
+### Two-Factor Authentication
+
+Enable, disable, or manage 2FA:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/security/2fa/enable
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Enable 2FA
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/account/security/2fa/enable",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    if response.status_code == 200:
+        setup_data = response.json()
+        qr_code_url = setup_data["qr_code_url"]
+        secret_key = setup_data["secret"]
+        backup_codes = setup_data["backup_codes"]
+        
+        print(f"QR Code: {qr_code_url}")
+        print(f"Secret: {secret_key}")
+        print(f"Backup codes: {backup_codes}")
+        
+        # Verify setup with TOTP code
+        verify_response = requests.post(
+            "https://api.audiopod.ai/api/v1/account/security/2fa/verify-setup",
+            headers={"Authorization": f"Bearer {access_token}"},
+            json={"code": "123456"}  # From authenticator app
+        )
+    ```
+  </Tab>
+</Tabs>
+
+### Login Sessions
+
+Manage active login sessions:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/security/sessions
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/security/sessions",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    sessions = response.json()["sessions"]
+    
+    for session in sessions:
+        print(f"Session: {session['id']}")
+        print(f"  Device: {session['device_info']}")
+        print(f"  IP: {session['ip_address']}")
+        print(f"  Location: {session['location']}")
+        print(f"  Last active: {session['last_activity']}")
+        print(f"  Current: {session['is_current']}")
+        
+    # Revoke specific session
+    session_to_revoke = sessions[1]["id"]
+    revoke_response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/account/security/sessions/{session_to_revoke}",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Security Audit Log
+
+View account security events:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/security/audit-log?limit=50&event_type=login
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/security/audit-log",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={
+            "limit": 50,
+            "event_type": "login",
+            "start_date": "2024-01-01",
+            "end_date": "2024-01-15"
+        }
+    )
+    
+    audit_events = response.json()["events"]
+    
+    for event in audit_events:
+        print(f"{event['timestamp']}: {event['event_type']}")
+        print(f"  IP: {event['ip_address']}")
+        print(f"  User Agent: {event['user_agent']}")
+        print(f"  Success: {event['success']}")
+        if not event['success']:
+            print(f"  Reason: {event['failure_reason']}")
+    ```
+  </Tab>
+</Tabs>
+
+## Data Management
+
+### Export Account Data
+
+Request complete account data export:
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /account/data/export
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "include": [
+        "profile",
+        "usage_history",
+        "generated_content",
+        "api_keys",
+        "billing_history"
+      ],
+      "format": "json",
+      "include_files": true
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/account/data/export",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "include": [
+                "profile",
+                "usage_history", 
+                "generated_content",
+                "api_keys",
+                "billing_history"
+            ],
+            "format": "json",
+            "include_files": True
+        }
+    )
+    
+    export_request = response.json()
+    request_id = export_request["request_id"]
+    
+    # Check export status
+    while True:
+        status_response = requests.get(
+            f"https://api.audiopod.ai/api/v1/account/data/export/{request_id}",
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+        
+        status = status_response.json()
+        if status["status"] == "completed":
+            download_url = status["download_url"]
+            expires_at = status["expires_at"]
+            print(f"Export ready: {download_url}")
+            print(f"Download expires: {expires_at}")
+            break
+        
+        print(f"Export progress: {status['progress']}%")
+        time.sleep(10)
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Account
+
+Permanently delete account and all associated data:
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /account
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "confirmation": "DELETE",
+      "reason": "no_longer_needed",
+      "feedback": "Found a different solution"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Account deletion requires explicit confirmation
+    response = requests.delete(
+        "https://api.audiopod.ai/api/v1/account",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "confirmation": "DELETE",
+            "reason": "no_longer_needed",
+            "feedback": "Found a different solution"
+        }
+    )
+    
+    if response.status_code == 200:
+        deletion_info = response.json()
+        deletion_date = deletion_info["scheduled_deletion_date"]
+        print(f"Account will be deleted on: {deletion_date}")
+        print("You can cancel this deletion before the scheduled date")
+    ```
+  </Tab>
+</Tabs>
+
+## Notifications & Alerts
+
+### Notification Preferences
+
+Configure notification settings:
+
+<Tabs>
+  <Tab title="PATCH">
+    ```http
+    PATCH /account/notifications
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "email_notifications": {
+        "job_completion": true,
+        "job_failure": true,
+        "credit_low_warning": true,
+        "subscription_expiry": true,
+        "security_alerts": true,
+        "newsletter": false
+      },
+      "webhook_notifications": {
+        "enabled": true,
+        "url": "https://myapp.com/webhooks/audiopod",
+        "events": [
+          "job.completed",
+          "job.failed",
+          "credits.low",
+          "subscription.expired"
+        ]
+      },
+      "thresholds": {
+        "low_credit_warning": 100,
+        "subscription_expiry_warning_days": 7
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.patch(
+        "https://api.audiopod.ai/api/v1/account/notifications",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "email_notifications": {
+                "job_completion": True,
+                "job_failure": True,
+                "credit_low_warning": True,
+                "subscription_expiry": True,
+                "security_alerts": True,
+                "newsletter": False
+            },
+            "webhook_notifications": {
+                "enabled": True,
+                "url": "https://myapp.com/webhooks/audiopod",
+                "events": [
+                    "job.completed",
+                    "job.failed", 
+                    "credits.low",
+                    "subscription.expired"
+                ]
+            },
+            "thresholds": {
+                "low_credit_warning": 100,
+                "subscription_expiry_warning_days": 7
+            }
+        }
+    )
+    
+    if response.status_code == 200:
+        print("Notification preferences updated")
+    ```
+  </Tab>
+</Tabs>
+
+### Get Notifications
+
+Retrieve recent notifications:
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /account/notifications?limit=20&unread_only=false
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account/notifications",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={
+            "limit": 20,
+            "unread_only": False,
+            "type": "all"
+        }
+    )
+    
+    notifications = response.json()["notifications"]
+    
+    for notification in notifications:
+        print(f"{notification['created_at']}: {notification['title']}")
+        print(f"  Type: {notification['type']}")
+        print(f"  Read: {notification['read']}")
+        print(f"  Message: {notification['message']}")
+        
+        # Mark as read
+        if not notification['read']:
+            mark_read_response = requests.patch(
+                f"https://api.audiopod.ai/api/v1/account/notifications/{notification['id']}/read",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+    ```
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+### Common Error Responses
+
+<AccordionGroup>
+  <Accordion title="403 Forbidden - Insufficient Permissions">
+    ```json
+    {
+      "error": {
+        "code": "insufficient_permissions",
+        "message": "API key does not have required scope for account management",
+        "details": {
+          "required_scopes": ["account:write"],
+          "current_scopes": ["voice:read", "voice:write"]
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="409 Conflict - Email Already Exists">
+    ```json
+    {
+      "error": {
+        "code": "email_already_exists",
+        "message": "An account with this email already exists",
+        "suggestion": "Use a different email or recover existing account"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="422 Validation Error - Invalid Profile Data">
+    ```json
+    {
+      "error": {
+        "code": "validation_error",
+        "message": "Invalid profile data provided",
+        "details": {
+          "name": ["Name must be at least 2 characters long"],
+          "email": ["Invalid email format"]
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="402 Payment Required - Subscription Issue">
+    ```json
+    {
+      "error": {
+        "code": "subscription_payment_failed",
+        "message": "Recent payment failed, please update payment method",
+        "details": {
+          "failed_amount": 29.99,
+          "retry_date": "2024-01-20T10:30:00Z"
+        }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Security Guidelines
+
+1. **API Key Management**:
+
+   - Use minimal required scopes
+   - Rotate keys regularly
+   - Monitor key usage
+   - Implement IP restrictions
+
+2. **Account Security**:
+
+   - Enable 2FA for all accounts
+   - Monitor login sessions
+   - Review audit logs regularly
+   - Use strong passwords
+
+3. **Data Protection**:
+   - Export data regularly
+   - Understand data retention policies
+   - Use secure communication channels
+   - Implement proper access controls
+
+### Integration Examples
+
+```python
+# Production account management class
+class AccountManager:
+    def __init__(self, api_key):
+        self.client = AudioPodClient(api_key)
+        self.notification_handlers = {}
+
+    def setup_monitoring(self):
+        # Set up credit monitoring
+        profile = self.client.account.get_profile()
+        credit_threshold = profile.credits.monthly_allowance * 0.1
+
+        self.client.account.update_notifications({
+            "thresholds": {
+                "low_credit_warning": credit_threshold
+            },
+            "webhook_notifications": {
+                "enabled": True,
+                "url": "https://myapp.com/webhooks/credits",
+                "events": ["credits.low"]
+            }
+        })
+
+    def get_usage_summary(self, days=30):
+        usage = self.client.account.get_usage(period=f"{days}d")
+
+        return {
+            "total_requests": usage.summary.total_requests,
+            "credits_used": usage.summary.credits_used,
+            "success_rate": usage.summary.success_rate,
+            "top_service": max(usage.breakdown, key=lambda x: x.requests).service,
+            "daily_average": usage.summary.credits_used / days
+        }
+
+    def optimize_api_keys(self):
+        keys = self.client.account.list_api_keys()
+
+        for key in keys:
+            if not key.last_used_at:
+                # Unused key
+                print(f"Consider removing unused key: {key.name}")
+            elif self._is_old_key(key):
+                # Old key
+                print(f"Consider rotating old key: {key.name}")
+
+    def _is_old_key(self, key):
+        from datetime import datetime, timedelta
+        created = datetime.fromisoformat(key.created_at.replace('Z', '+00:00'))
+        return datetime.now() - created > timedelta(days=365)
+```

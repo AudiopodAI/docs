@@ -1,0 +1,506 @@
+---
+title: "Text-to-Speech (TTS)"
+description: "Generate natural-sounding speech from text in 64+ languages with AudioPod AI's advanced text-to-speech technology."
+---
+
+## Overview
+
+AudioPod AI's Text-to-Speech service uses XTTS V2 (Cross-lingual Text-to-Speech) models to convert text into natural-sounding speech. Our advanced system supports 22+ languages including English, Spanish, French, German, Italian, Portuguese, and more, with studio-grade quality and real-time generation capabilities.
+
+### Key Features
+
+- **22+ Languages**: XTTS V2 support for major languages including English, Spanish, French, German, Italian, Portuguese, Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese, Japanese, Hungarian, Korean, Hindi, and more
+- **50+ Premium Voices**: Pre-built voices with unique characteristics
+- **Custom Voice Cloning**: Create personalized voices from audio samples
+- **SSML Support**: Advanced speech synthesis markup for fine control
+- **Multiple Formats**: MP3, WAV, OGG, and more
+- **Streaming Audio**: Real-time audio generation for low latency
+
+## Quick Start
+
+### Basic Text-to-Speech
+
+Make a POST request to generate speech from text. Your frontend application can call this endpoint directly.
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/text-to-speech" \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Hello! This is AudioPod AI generating natural speech.",
+    "voice_id": "aura",
+    "output_format": "mp3",
+    "speed": 1.0,
+    "stability": 0.5,
+    "similarity_boost": 0.5
+  }' \
+  --output output.mp3
+```
+
+**Request Schema:**
+```json
+{
+  "text": "string (required) - Text to convert to speech",
+  "voice_id": "string (required) - Voice identifier or custom voice ID", 
+  "output_format": "string (optional) - mp3, wav, ogg (default: mp3)",
+  "speed": "number (optional) - Speech speed 0.5-2.0 (default: 1.0)",
+  "stability": "number (optional) - Voice stability 0.0-1.0 (default: 0.5)",
+  "similarity_boost": "number (optional) - Voice similarity 0.0-1.0 (default: 0.5)",
+  "language": "string (optional) - Language code (auto-detected if not provided)"
+}
+```
+
+**Response Schema:**
+```json
+{
+  "audio_data": "base64_encoded_audio_content",
+  "duration": 5.2,
+  "voice_id": "aura",
+  "text": "Hello! This is AudioPod AI generating natural speech.",
+  "format": "mp3",
+  "size_bytes": 83726,
+  "credits_used": 1
+}
+```
+
+## Available Voices
+
+AudioPod AI offers a diverse collection of premium voices across different categories:
+
+### Popular Voices
+
+| Voice ID | Gender | Language | Style        | Description                                |
+| -------- | ------ | -------- | ------------ | ------------------------------------------ |
+| `aura`   | Female | Multi    | Bright       | Luminous voice with crystal-clear delivery |
+| `jester` | Male   | Multi    | Playful      | Upbeat voice with theatrical flair         |
+| `sage`   | Male   | Multi    | Wise         | Authoritative voice perfect for narration  |
+| `ava`    | Female | Multi    | Professional | Commanding voice for business content      |
+| `surge`  | Male   | Multi    | Energetic    | High-energy voice for exciting content     |
+| `willow` | Female | Multi    | Gentle       | Delicate, youthful voice with elegance     |
+
+### Language-Specific Voices
+
+<Tabs>
+  <Tab title="English">
+    - `emma-us` - American English, warm female voice - `james-uk` - British
+    English, sophisticated male voice - `sarah-au` - Australian English,
+    friendly female voice - `david-ca` - Canadian English, professional male
+    voice
+  </Tab>
+  <Tab title="Spanish">
+    - `maria-es` - Castilian Spanish, elegant female voice - `carlos-mx` -
+    Mexican Spanish, warm male voice - `sofia-ar` - Argentinian Spanish,
+    expressive female voice
+  </Tab>
+  <Tab title="French">
+    - `amelie-fr` - Metropolitan French, sophisticated female voice -
+    `pierre-ca` - Canadian French, professional male voice
+  </Tab>
+  <Tab title="German">
+    - `greta-de` - Standard German, clear female voice - `hans-at` - Austrian
+    German, friendly male voice
+  </Tab>
+</Tabs>
+
+<Card
+  title="Browse All Voices"
+  icon="microphone"
+  href="https://www.audiopod.ai/voices"
+>
+  Listen to samples and explore our complete voice library
+</Card>
+
+## Advanced Features
+
+### SSML Support
+
+Use Speech Synthesis Markup Language (SSML) for precise control:
+
+```python
+ssml_text = '''
+<speak>
+    <p>Welcome to AudioPod AI!</p>
+    <break time="1s"/>
+    <p>Here are some advanced features:</p>
+    <p>
+        You can control <emphasis level="strong">emphasis</emphasis>,
+        <prosody rate="slow">speaking rate</prosody>,
+        and <prosody pitch="high">pitch levels</prosody>.
+    </p>
+    <p>Numbers like <say-as interpret-as="cardinal">12345</say-as>
+    are pronounced correctly.</p>
+</speak>
+'''
+
+response = client.text_to_speech.create(
+    text=ssml_text,
+    voice_id="aura",
+    text_format="ssml"
+)
+```
+
+### Streaming Audio
+
+For real-time applications, use streaming mode:
+
+```python
+def stream_audio_callback(chunk):
+    # Process audio chunk as it arrives
+    audio_player.play(chunk)
+
+response = client.text_to_speech.stream(
+    text="This text will be streamed as audio in real-time.",
+    voice_id="aura",
+    callback=stream_audio_callback
+)
+```
+
+### Pronunciation Control
+
+Control pronunciation of specific words:
+
+```python
+text_with_phonemes = '''
+The company <phoneme alphabet="ipa" ph="ˌɔːdiˈoʊpɑd">AudioPod</phoneme>
+specializes in AI voice technology.
+'''
+
+response = client.text_to_speech.create(
+    text=text_with_phonemes,
+    voice_id="sage",
+    text_format="ssml"
+)
+```
+
+## Configuration Options
+
+### Audio Quality Settings
+
+| Parameter       | Options                       | Description         | Credit Impact                            |
+| --------------- | ----------------------------- | ------------------- | ---------------------------------------- |
+| `quality`       | `standard`, `high`, `premium` | Audio quality level | Standard = 1x, High = 1.5x, Premium = 2x |
+| `sample_rate`   | `22050`, `44100`, `48000`     | Audio sample rate   | Higher rates = slightly more credits     |
+| `output_format` | `mp3`, `wav`, `ogg`, `aac`    | Audio file format   | No impact on credits                     |
+
+### Voice Customization
+
+```python
+response = client.text_to_speech.create(
+    text="Customized voice output",
+    voice_id="aura",
+    # Voice customization
+    speed=1.1,           # 10% faster
+    pitch=0.9,           # Slightly lower pitch
+    volume=1.2,          # 20% louder
+    # Audio settings
+    quality="high",
+    sample_rate=44100,
+    output_format="wav"
+)
+```
+
+### Emotion and Style Control
+
+For supported voices, control emotional expression:
+
+```python
+response = client.text_to_speech.create(
+    text="I'm excited to announce our new product!",
+    voice_id="surge",
+    emotion="excited",   # excited, sad, angry, calm, etc.
+    intensity=0.8        # 0.0 to 1.0
+)
+```
+
+## Multi-Language Support
+
+### Language Codes
+
+AudioPod AI supports 64+ languages. Here are the most common:
+
+| Language             | Code    | Native Voices | TTS Quality |
+| -------------------- | ------- | ------------- | ----------- |
+| English (US)         | `en-US` | 15+           | Excellent   |
+| Spanish              | `es`    | 10+           | Excellent   |
+| French               | `fr`    | 8+            | Excellent   |
+| German               | `de`    | 6+            | Excellent   |
+| Chinese (Simplified) | `zh-CN` | 8+            | Excellent   |
+| Japanese             | `ja`    | 6+            | Excellent   |
+| Korean               | `ko`    | 4+            | Very Good   |
+| Portuguese           | `pt`    | 6+            | Very Good   |
+| Russian              | `ru`    | 4+            | Very Good   |
+| Arabic               | `ar`    | 4+            | Good        |
+| Hindi                | `hi`    | 4+            | Good        |
+
+### Multi-Language Example
+
+```python
+# Generate speech in multiple languages
+languages = [
+    {"text": "Hello, welcome to AudioPod AI", "voice_id": "emma-us", "lang": "en-US"},
+    {"text": "Hola, bienvenido a AudioPod AI", "voice_id": "maria-es", "lang": "es"},
+    {"text": "Bonjour, bienvenue chez AudioPod AI", "voice_id": "amelie-fr", "lang": "fr"},
+    {"text": "Hallo, willkommen bei AudioPod AI", "voice_id": "greta-de", "lang": "de"}
+]
+
+for item in languages:
+    response = client.text_to_speech.create(
+        text=item["text"],
+        voice_id=item["voice_id"],
+        language=item["lang"]
+    )
+
+    filename = f"welcome_{item['lang']}.mp3"
+    with open(filename, "wb") as f:
+        f.write(response.audio_data)
+```
+
+## Use Cases & Examples
+
+### Audiobook Narration
+
+```python
+def create_audiobook_chapter(chapter_text, narrator_voice="sage"):
+    # Split long text into manageable chunks
+    chunks = split_text_by_sentences(chapter_text, max_length=2000)
+    audio_segments = []
+
+    for i, chunk in enumerate(chunks):
+        print(f"Processing chunk {i+1}/{len(chunks)}")
+
+        response = client.text_to_speech.create(
+            text=chunk,
+            voice_id=narrator_voice,
+            quality="premium",
+            speed=0.95  # Slightly slower for audiobooks
+        )
+
+        audio_segments.append(response.audio_data)
+
+    # Combine audio segments
+    return combine_audio_segments(audio_segments)
+```
+
+### Podcast Introduction
+
+```python
+intro_script = '''
+<speak>
+    <p><emphasis level="strong">Welcome back to the Tech Talk Podcast!</emphasis></p>
+    <break time="1s"/>
+    <p>I'm your host, and today we're diving deep into
+    <emphasis>artificial intelligence</emphasis> and its impact on content creation.</p>
+    <break time="0.5s"/>
+    <p>Let's get started!</p>
+</speak>
+'''
+
+intro_audio = client.text_to_speech.create(
+    text=intro_script,
+    voice_id="ava",
+    text_format="ssml",
+    emotion="professional",
+    quality="high"
+)
+```
+
+### E-Learning Content
+
+```python
+def create_lesson_audio(lesson_content):
+    # Add natural pauses for learning
+    formatted_content = f'''
+    <speak>
+        <p>Lesson begins now.</p>
+        <break time="1s"/>
+        {lesson_content}
+        <break time="2s"/>
+        <p>That concludes this lesson. Take a moment to review what you've learned.</p>
+    </speak>
+    '''
+
+    return client.text_to_speech.create(
+        text=formatted_content,
+        voice_id="sage",  # Educational voice
+        text_format="ssml",
+        speed=0.9,  # Slower for learning
+        quality="high"
+    )
+```
+
+### Interactive Voice Response (IVR)
+
+```python
+ivr_prompts = {
+    "welcome": "Thank you for calling AudioPod AI. Your call is important to us.",
+    "menu": "Press 1 for sales, 2 for support, or 3 for billing.",
+    "hold": "Please hold while we connect you to the next available agent."
+}
+
+for prompt_name, text in ivr_prompts.items():
+    audio = client.text_to_speech.create(
+        text=text,
+        voice_id="ava",  # Professional voice for business
+        quality="standard",  # Lower quality for phone systems
+        sample_rate=8000,   # Phone quality
+        output_format="wav"
+    )
+
+    with open(f"ivr_{prompt_name}.wav", "wb") as f:
+        f.write(audio.audio_data)
+```
+
+## Best Practices
+
+### Text Optimization
+
+**✅ Good Practices:**
+
+- Use proper punctuation for natural pauses
+- Write numbers in word form for better pronunciation
+- Include context for abbreviations
+- Break long sentences into shorter ones
+
+**❌ Common Issues:**
+
+- ALL CAPS TEXT (sounds like shouting)
+- Missing punctuation (unnatural flow)
+- Technical jargon without context
+- Extremely long paragraphs
+
+### Cost Optimization
+
+```python
+# Efficient: Single request for multiple sentences
+long_text = "First sentence. Second sentence. Third sentence."
+audio = client.text_to_speech.create(text=long_text, voice_id="aura")
+
+# Inefficient: Multiple requests for short texts
+# This uses more credits due to minimum charges
+for sentence in sentences:
+    audio = client.text_to_speech.create(text=sentence, voice_id="aura")
+```
+
+### Caching Strategy
+
+```python
+import hashlib
+import os
+
+def get_cached_audio(text, voice_id, cache_dir="audio_cache"):
+    # Create cache key from text and voice
+    cache_key = hashlib.md5(f"{text}_{voice_id}".encode()).hexdigest()
+    cache_file = os.path.join(cache_dir, f"{cache_key}.mp3")
+
+    if os.path.exists(cache_file):
+        with open(cache_file, "rb") as f:
+            return f.read()
+
+    # Generate new audio
+    response = client.text_to_speech.create(
+        text=text,
+        voice_id=voice_id
+    )
+
+    # Cache the result
+    os.makedirs(cache_dir, exist_ok=True)
+    with open(cache_file, "wb") as f:
+        f.write(response.audio_data)
+
+    return response.audio_data
+```
+
+## Error Handling
+
+### Common Errors and Solutions
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - Invalid Text">
+    **Causes:** - Text too long (>5000 characters) - Invalid characters or
+    encoding - Empty text field **Solutions:** - Split long text into chunks -
+    Check text encoding (UTF-8) - Validate text is not empty
+  </Accordion>
+
+  <Accordion title="400 Bad Request - Invalid Voice">
+    **Causes:** - Voice ID doesn't exist - Voice not available for selected
+    language **Solutions:** - Check available voices with `/voices` endpoint -
+    Use multi-language voices for multiple languages
+  </Accordion>
+
+  <Accordion title="429 Too Many Requests">
+    **Causes:** - Rate limit exceeded - Too many concurrent requests
+    **Solutions:** - Implement exponential backoff - Use request queuing -
+    Upgrade to higher rate limits
+  </Accordion>
+</AccordionGroup>
+
+### Robust Error Handling
+
+```python
+import time
+import random
+
+def generate_speech_with_retry(text, voice_id, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            response = client.text_to_speech.create(
+                text=text,
+                voice_id=voice_id
+            )
+            return response.audio_data
+
+        except Exception as e:
+            if e.status_code == 429:  # Rate limit
+                # Exponential backoff with jitter
+                delay = (2 ** attempt) + random.uniform(0, 1)
+                time.sleep(delay)
+                continue
+            elif e.status_code == 400:
+                # Bad request - don't retry
+                raise e
+            else:
+                # Other errors - retry with delay
+                time.sleep(1)
+                continue
+
+    raise Exception("Max retries exceeded")
+```
+
+## Pricing
+
+Text-to-Speech pricing is based on character count:
+
+- **1 credit per 1,000 characters**
+- Minimum charge: 0.1 credits per request
+- SSML tags don't count toward character limit
+- Punctuation and spaces are included
+
+### Cost Examples
+
+| Text Length       | Credits Used | USD Cost |
+| ----------------- | ------------ | -------- |
+| 100 characters    | 0.1 credits  | $0.0001  |
+| 1,000 characters  | 1 credit     | $0.001   |
+| 5,000 characters  | 5 credits    | $0.005   |
+| 50,000 characters | 50 credits   | $0.05    |
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Voice Cloning" icon="user-clone" href="/features/voice-cloning">
+    Create custom voices from audio samples.
+  </Card>
+  <Card title="Speech-to-Text" icon="waveform" href="/features/speech-to-text">
+    Convert audio back to text with transcription.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/text-to-speech">
+    Detailed API documentation and parameters.
+  </Card>
+  <Card
+    title="Voice Examples"
+    icon="play"
+    href="https://www.audiopod.ai/voices"
+  >
+    Listen to voice samples and find your perfect voice.
+  </Card>
+</Columns>

@@ -1,0 +1,311 @@
+---
+title: "API Key Management"
+description: "Learn how to create, manage, and secure your AudioPod AI API keys for development and production environments."
+---
+
+## Overview
+
+API keys are the primary method for authenticating with AudioPod AI's APIs. This guide covers everything you need to know about creating, managing, and securing your API keys.
+
+## Creating API Keys
+
+### Your First API Key
+
+1. Log into the [AudioPod AI Dashboard](https://www.audiopod.ai/dashboard)
+2. Navigate to **API Keys** in the sidebar
+3. Click **Create New API Key**
+4. Provide a descriptive name for your key
+5. Copy the generated key immediately
+
+<Warning>
+  API keys are only shown once during creation. Store them securely as you won't
+  be able to see them again.
+</Warning>
+
+### API Key Naming Best Practices
+
+Use descriptive names that indicate the key's purpose:
+
+- `production-web-app`
+- `development-testing`
+- `mobile-app-ios`
+- `staging-environment`
+- `data-processing-pipeline`
+
+## Managing API Keys
+
+### Viewing Your Keys
+
+The API Keys dashboard shows:
+
+- Key name and creation date
+- Last used timestamp
+- Usage statistics
+- Status (active/revoked)
+
+### Key Information
+
+For each API key, you can see:
+
+- **Name**: Your custom description
+- **Created**: When the key was generated
+- **Last Used**: Most recent API call
+- **Requests**: Total number of requests made
+- **Status**: Active or revoked
+
+### Revoking API Keys
+
+To revoke an API key:
+
+1. Go to the [API Keys page](https://www.audiopod.ai/dashboard/api-keys)
+2. Find the key you want to revoke
+3. Click the **Revoke** button
+4. Confirm the action in the dialog
+
+<Warning>
+  Revoking an API key immediately stops all requests using that key. Ensure you
+  update your applications before revoking keys used in production.
+</Warning>
+
+## Security Best Practices
+
+### Environment-Specific Keys
+
+Create separate API keys for each environment:
+
+```bash
+# Development
+AUDIOPOD_API_KEY_DEV=ap_dev_1234567890abcdef...
+
+# Staging
+AUDIOPOD_API_KEY_STAGING=ap_staging_abcdef1234567890...
+
+# Production
+AUDIOPOD_API_KEY_PROD=ap_prod_fedcba0987654321...
+```
+
+### Secure Storage
+
+**✅ Good Practices:**
+
+- Store keys in environment variables
+- Use secret management services (AWS Secrets Manager, HashiCorp Vault)
+- Keep keys in secure configuration files (not in source code)
+- Use CI/CD secret management
+
+**❌ Bad Practices:**
+
+- Hardcoding keys in source code
+- Committing keys to version control
+- Storing keys in client-side JavaScript
+- Sharing keys via email or chat
+
+### Environment Variables Example
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import os
+    from audiopod import AudioPod
+
+    # Load from environment variable
+    api_key = os.getenv('AUDIOPOD_API_KEY')
+    if not api_key:
+        raise ValueError("AUDIOPOD_API_KEY environment variable not set")
+
+    client = AudioPod(api_key=api_key)
+    ```
+
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    // Using dotenv package
+    require('dotenv').config();
+
+    const apiKey = process.env.AUDIOPOD_API_KEY;
+    if (!apiKey) {
+        throw new Error('AUDIOPOD_API_KEY environment variable not set');
+    }
+
+    const client = new AudioPod({ apiKey });
+    ```
+
+  </Tab>
+  <Tab title="Docker">
+    ```dockerfile
+    # Dockerfile
+    ENV AUDIOPOD_API_KEY=""
+
+    # Runtime
+    docker run -e AUDIOPOD_API_KEY=your_key_here your_app
+    ```
+
+  </Tab>
+</Tabs>
+
+## Key Rotation
+
+Regular key rotation improves security:
+
+### Rotation Process
+
+1. **Create** a new API key with a descriptive name
+2. **Update** your applications to use the new key
+3. **Test** thoroughly in staging environment
+4. **Deploy** to production
+5. **Monitor** for any issues
+6. **Revoke** the old key after confirming success
+
+### Recommended Rotation Schedule
+
+- **Development**: Monthly or as needed
+- **Staging**: Quarterly
+- **Production**: Every 6 months
+- **Incident Response**: Immediately if compromised
+
+### Zero-Downtime Rotation
+
+For production systems, implement zero-downtime rotation:
+
+```python
+# Example: Fallback key strategy
+primary_key = os.getenv('AUDIOPOD_API_KEY_PRIMARY')
+fallback_key = os.getenv('AUDIOPOD_API_KEY_FALLBACK')
+
+def make_api_call(data):
+    try:
+        return call_api(primary_key, data)
+    except AuthenticationError:
+        # Fallback to secondary key
+        return call_api(fallback_key, data)
+```
+
+## Monitoring and Usage
+
+### Usage Analytics
+
+Track your API key usage in the dashboard:
+
+- **Requests per day/week/month**
+- **Credit consumption**
+- **Error rates**
+- **Response times**
+
+### Setting Up Alerts
+
+Configure alerts for:
+
+- Unusual usage patterns
+- High error rates
+- Credit threshold warnings
+- Security events
+
+### API Key Metrics
+
+Monitor these key metrics:
+
+- **Request Volume**: Track usage trends
+- **Error Rate**: Identify authentication issues
+- **Geographic Usage**: Detect unauthorized access
+- **Time Patterns**: Unusual usage timing
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized">
+    **Causes:** - Invalid or expired API key - Missing Authorization header -
+    Revoked API key **Solutions:** - Verify the API key is correct - Check the
+    Authorization header format - Generate a new API key if needed
+  </Accordion>
+
+{" "}
+<Accordion title="403 Forbidden">
+  **Causes:** - Account suspended - Feature not available in your plan - Rate
+  limit exceeded **Solutions:** - Check account status - Verify plan includes
+  the feature - Implement rate limiting in your code
+</Accordion>
+
+  <Accordion title="Key Not Working">
+    **Troubleshooting steps:** 1. Verify the key wasn't accidentally revoked 2.
+    Check for extra spaces or characters 3. Ensure you're using the full key 4.
+    Test with a simple API call
+  </Accordion>
+</AccordionGroup>
+
+### Testing API Keys
+
+Test your API key with a simple request:
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/account" \
+      -H "Authorization: Bearer your_api_key_here"
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/account",
+        headers=headers
+    )
+
+    if response.status_code == 200:
+        print("API key is valid!")
+    else:
+        print(f"Error: {response.status_code}")
+    ```
+
+  </Tab>
+</Tabs>
+
+## Advanced Security
+
+### IP Whitelisting
+
+For enterprise accounts, you can restrict API key usage to specific IP addresses:
+
+1. Go to **API Keys** → **Security Settings**
+2. Click **Configure IP Restrictions**
+3. Add allowed IP addresses or CIDR ranges
+4. Save your configuration
+
+### Webhook Security
+
+When using webhooks, secure them with:
+
+- HTTPS endpoints only
+- Signature verification
+- IP restrictions
+- Rate limiting
+
+### Audit Logs
+
+Enterprise accounts have access to detailed audit logs:
+
+- API key creation and revocation
+- Usage patterns and anomalies
+- Authentication failures
+- Administrative actions
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Authentication Guide" icon="shield" href="/authentication">
+    Learn how to use your API keys for authentication.
+  </Card>
+  <Card title="Credits Management" icon="credit-card" href="/account/credits">
+    Understand credit usage and billing.
+  </Card>
+  <Card title="Quick Start Guide" icon="rocket" href="/quickstart">
+    Make your first API call with your new key.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/authentication">
+    Explore detailed API authentication documentation.
+  </Card>
+</Columns>

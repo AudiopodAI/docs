@@ -1,0 +1,674 @@
+---
+title: "Music Generation"
+description: "Create original music, instrumentals, and sound effects from text descriptions using AudioPod AI's advanced music generation technology."
+---
+
+## Overview
+
+AudioPod AI's Music Generation feature uses the advanced ACE-Step pipeline to transform text descriptions into original musical compositions. Our state-of-the-art system supports text-to-music, prompt-to-instrumental, and lyric-to-vocals generation, with full music editing capabilities including retake, repaint, extend, and edit operations.
+
+### Key Features
+
+- **ACE-Step Pipeline**: Advanced text-to-music generation using state-of-the-art AI models
+- **Text-to-Music**: Generate complete musical compositions from natural language descriptions
+- **Prompt-to-Instrumental**: Create instrumental tracks from text descriptions
+- **Lyric-to-Vocals**: Generate vocal tracks from lyrics and text prompts
+- **Music Editing**: Retake, repaint, extend, and edit existing musical tracks
+- **Multiple Genres**: Support for 50+ music genres and styles
+- **Customizable Length**: From 10 seconds to 10 minutes
+- **High Quality**: Studio-grade audio output
+- **Royalty-Free**: All generated music is royalty-free
+- **Stem Separation**: Get individual instrument tracks
+- **Real-time Generation**: Fast processing for quick iterations
+
+## Quick Start
+
+### Basic Music Generation
+
+Generate original music by making a POST request to our ACE-Step pipeline. Your frontend application can call this endpoint directly.
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/music/text2music" \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Upbeat pop song with electronic beats and catchy melody",
+    "duration": 30,
+    "genre": "pop",
+    "mood": "energetic",
+    "output_format": "mp3",
+    "bpm": 128,
+    "key": "C_major",
+    "instrumental": false
+  }' \
+  --output generated_song.mp3
+```
+
+**Request Schema:**
+```json
+{
+  "prompt": "string (required) - Text description of desired music",
+  "duration": "number (required) - Duration in seconds (10-600)",
+  "genre": "string (optional) - Music genre (pop, rock, jazz, classical, etc.)",
+  "mood": "string (optional) - Mood/energy (energetic, calm, dark, uplifting)",
+  "output_format": "string (optional) - mp3, wav, flac (default: mp3)",
+  "bpm": "number (optional) - Beats per minute (60-200)",
+  "key": "string (optional) - Musical key (C_major, A_minor, etc.)",
+  "instrumental": "boolean (optional) - Generate instrumental only (default: false)",
+  "style": "string (optional) - Additional style descriptors"
+}
+```
+
+**Response Schema:**
+```json
+{
+  "audio_data": "base64_encoded_audio_content",
+  "title": "Energetic Pop Anthem",
+  "duration": 30.5,
+  "bpm": 128,
+  "key": "C_major",
+  "genre": "pop",
+  "mood": "energetic",
+  "format": "mp3",
+  "size_bytes": 489726,
+  "credits_used": 5,
+  "stems_available": true,
+  "stem_urls": {
+    "vocals": "https://api.audiopod.ai/stems/vocals_abc123.mp3",
+    "drums": "https://api.audiopod.ai/stems/drums_abc123.mp3",
+    "bass": "https://api.audiopod.ai/stems/bass_abc123.mp3",
+    "melody": "https://api.audiopod.ai/stems/melody_abc123.mp3"
+  }
+}
+```
+
+### Response Format
+
+```json
+{
+  "audio_data": "base64_encoded_audio",
+  "title": "Energetic Pop Anthem",
+  "duration": 30.5,
+  "bpm": 128,
+  "key": "C major",
+  "genre": "pop",
+  "mood": "energetic",
+  "instruments": ["synthesizer", "drums", "bass", "lead"],
+  "metadata": {
+    "generation_id": "gen_abc123",
+    "created_at": "2024-01-15T10:30:00Z",
+    "credits_used": 100
+  }
+}
+```
+
+## Music Styles and Genres
+
+### Supported Genres
+
+AudioPod AI supports a wide variety of musical genres:
+
+<Tabs>
+  <Tab title="Popular">
+    - **Pop**: Catchy, mainstream appeal - **Rock**: Electric guitars, drums,
+    energetic - **Hip-Hop**: Beats, bass, urban style - **Electronic/EDM**:
+    Synthesizers, electronic beats - **R&B**: Smooth, soulful, rhythmic -
+    **Country**: Acoustic guitars, storytelling - **Folk**: Acoustic, organic,
+    traditional
+  </Tab>
+  <Tab title="Classical & Jazz">
+    - **Classical**: Orchestral, symphonic - **Jazz**: Improvisation, complex
+    harmonies - **Blues**: 12-bar blues, emotional - **Swing**: Big band,
+    danceable - **Bossa Nova**: Brazilian, smooth - **Baroque**: Ornate,
+    contrapuntal - **Romantic**: Expressive, dramatic
+  </Tab>
+  <Tab title="World Music">
+    - **Reggae**: Jamaican, offbeat rhythm - **Latin**: Salsa, merengue, Latin
+    rhythms - **Indian Classical**: Ragas, traditional instruments - **Celtic**:
+    Irish, Scottish traditional - **African**: Tribal rhythms, percussion -
+    **Middle Eastern**: Maqam scales, traditional - **Asian Fusion**: Modern
+    Asian influences
+  </Tab>
+  <Tab title="Modern">
+    - **Ambient**: Atmospheric, textural - **Lo-Fi**: Relaxed, nostalgic -
+    **Synthwave**: 80s retro, neon aesthetics - **Trap**: Heavy bass, hip-hop
+    influenced - **House**: 4/4 beat, electronic - **Dubstep**: Heavy bass
+    drops, electronic - **Chillout**: Relaxed, downtempo
+  </Tab>
+</Tabs>
+
+## Advanced Features
+
+### Detailed Music Prompts
+
+Create more specific music using detailed prompts:
+
+```python
+# Detailed prompt for specific musical elements
+detailed_prompt = """
+Create an uplifting acoustic folk song in the key of G major at 110 BPM.
+Include acoustic guitar fingerpicking, subtle violin melody, and light percussion.
+The mood should be hopeful and nostalgic, perfect for a sunrise scene.
+Duration: 2 minutes with intro, verse, chorus, verse, chorus, bridge, outro structure.
+"""
+
+response = client.music_generation.create(
+    prompt=detailed_prompt,
+    duration=120,  # 2 minutes
+    genre="folk",
+    mood="hopeful",
+    key="G major",
+    bpm=110,
+    structure="verse-chorus-verse-chorus-bridge-outro"
+)
+```
+
+### Instrumental vs. Vocal Tracks
+
+```python
+# Generate instrumental track
+instrumental = client.music_generation.create(
+    prompt="Energetic rock instrumental with guitar solo",
+    duration=45,
+    genre="rock",
+    vocal_style="instrumental",  # No vocals
+    instruments=["electric_guitar", "bass", "drums", "lead_guitar"]
+)
+
+# Generate track with vocals
+vocal_track = client.music_generation.create(
+    prompt="Upbeat pop song about summer adventures",
+    duration=60,
+    genre="pop",
+    vocal_style="male",  # or "female", "choir", "harmony"
+    lyrics_style="upbeat",  # or "emotional", "narrative", "abstract"
+    language="en"
+)
+```
+
+### Music with Stems
+
+Get individual instrument tracks for mixing:
+
+```python
+response = client.music_generation.create(
+    prompt="Jazz quartet with piano, bass, drums, and saxophone",
+    duration=90,
+    genre="jazz",
+    include_stems=True,  # Return individual instrument tracks
+    stem_format="wav"    # High quality for mixing
+)
+
+# Save individual stems
+stems = response.stems
+with open("jazz_piano.wav", "wb") as f:
+    f.write(stems["piano"])
+with open("jazz_bass.wav", "wb") as f:
+    f.write(stems["bass"])
+with open("jazz_drums.wav", "wb") as f:
+    f.write(stems["drums"])
+with open("jazz_saxophone.wav", "wb") as f:
+    f.write(stems["saxophone"])
+```
+
+### Style Transfer and Remixing
+
+Transform existing musical ideas:
+
+```python
+# Upload a reference track for style inspiration
+with open("reference_song.mp3", "rb") as ref_file:
+    style_response = client.music_generation.create_with_reference(
+        prompt="Create a new song inspired by this style",
+        reference_audio=ref_file,
+        duration=60,
+        similarity_strength=0.7,  # How closely to match the style
+        add_variations=True       # Add creative variations
+    )
+
+# Remix an existing track
+remix_response = client.music_generation.remix(
+    original_track="original_song.mp3",
+    remix_style="electronic",
+    tempo_change=1.2,  # 20% faster
+    add_elements=["synthesizer", "electronic_drums"]
+)
+```
+
+## Use Cases & Examples
+
+### Background Music for Videos
+
+```python
+def create_video_background_music(video_info):
+    """Generate background music tailored to video content"""
+
+    # Define music requirements based on video type
+    music_configs = {
+        "corporate": {
+            "prompt": "Professional, uplifting corporate background music with subtle motivation",
+            "genre": "ambient",
+            "mood": "professional",
+            "energy": "medium"
+        },
+        "travel": {
+            "prompt": "Adventurous travel music with world music influences and upbeat rhythm",
+            "genre": "world_fusion",
+            "mood": "adventurous",
+            "energy": "high"
+        },
+        "meditation": {
+            "prompt": "Calming meditation music with soft ambient tones and gentle progression",
+            "genre": "ambient",
+            "mood": "peaceful",
+            "energy": "low"
+        },
+        "cooking": {
+            "prompt": "Upbeat acoustic music perfect for cooking shows with warm feeling",
+            "genre": "acoustic",
+            "mood": "cheerful",
+            "energy": "medium"
+        }
+    }
+
+    config = music_configs.get(video_info["type"], music_configs["corporate"])
+
+    music = client.music_generation.create(
+        prompt=config["prompt"],
+        duration=video_info["duration"],
+        genre=config["genre"],
+        mood=config["mood"],
+        energy_level=config["energy"],
+        fade_in=True,     # Smooth intro
+        fade_out=True,    # Smooth outro
+        loop_compatible=True  # Can be looped if needed
+    )
+
+    return music
+
+# Example usage
+video_background = create_video_background_music({
+    "type": "travel",
+    "duration": 120,  # 2 minutes
+    "title": "European Adventure"
+})
+```
+
+### Podcast Intro/Outro Music
+
+```python
+def create_podcast_music(podcast_info):
+    """Generate intro and outro music for podcasts"""
+
+    # Create intro music
+    intro_prompt = f"""
+    Create a {podcast_info['mood']} podcast intro for '{podcast_info['title']}'.
+    {podcast_info['genre']} style, {podcast_info['energy']} energy.
+    Should build excitement and introduce the show professionally.
+    Include space for voice-over announcement.
+    """
+
+    intro_music = client.music_generation.create(
+        prompt=intro_prompt,
+        duration=15,  # Short intro
+        genre=podcast_info["genre"],
+        mood=podcast_info["mood"],
+        structure="intro-buildup-peak",
+        fade_out=True,
+        voice_space=True  # Leave space for voice-over
+    )
+
+    # Create outro music
+    outro_prompt = f"""
+    Create a {podcast_info['mood']} podcast outro that wraps up the show nicely.
+    Should feel conclusive and leave listeners satisfied.
+    Gentle fade out for smooth ending.
+    """
+
+    outro_music = client.music_generation.create(
+        prompt=outro_prompt,
+        duration=20,  # Longer outro
+        genre=podcast_info["genre"],
+        mood=podcast_info["mood"],
+        structure="conclusion-fade",
+        fade_in=True,
+        fade_out=True
+    )
+
+    return {
+        "intro": intro_music.audio_data,
+        "outro": outro_music.audio_data
+    }
+
+# Example for a tech podcast
+tech_podcast_music = create_podcast_music({
+    "title": "Tech Talk Weekly",
+    "genre": "electronic",
+    "mood": "energetic",
+    "energy": "medium-high"
+})
+```
+
+### Game Music and Sound Effects
+
+```python
+def create_game_music_pack(game_theme, scenarios):
+    """Generate a complete music pack for games"""
+
+    music_pack = {}
+
+    for scenario, details in scenarios.items():
+        prompt = f"""
+        Create {game_theme} game music for {scenario} scenario.
+        {details['description']}
+        Should loop seamlessly and maintain {details['mood']} atmosphere.
+        """
+
+        music = client.music_generation.create(
+            prompt=prompt,
+            duration=details["duration"],
+            genre=details["genre"],
+            mood=details["mood"],
+            energy_level=details["energy"],
+            loop_compatible=True,    # Essential for game music
+            interactive_layers=True, # Different intensity layers
+            format="ogg"            # Common game audio format
+        )
+
+        music_pack[scenario] = music.audio_data
+
+    return music_pack
+
+# Example for fantasy RPG game
+fantasy_game_music = create_game_music_pack("fantasy RPG", {
+    "main_menu": {
+        "description": "Epic orchestral theme that sets the fantasy adventure mood",
+        "genre": "orchestral",
+        "mood": "epic",
+        "energy": "medium",
+        "duration": 60
+    },
+    "exploration": {
+        "description": "Peaceful ambient music for exploring the world",
+        "genre": "ambient",
+        "mood": "mysterious",
+        "energy": "low",
+        "duration": 180
+    },
+    "battle": {
+        "description": "Intense combat music with driving rhythm and urgency",
+        "genre": "orchestral_rock",
+        "mood": "intense",
+        "energy": "high",
+        "duration": 120
+    },
+    "victory": {
+        "description": "Triumphant fanfare for completing quests",
+        "genre": "orchestral",
+        "mood": "triumphant",
+        "energy": "high",
+        "duration": 30
+    }
+})
+```
+
+### AI-Generated Soundtracks
+
+```python
+def create_movie_soundtrack(movie_info, scenes):
+    """Generate a complete movie soundtrack"""
+
+    soundtrack = {}
+
+    # Create main theme
+    main_theme_prompt = f"""
+    Create the main theme for {movie_info['title']}, a {movie_info['genre']} film.
+    {movie_info['description']}
+    Should be memorable and capture the essence of the story.
+    """
+
+    main_theme = client.music_generation.create(
+        prompt=main_theme_prompt,
+        duration=90,
+        genre=movie_info["musical_style"],
+        mood=movie_info["overall_mood"],
+        structure="theme-development-climax-resolution",
+        orchestral=True
+    )
+
+    soundtrack["main_theme"] = main_theme.audio_data
+
+    # Create scene-specific music
+    for scene_name, scene_info in scenes.items():
+        scene_prompt = f"""
+        Create music for the {scene_name} scene in {movie_info['title']}.
+        Scene context: {scene_info['context']}
+        Emotional arc: {scene_info['emotion_progression']}
+        Should support the narrative and enhance the mood.
+        """
+
+        scene_music = client.music_generation.create(
+            prompt=scene_prompt,
+            duration=scene_info["duration"],
+            genre=movie_info["musical_style"],
+            mood=scene_info["primary_mood"],
+            emotional_arc=scene_info["emotion_progression"],
+            sync_to_action=True  # Music responds to scene pacing
+        )
+
+        soundtrack[scene_name] = scene_music.audio_data
+
+    return soundtrack
+
+# Example for an action thriller
+thriller_soundtrack = create_movie_soundtrack(
+    movie_info={
+        "title": "Night Chase",
+        "genre": "action_thriller",
+        "description": "High-stakes urban thriller about a detective pursuing criminals",
+        "musical_style": "electronic_orchestral",
+        "overall_mood": "tense"
+    },
+    scenes={
+        "opening_credits": {
+            "context": "City establishing shots, credits rolling",
+            "primary_mood": "mysterious",
+            "emotion_progression": "calm-to-tension",
+            "duration": 45
+        },
+        "chase_sequence": {
+            "context": "High-speed car chase through city streets",
+            "primary_mood": "intense",
+            "emotion_progression": "building-intensity",
+            "duration": 180
+        },
+        "emotional_revelation": {
+            "context": "Character discovers important truth",
+            "primary_mood": "emotional",
+            "emotion_progression": "shock-to-sadness-to-determination",
+            "duration": 120
+        }
+    }
+)
+```
+
+## Configuration Options
+
+### Audio Quality Settings
+
+```python
+response = client.music_generation.create(
+    prompt="Ambient electronic music for relaxation",
+    duration=60,
+    # Quality settings
+    quality="premium",      # standard, high, premium
+    sample_rate=48000,      # 44100, 48000
+    bit_depth=24,           # 16, 24
+    output_format="wav",    # mp3, wav, flac, ogg
+
+    # Musical parameters
+    bpm=120,               # Beats per minute
+    key="C major",         # Musical key
+    time_signature="4/4",  # Time signature
+
+    # Production settings
+    mastering="radio_ready",  # none, light, radio_ready
+    stereo_width="wide",      # narrow, normal, wide
+    dynamic_range="medium"    # low, medium, high
+)
+```
+
+### Advanced Musical Control
+
+```python
+response = client.music_generation.create(
+    prompt="Jazz fusion with complex harmonies",
+    duration=120,
+
+    # Musical structure
+    structure={
+        "intro": 8,      # 8 bars intro
+        "verse": 16,     # 16 bars verse
+        "chorus": 16,    # 16 bars chorus
+        "bridge": 8,     # 8 bars bridge
+        "outro": 8       # 8 bars outro
+    },
+
+    # Instrumentation
+    instruments={
+        "primary": ["piano", "electric_guitar", "bass"],
+        "secondary": ["drums", "saxophone"],
+        "optional": ["strings", "brass_section"]
+    },
+
+    # Performance style
+    performance_style={
+        "tempo_variations": True,     # Allow tempo changes
+        "improvisation": 0.3,         # 30% improvisation
+        "swing_feel": 0.6,           # Swing rhythm
+        "syncopation": 0.4           # Rhythmic complexity
+    }
+)
+```
+
+## Pricing
+
+Music generation pricing is based on duration and quality:
+
+### Standard Pricing
+
+- **100 credits per 30 seconds** of generated music
+- Premium quality: 150 credits per 30 seconds
+- Stem separation: +50 credits per track
+
+### Cost Examples
+
+| Duration         | Quality  | Credits | USD Cost |
+| ---------------- | -------- | ------- | -------- |
+| 30 seconds       | Standard | 100     | $0.10    |
+| 1 minute         | Standard | 200     | $0.20    |
+| 2 minutes        | Standard | 400     | $0.40    |
+| 30 seconds       | Premium  | 150     | $0.15    |
+| 1 minute + Stems | Standard | 350     | $0.35    |
+
+### Cost Optimization
+
+1. **Batch Generation**: Generate multiple variations in one request
+2. **Appropriate Duration**: Generate only the length you need
+3. **Standard Quality**: Use standard quality for testing and demos
+4. **Reuse Elements**: Build on successful generations
+
+## Legal and Usage Rights
+
+### Royalty-Free License
+
+All generated music is **100% royalty-free** and includes:
+
+- ✅ Commercial use rights
+- ✅ Broadcast and streaming rights
+- ✅ Synchronization rights (video, games, etc.)
+- ✅ Modification and remix rights
+- ✅ No attribution required (but appreciated)
+
+### What's Included
+
+```python
+# Each generation includes full usage rights
+response = client.music_generation.create(
+    prompt="Corporate background music",
+    duration=60,
+    include_license=True  # Include detailed license information
+)
+
+print(response.license_info)
+# {
+#   "type": "royalty_free_commercial",
+#   "usage_rights": ["commercial", "broadcast", "streaming", "sync"],
+#   "restrictions": [],
+#   "attribution_required": false,
+#   "license_url": "https://audiopod.ai/license/music"
+# }
+```
+
+## Best Practices
+
+### Writing Effective Prompts
+
+**✅ Good Prompts:**
+
+- Be specific about genre, mood, and instruments
+- Include tempo and energy level
+- Describe the intended use case
+- Mention specific musical elements you want
+
+**❌ Avoid:**
+
+- Vague descriptions like "good music"
+- Conflicting style requests
+- Overly complex prompts with too many requirements
+
+### Examples of Effective Prompts
+
+```python
+effective_prompts = [
+    # Good: Specific and clear
+    "Upbeat indie rock song with jangly guitars, steady drums, and melodic bass line. Perfect for a summer road trip commercial. 120 BPM in E major.",
+
+    # Good: Detailed atmosphere
+    "Mystical ambient soundtrack for a fantasy video game forest level. Includes ethereal pads, subtle flute melody, and gentle percussion. Peaceful and magical mood.",
+
+    # Good: Technical specifications
+    "4-minute progressive rock instrumental with complex time signatures, guitar solos, and dynamic build-ups. Think Pink Floyd meets modern progressive metal.",
+
+    # Avoid: Too vague
+    "Make some good music",
+
+    # Avoid: Conflicting styles
+    "Heavy metal classical jazz fusion country ambient"
+]
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Stem Separation" icon="music" href="/features/stem-separation">
+    Separate generated music into individual instrument tracks.
+  </Card>
+  <Card title="Voice Cloning" icon="user-clone" href="/features/voice-cloning">
+    Create custom voices to add vocals to your generated music.
+  </Card>
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api-reference/music-generation"
+  >
+    Detailed API documentation for music generation.
+  </Card>
+  <Card
+    title="Audio Processing"
+    icon="waveform"
+    href="/features/noise-reduction"
+  >
+    Enhance and process your generated music.
+  </Card>
+</Columns>

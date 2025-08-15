@@ -1,0 +1,763 @@
+---
+title: "Authentication API"
+description: "Comprehensive authentication endpoints for JWT tokens, OAuth providers, API keys, and user management"
+---
+
+## Overview
+
+AudioPod AI supports multiple authentication methods to accommodate different use cases:
+
+- **JWT Authentication**: For web applications with user sessions
+- **API Key Authentication**: For server-to-server integration and programmatic access
+- **OAuth Integration**: Google and GitHub single sign-on
+- **Session Management**: Token refresh and secure logout
+
+<Info>
+  All authenticated endpoints require either a valid JWT token in the
+  `Authorization: Bearer {token}` header or an API key in the `X-API-Key:{" "}
+  {api_key}` header.
+</Info>
+
+## JWT Authentication
+
+### Login
+
+Authenticate with email/password to receive JWT tokens.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/token
+    Content-Type: application/x-www-form-urlencoded
+    
+    username=user@example.com&password=secure_password
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/token",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        data={
+            "username": "user@example.com",
+            "password": "secure_password"
+        }
+    )
+    
+    if response.status_code == 200:
+        tokens = response.json()
+        access_token = tokens["access_token"]
+        refresh_token = tokens["refresh_token"]
+        print(f"Access token: {access_token}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/auth/token" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d "username=user@example.com&password=secure_password"
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600,
+  "user": {
+    "id": 12345,
+    "email": "user@example.com",
+    "name": "John Doe",
+    "subscription_plan": "pro",
+    "credits_remaining": 1500
+  }
+}
+```
+
+### Refresh Token
+
+Refresh an expired access token using the refresh token.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/refresh
+    Content-Type: application/json
+    
+    {
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/refresh",
+        json={"refresh_token": refresh_token}
+    )
+    
+    if response.status_code == 200:
+        new_tokens = response.json()
+        access_token = new_tokens["access_token"]
+    ```
+  </Tab>
+</Tabs>
+
+### Logout
+
+Invalidate current tokens and end the session.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/logout
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/logout",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## OAuth Authentication
+
+### Google OAuth
+
+Authenticate using Google account.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /auth/google/login?redirect_uri=https://yourapp.com/callback
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Redirect user to Google OAuth URL
+    oauth_url = "https://api.audiopod.ai/api/v1/auth/google/login"
+    params = {
+        "redirect_uri": "https://yourapp.com/callback"
+    }
+    
+    # After Google callback, exchange code for tokens
+    callback_response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/google/callback",
+        json={
+            "code": "google_auth_code",
+            "state": "csrf_state_token"
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### GitHub OAuth
+
+Authenticate using GitHub account.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /auth/github/login?redirect_uri=https://yourapp.com/callback
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Similar to Google OAuth flow
+    oauth_url = "https://api.audiopod.ai/api/v1/auth/github/login"
+    params = {
+        "redirect_uri": "https://yourapp.com/callback"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## API Key Authentication
+
+### Generate API Key
+
+Create a new API key for programmatic access.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/api-keys
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "name": "Production API Key",
+      "scopes": ["voice:read", "voice:write", "music:generate"],
+      "expires_in_days": 365
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/api-keys",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "name": "Production API Key",
+            "scopes": ["voice:read", "voice:write", "music:generate"],
+            "expires_in_days": 365
+        }
+    )
+    
+    if response.status_code == 201:
+        api_key_data = response.json()
+        api_key = api_key_data["api_key"]
+        print(f"New API key: {api_key}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "id": "ak_abc123def456",
+  "api_key": "ap_live_sk_1234567890abcdef",
+  "name": "Production API Key",
+  "scopes": ["voice:read", "voice:write", "music:generate"],
+  "created_at": "2024-01-15T10:30:00Z",
+  "expires_at": "2025-01-15T10:30:00Z",
+  "last_used_at": null
+}
+```
+
+### List API Keys
+
+Get all API keys for the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /auth/api-keys
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/api-keys",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    api_keys = response.json()["api_keys"]
+    for key in api_keys:
+        print(f"Key: {key['name']} - Last used: {key['last_used_at']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Revoke API Key
+
+Disable an API key permanently.
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /auth/api-keys/{api_key_id}
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/auth/api-keys/{api_key_id}",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## User Registration
+
+### Create Account
+
+Register a new user account.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/register
+    Content-Type: application/json
+    
+    {
+      "email": "newuser@example.com",
+      "password": "secure_password123",
+      "name": "Jane Doe",
+      "terms_accepted": true,
+      "newsletter_subscription": false
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/register",
+        json={
+            "email": "newuser@example.com",
+            "password": "secure_password123",
+            "name": "Jane Doe",
+            "terms_accepted": True,
+            "newsletter_subscription": False
+        }
+    )
+    
+    if response.status_code == 201:
+        user_data = response.json()
+        print(f"User created: {user_data['user']['id']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Email Verification
+
+Verify email address after registration.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/verify-email
+    Content-Type: application/json
+    
+    {
+      "token": "verification_token_from_email"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/verify-email",
+        json={"token": "verification_token_from_email"}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Password Reset
+
+Request and confirm password reset.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/password-reset-request
+    Content-Type: application/json
+    
+    {
+      "email": "user@example.com"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Request password reset
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/password-reset-request",
+        json={"email": "user@example.com"}
+    )
+    
+    # Confirm password reset with token from email
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/password-reset-confirm",
+        json={
+            "token": "reset_token_from_email",
+            "new_password": "new_secure_password123"
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Session Management
+
+### Get Current User
+
+Retrieve information about the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /auth/me
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    user_info = response.json()
+    print(f"User: {user_info['name']} ({user_info['email']})")
+    print(f"Plan: {user_info['subscription_plan']}")
+    print(f"Credits: {user_info['credits_remaining']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Update Profile
+
+Update user profile information.
+
+<Tabs>
+  <Tab title="PATCH">
+    ```http
+    PATCH /auth/me
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "name": "Updated Name",
+      "email": "newemail@example.com",
+      "preferences": {
+        "default_voice": "aura-en-female",
+        "email_notifications": true
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.patch(
+        "https://api.audiopod.ai/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "name": "Updated Name",
+            "email": "newemail@example.com",
+            "preferences": {
+                "default_voice": "aura-en-female",
+                "email_notifications": True
+            }
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## Security Features
+
+### Two-Factor Authentication
+
+Enable 2FA for enhanced security.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /auth/2fa/enable
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Enable 2FA
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/2fa/enable",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    qr_data = response.json()
+    print(f"QR Code: {qr_data['qr_code_url']}")
+    print(f"Secret: {qr_data['secret']}")
+    
+    # Verify 2FA setup
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/2fa/verify",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"code": "123456"}  # From authenticator app
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Rate Limiting
+
+Authentication endpoints have specific rate limits:
+
+| Endpoint                       | Rate Limit  | Window   |
+| ------------------------------ | ----------- | -------- |
+| `/auth/token`                  | 5 requests  | 1 minute |
+| `/auth/register`               | 3 requests  | 1 hour   |
+| `/auth/password-reset-request` | 3 requests  | 1 hour   |
+| `/auth/refresh`                | 10 requests | 1 minute |
+
+## Error Handling
+
+### Common Error Responses
+
+<AccordionGroup>
+  <Accordion title="401 Unauthorized - Invalid Credentials">
+    ```json
+    {
+      "error": {
+        "code": "invalid_credentials",
+        "message": "Email or password is incorrect",
+        "suggestion": "Check your credentials or use password reset"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="401 Unauthorized - Token Expired">
+    ```json
+    {
+      "error": {
+        "code": "token_expired",
+        "message": "Access token has expired",
+        "suggestion": "Use refresh token to get a new access token"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="403 Forbidden - Insufficient Permissions">
+    ```json
+    {
+      "error": {
+        "code": "insufficient_permissions",
+        "message": "API key does not have required scope",
+        "details": {
+          "required_scopes": ["voice:write"],
+          "current_scopes": ["voice:read"]
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="409 Conflict - User Already Exists">
+    ```json
+    {
+      "error": {
+        "code": "user_already_exists",
+        "message": "An account with this email already exists",
+        "suggestion": "Use login instead or try password reset"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="422 Validation Error - Invalid Input">
+    ```json
+    {
+      "error": {
+        "code": "validation_error",
+        "message": "Invalid input data",
+        "details": {
+          "email": ["Invalid email format"],
+          "password": ["Password must be at least 8 characters"]
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="429 Rate Limited">
+    ```json
+    {
+      "error": {
+        "code": "rate_limit_exceeded",
+        "message": "Too many login attempts",
+        "retry_after": 60
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Scopes and Permissions
+
+### Available Scopes
+
+API keys can be granted specific scopes to limit access:
+
+| Scope             | Description                  |
+| ----------------- | ---------------------------- |
+| `voice:read`      | List and read voice data     |
+| `voice:write`     | Create and modify voices     |
+| `voice:generate`  | Generate speech with voices  |
+| `music:read`      | Access music generation data |
+| `music:generate`  | Generate music content       |
+| `translation:use` | Use translation services     |
+| `account:read`    | Read account information     |
+| `account:write`   | Modify account settings      |
+| `credits:read`    | View credit balance          |
+| `admin:*`         | Administrative access        |
+
+### Scope Inheritance
+
+Some scopes include others:
+
+- `voice:write` includes `voice:read`
+- `admin:*` includes all scopes
+- `account:write` includes `account:read`
+
+## Integration Examples
+
+### Web Application (React)
+
+```javascript
+// React authentication hook
+import { useState, useEffect } from "react";
+
+export function useAuth() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const login = async (email, password) => {
+    const response = await fetch("/api/v1/auth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ username: email, password }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("refresh_token", data.refresh_token);
+      setUser(data.user);
+      return true;
+    }
+    return false;
+  };
+
+  const logout = async () => {
+    await fetch("/api/v1/auth/logout", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      },
+    });
+
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    setUser(null);
+  };
+
+  return { user, login, logout, loading };
+}
+```
+
+### Server-to-Server (Python)
+
+```python
+# Python client with API key authentication
+import requests
+
+class AudioPodClient:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = "https://api.audiopod.ai/api/v1"
+        self.session = requests.Session()
+        self.session.headers.update({
+            "X-API-Key": api_key,
+            "User-Agent": "AudioPod-Python-Client/1.0"
+        })
+
+    def generate_speech(self, text, voice_id="aura-en-female"):
+        response = self.session.post(
+            f"{self.base_url}/voice/clone/",
+            json={
+                "input_text": text,
+                "voice_id": voice_id
+            }
+        )
+        response.raise_for_status()
+        return response.json()
+
+# Usage
+client = AudioPodClient("ap_live_sk_your_api_key")
+result = client.generate_speech("Hello, world!")
+```
+
+## Best Practices
+
+### Security Recommendations
+
+1. **Store tokens securely**: Use secure storage for refresh tokens
+2. **Implement token rotation**: Regularly refresh access tokens
+3. **Use HTTPS only**: Never send tokens over unencrypted connections
+4. **Validate tokens server-side**: Always verify tokens on your backend
+5. **Implement logout**: Properly invalidate tokens when users log out
+6. **Use minimal scopes**: Grant only necessary permissions to API keys
+7. **Monitor usage**: Track API key usage and revoke suspicious keys
+
+### Error Handling
+
+```python
+# Robust error handling example
+import requests
+from requests.exceptions import RequestException
+
+def handle_auth_request(func, *args, **kwargs):
+    try:
+        response = func(*args, **kwargs)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.Timeout:
+        raise AuthError("Request timed out")
+    except requests.exceptions.ConnectionError:
+        raise AuthError("Connection failed")
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 401:
+            raise AuthError("Invalid credentials")
+        elif e.response.status_code == 429:
+            raise AuthError("Rate limit exceeded")
+        else:
+            raise AuthError(f"HTTP error: {e.response.status_code}")
+    except RequestException:
+        raise AuthError("Unexpected error occurred")
+```
+
+### Token Management
+
+```python
+# Automatic token refresh implementation
+import time
+import jwt
+
+class TokenManager:
+    def __init__(self, access_token, refresh_token):
+        self.access_token = access_token
+        self.refresh_token = refresh_token
+
+    def get_valid_token(self):
+        if self._is_token_expired(self.access_token):
+            self._refresh_access_token()
+        return self.access_token
+
+    def _is_token_expired(self, token):
+        try:
+            payload = jwt.decode(token, options={"verify_signature": False})
+            return payload['exp'] < time.time() + 60  # Refresh 1 min before expiry
+        except:
+            return True
+
+    def _refresh_access_token(self):
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/auth/refresh",
+            json={"refresh_token": self.refresh_token}
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+            self.access_token = data["access_token"]
+        else:
+            raise AuthError("Failed to refresh token")
+```

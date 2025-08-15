@@ -1,0 +1,629 @@
+---
+title: "Voice Cloning"
+description: "Create custom AI voices from audio samples with AudioPod AI's advanced voice cloning technology. Generate personalized speech with just 10 seconds of audio."
+---
+
+## Overview
+
+AudioPod AI's Voice Cloning technology uses advanced XTTS V2 (Cross-lingual Text-to-Speech) models to create custom AI voices from just 10 seconds of audio input. Our state-of-the-art system supports 22+ languages and preserves speaker characteristics while enabling cross-lingual voice cloning.
+
+### Key Features
+
+- **Quick Training**: Create voices from 10 seconds to 5 minutes of audio
+- **High Fidelity**: Maintain speaker characteristics and emotional tone
+- **Multi-Language**: XTTS V2 enables cloning across 22+ languages including English, Spanish, French, German, Italian, Portuguese, Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese, Japanese, Hungarian, Korean, Hindi, and more
+- **Real-Time Generation**: Use cloned voices immediately after training
+- **Emotional Control**: Generate speech with different emotions and styles
+- **Voice Preservation**: Archive and preserve unique voices
+
+## Quick Start
+
+### Creating Your First Voice Clone
+
+Voice cloning involves three steps that your frontend application can call directly:
+
+**Step 1: Create Voice Clone**
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/voice/clone/" \
+  -H "Authorization: Bearer your_api_key" \
+  -F "name=John's Voice" \
+  -F "description=Professional male voice for presentations" \
+  -F "sample_audio=@voice_sample.mp3" \
+  -F "language=en" \
+  -F "enhance_audio=true"
+```
+
+**Request Schema:**
+- `name` (required): Voice clone name
+- `description` (optional): Voice description  
+- `sample_audio` (required): Audio file (10 seconds - 5 minutes)
+- `language` (required): Language code (en, es, fr, de, it, pt, etc.)
+- `enhance_audio` (optional): Auto-enhance audio quality (default: true)
+
+**Response:**
+```json
+{
+  "id": "voice_clone_abc123",
+  "name": "John's Voice", 
+  "status": "processing",
+  "language": "en",
+  "created_at": "2024-01-15T10:30:00Z",
+  "estimated_completion": "2024-01-15T10:35:00Z",
+  "credits_used": 10
+}
+```
+
+**Step 2: Check Training Status**
+```bash
+curl -X GET "https://api.audiopod.ai/api/v1/voice/clone/{clone_id}" \
+  -H "Authorization: Bearer your_api_key"
+```
+
+**Response:**
+```json
+{
+  "id": "voice_clone_abc123",
+  "status": "ready", // processing, ready, failed
+  "progress": 100,
+  "voice_preview_url": "https://api.audiopod.ai/previews/voice_clone_abc123.mp3"
+}
+```
+
+**Step 3: Generate Speech with Cloned Voice**
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/text-to-speech" \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Hello! This is my cloned voice speaking.",
+    "voice_id": "voice_clone_abc123",
+    "output_format": "mp3"
+  }' \
+  --output cloned_speech.mp3
+```
+
+## Audio Requirements
+
+### Sample Quality Guidelines
+
+For best results, provide audio samples that are:
+
+**✅ Recommended:**
+
+- **Duration**: 30 seconds to 5 minutes (minimum 10 seconds)
+- **Quality**: Clear, high-quality recording
+- **Content**: Natural speech, not singing or whispering
+- **Environment**: Minimal background noise
+- **Speaker**: Single speaker only
+- **Format**: WAV, MP3, or M4A
+
+**❌ Avoid:**
+
+- Noisy or low-quality recordings
+- Multiple speakers in same file
+- Music or sound effects
+- Extremely short samples (under 10 seconds)
+- Heavily processed audio (too much reverb, effects)
+
+### Sample Content Recommendations
+
+```python
+# Good sample content examples
+good_samples = [
+    "Reading a short paragraph of natural speech",
+    "Describing your day or interests",
+    "Reading a news article aloud",
+    "Explaining a concept you're familiar with",
+    "Casual conversation in a quiet environment"
+]
+
+# Avoid these types of content
+avoid_samples = [
+    "Singing or musical content",
+    "Whispered or shouted speech",
+    "Heavily accented or character voices",
+    "Phone call recordings with poor quality",
+    "Content with background music or noise"
+]
+```
+
+## Voice Management
+
+### Listing Your Voice Clones
+
+```python
+# Get all your voice clones
+voices = client.voice_cloning.list()
+
+for voice in voices:
+    print(f"Name: {voice.name}")
+    print(f"ID: {voice.id}")
+    print(f"Status: {voice.status}")
+    print(f"Created: {voice.created_at}")
+    print(f"Language: {voice.language}")
+    print("---")
+```
+
+### Voice Clone Details
+
+```python
+# Get detailed information about a voice clone
+voice = client.voice_cloning.get(voice_id)
+
+print(f"Name: {voice.name}")
+print(f"Description: {voice.description}")
+print(f"Status: {voice.status}")
+print(f"Training Progress: {voice.training_progress}%")
+print(f"Quality Score: {voice.quality_score}")
+print(f"Languages: {', '.join(voice.supported_languages)}")
+print(f"Created: {voice.created_at}")
+print(f"Last Used: {voice.last_used_at}")
+```
+
+### Updating Voice Information
+
+```python
+# Update voice clone metadata
+updated_voice = client.voice_cloning.update(
+    voice_id=voice_id,
+    name="Updated Voice Name",
+    description="New description for the voice",
+    tags=["business", "professional", "presentations"]
+)
+```
+
+### Deleting Voice Clones
+
+```python
+# Delete a voice clone
+client.voice_cloning.delete(voice_id)
+print("Voice clone deleted successfully")
+```
+
+<Warning>
+  Deleting a voice clone is permanent and cannot be undone. All generated audio
+  using this voice will continue to work, but you cannot generate new audio with
+  the deleted voice.
+</Warning>
+
+## Advanced Features
+
+### Multi-Sample Training
+
+For higher quality, provide multiple audio samples:
+
+```python
+# Use multiple samples for better quality
+sample_files = [
+    "sample1_reading.mp3",
+    "sample2_conversation.mp3",
+    "sample3_presentation.mp3"
+]
+
+voice_clone = client.voice_cloning.create(
+    name="High Quality Voice",
+    description="Voice trained on multiple samples",
+    sample_files=sample_files,  # Multiple files
+    language="en",
+    training_mode="premium"  # Higher quality training
+)
+```
+
+### Cross-Language Voice Cloning
+
+Train a voice in one language and use it in others:
+
+```python
+# Train voice in English
+voice_clone = client.voice_cloning.create(
+    name="Multilingual Voice",
+    sample_audio=english_sample,
+    language="en",
+    enable_multilingual=True  # Enable cross-language use
+)
+
+# Use the English-trained voice for Spanish text
+spanish_speech = client.text_to_speech.create(
+    text="Hola, este es mi voz clonada hablando en español.",
+    voice_id=voice_clone.id,
+    target_language="es"  # Generate Spanish speech
+)
+```
+
+### Emotional Style Control
+
+Generate speech with different emotional styles:
+
+```python
+# Generate speech with different emotions
+emotions = ["neutral", "happy", "sad", "excited", "calm", "angry"]
+
+for emotion in emotions:
+    response = client.text_to_speech.create(
+        text="This is an example of emotional speech generation.",
+        voice_id=voice_clone.id,
+        emotion=emotion,
+        emotion_intensity=0.7  # 0.0 to 1.0
+    )
+
+    with open(f"speech_{emotion}.mp3", "wb") as f:
+        f.write(response.audio_data)
+```
+
+### Voice Similarity Analysis
+
+Compare voices and find similar ones:
+
+```python
+# Analyze similarity between voices
+similarity = client.voice_cloning.analyze_similarity(
+    voice_id_1=voice_clone.id,
+    voice_id_2="another_voice_id"
+)
+
+print(f"Similarity score: {similarity.score:.2f}")
+print(f"Characteristics: {similarity.shared_characteristics}")
+
+# Find similar voices in your collection
+similar_voices = client.voice_cloning.find_similar(
+    voice_id=voice_clone.id,
+    threshold=0.7  # Minimum similarity score
+)
+```
+
+## Use Cases & Examples
+
+### Personal Assistant Voice
+
+```python
+def create_personal_assistant_voice(sample_audio_path, assistant_name):
+    """Create a voice for a personal assistant application"""
+
+    with open(sample_audio_path, "rb") as audio_file:
+        voice = client.voice_cloning.create(
+            name=f"{assistant_name} Assistant Voice",
+            description=f"Personal assistant voice for {assistant_name}",
+            sample_audio=audio_file,
+            language="en",
+            use_case="assistant",  # Optimized for assistant responses
+            enable_multilingual=True
+        )
+
+    # Wait for training
+    voice = client.voice_cloning.wait_for_completion(voice.id)
+
+    if voice.status == "ready":
+        # Test the voice with common assistant phrases
+        test_phrases = [
+            "Hello! How can I help you today?",
+            "I found several results for your query.",
+            "Would you like me to schedule that appointment?",
+            "The weather today is sunny with a high of 75 degrees."
+        ]
+
+        for i, phrase in enumerate(test_phrases):
+            audio = client.text_to_speech.create(
+                text=phrase,
+                voice_id=voice.id,
+                emotion="friendly",
+                speed=0.95  # Slightly slower for clarity
+            )
+
+            with open(f"assistant_test_{i+1}.mp3", "wb") as f:
+                f.write(audio.audio_data)
+
+    return voice
+```
+
+### Content Creator Voice Preservation
+
+```python
+def preserve_creator_voice(creator_audio_samples, creator_info):
+    """Preserve a content creator's voice for future use"""
+
+    # Combine multiple samples for best quality
+    voice = client.voice_cloning.create(
+        name=f"{creator_info['name']} - Content Voice",
+        description=f"Voice preserved for {creator_info['channel_name']}",
+        sample_files=creator_audio_samples,
+        language=creator_info.get("primary_language", "en"),
+        training_mode="premium",
+        enable_multilingual=True,
+        preserve_style=True,  # Maintain speaking style
+        tags=["content-creation", "youtube", "podcast"]
+    )
+
+    # Monitor training progress
+    while voice.status == "training":
+        voice = client.voice_cloning.get(voice.id)
+        print(f"Training progress: {voice.training_progress}%")
+        time.sleep(30)
+
+    if voice.status == "ready":
+        # Generate sample content
+        sample_script = """
+        Hey everyone, welcome back to the channel!
+        Today we're going to be talking about voice cloning technology
+        and how it can help content creators like us.
+        """
+
+        preserved_audio = client.text_to_speech.create(
+            text=sample_script,
+            voice_id=voice.id,
+            emotion="enthusiastic",
+            style="conversational"
+        )
+
+        return voice, preserved_audio
+
+    return voice, None
+```
+
+### Character Voice Creation
+
+```python
+def create_character_voices(character_profiles):
+    """Create voices for fictional characters or game NPCs"""
+
+    character_voices = {}
+
+    for character in character_profiles:
+        # Create voice for each character
+        with open(character["sample_audio"], "rb") as audio:
+            voice = client.voice_cloning.create(
+                name=f"{character['name']} - {character['role']}",
+                description=character["description"],
+                sample_audio=audio,
+                language=character.get("language", "en"),
+                character_type=character["type"],  # hero, villain, narrator, etc.
+                age_category=character.get("age", "adult"),
+                gender=character.get("gender", "neutral")
+            )
+
+        # Wait for completion
+        voice = client.voice_cloning.wait_for_completion(voice.id)
+        character_voices[character["name"]] = voice
+
+    # Generate sample dialogue
+    dialogue_samples = {}
+    for char_name, voice in character_voices.items():
+        if voice.status == "ready":
+            character = next(c for c in character_profiles if c["name"] == char_name)
+
+            sample_dialogue = client.text_to_speech.create(
+                text=character["sample_dialogue"],
+                voice_id=voice.id,
+                emotion=character.get("default_emotion", "neutral"),
+                style=character.get("speaking_style", "conversational")
+            )
+
+            dialogue_samples[char_name] = sample_dialogue.audio_data
+
+    return character_voices, dialogue_samples
+```
+
+### Voice Banking for Medical Use
+
+```python
+def voice_banking_session(patient_info, session_recordings):
+    """Create voice bank for patients who may lose their voice"""
+
+    # Create comprehensive voice model
+    voice_bank = client.voice_cloning.create(
+        name=f"Voice Bank - {patient_info['name']}",
+        description=f"Voice preservation for medical use",
+        sample_files=session_recordings,
+        language=patient_info["primary_language"],
+        training_mode="medical",  # Specialized for medical voice banking
+        preserve_nuances=True,   # Preserve subtle speech patterns
+        high_fidelity=True,      # Maximum quality preservation
+        medical_use=True         # Enables medical-specific features
+    )
+
+    # Enhanced training for medical use
+    voice_bank = client.voice_cloning.wait_for_completion(
+        voice_bank.id,
+        timeout=1800  # Allow longer training time
+    )
+
+    if voice_bank.status == "ready":
+        # Test with common phrases patients might need
+        essential_phrases = [
+            "I need help.",
+            "I'm in pain.",
+            "Thank you.",
+            "I love you.",
+            "Please call the doctor.",
+            "I'm feeling better today."
+        ]
+
+        essential_audio = {}
+        for phrase in essential_phrases:
+            audio = client.text_to_speech.create(
+                text=phrase,
+                voice_id=voice_bank.id,
+                emotion="natural",
+                clarity_enhanced=True  # Enhanced clarity for medical use
+            )
+            essential_audio[phrase] = audio.audio_data
+
+        return voice_bank, essential_audio
+
+    return voice_bank, None
+```
+
+## Quality Optimization
+
+### Improving Voice Quality
+
+```python
+def optimize_voice_quality(voice_id):
+    """Analyze and improve voice clone quality"""
+
+    # Get quality analysis
+    analysis = client.voice_cloning.analyze_quality(voice_id)
+
+    print(f"Current quality score: {analysis.overall_score}")
+    print("Quality metrics:")
+    for metric, score in analysis.metrics.items():
+        print(f"  {metric}: {score}")
+
+    # Get improvement suggestions
+    suggestions = analysis.improvement_suggestions
+
+    if "additional_samples" in suggestions:
+        print("Recommendation: Add more training samples")
+        print(f"Suggested sample types: {suggestions['sample_types']}")
+
+    if "audio_quality" in suggestions:
+        print("Recommendation: Improve audio quality")
+        print(f"Issues found: {suggestions['quality_issues']}")
+
+    return analysis
+```
+
+### Voice Testing and Validation
+
+```python
+def test_voice_quality(voice_id, test_scenarios):
+    """Test voice across different scenarios"""
+
+    test_results = {}
+
+    for scenario_name, test_config in test_scenarios.items():
+        print(f"Testing scenario: {scenario_name}")
+
+        audio = client.text_to_speech.create(
+            text=test_config["text"],
+            voice_id=voice_id,
+            emotion=test_config.get("emotion", "neutral"),
+            speed=test_config.get("speed", 1.0),
+            pitch=test_config.get("pitch", 1.0)
+        )
+
+        # Analyze generated audio quality
+        quality_analysis = client.audio_analysis.analyze_quality(
+            audio_data=audio.audio_data
+        )
+
+        test_results[scenario_name] = {
+            "audio": audio.audio_data,
+            "quality_score": quality_analysis.quality_score,
+            "naturalness": quality_analysis.naturalness_score,
+            "clarity": quality_analysis.clarity_score
+        }
+
+    return test_results
+
+# Example test scenarios
+test_scenarios = {
+    "casual_conversation": {
+        "text": "Hey, how's it going? I was just thinking about our conversation yesterday.",
+        "emotion": "friendly"
+    },
+    "professional_presentation": {
+        "text": "Good morning everyone. Today I'll be presenting our quarterly results.",
+        "emotion": "professional",
+        "speed": 0.9
+    },
+    "emotional_expression": {
+        "text": "I'm so excited to share this news with you!",
+        "emotion": "excited"
+    },
+    "technical_content": {
+        "text": "The API endpoint returns a JSON response with authentication headers.",
+        "emotion": "neutral",
+        "speed": 0.85
+    }
+}
+```
+
+## Pricing
+
+Voice cloning uses a one-time training cost plus standard TTS usage:
+
+### Training Costs
+
+- **Basic Training**: 500 credits (10-60 seconds of sample audio)
+- **Premium Training**: 1,000 credits (multiple samples, higher quality)
+- **Medical/Professional**: 2,000 credits (specialized training)
+
+### Usage Costs
+
+- Same as standard Text-to-Speech: 1 credit per 1,000 characters
+- No additional cost for using cloned voices
+
+### Cost Examples
+
+| Training Type | Sample Length | Training Cost         | Usage Cost         |
+| ------------- | ------------- | --------------------- | ------------------ |
+| Basic         | 30 seconds    | 500 credits ($0.50)   | Standard TTS rates |
+| Premium       | 2-5 minutes   | 1,000 credits ($1.00) | Standard TTS rates |
+| Multi-sample  | 3-10 samples  | 1,500 credits ($1.50) | Standard TTS rates |
+| Medical       | 10+ minutes   | 2,000 credits ($2.00) | Standard TTS rates |
+
+## Legal and Ethical Considerations
+
+### Usage Guidelines
+
+**✅ Permitted Uses:**
+
+- Cloning your own voice
+- Cloning voices with explicit written consent
+- Creating fictional character voices from voice actors
+- Medical voice preservation with patient consent
+- Educational and research purposes
+
+**❌ Prohibited Uses:**
+
+- Cloning voices without permission
+- Impersonating others for deceptive purposes
+- Creating fake audio for misinformation
+- Violating privacy or consent
+
+### Consent and Documentation
+
+```python
+# Example consent verification system
+def create_voice_with_consent(sample_audio, consent_info):
+    """Create voice clone with proper consent documentation"""
+
+    voice = client.voice_cloning.create(
+        name=consent_info["voice_name"],
+        sample_audio=sample_audio,
+        language=consent_info["language"],
+        # Consent documentation
+        consent_provided=True,
+        consent_document_id=consent_info["consent_id"],
+        voice_owner=consent_info["owner_name"],
+        use_case=consent_info["intended_use"],
+        consent_date=consent_info["consent_date"]
+    )
+
+    return voice
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Voice Changer" icon="magic-wand" href="/features/voice-changer">
+    Transform and modify voice characteristics in real-time.
+  </Card>
+  <Card
+    title="Text-to-Speech"
+    icon="microphone"
+    href="/features/text-to-speech"
+  >
+    Use your cloned voices to generate speech.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/voice-cloning">
+    Detailed API documentation for voice cloning.
+  </Card>
+  <Card
+    title="Best Practices"
+    icon="lightbulb"
+    href="/guides/voice-cloning-best-practices"
+  >
+    Learn advanced techniques for high-quality voice cloning.
+  </Card>
+</Columns>

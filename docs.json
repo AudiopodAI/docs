@@ -1,69 +1,71 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "AudioPod AI",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#6366F1",
+    "light": "#8B5CF6",
+    "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Overview",
         "groups": [
           {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
-            ]
+            "group": "Getting Started",
+            "pages": ["index", "quickstart", "authentication"]
           },
           {
-            "group": "Customization",
+            "group": "Account Management",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "account/registration",
+              "account/api-keys",
+              "account/credits"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "API Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Authentication",
+            "pages": ["api-reference/authentication"]
+          },
+          {
+            "group": "Voice APIs",
             "pages": [
-              "api-reference/introduction"
+              "api-reference/text-to-speech",
+              "api-reference/voice-cloning",
+              "api-reference/voice-changer",
+              "api-reference/voice-management"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Music APIs",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "api-reference/music-generation",
+              "api-reference/stem-separation",
+              "api-reference/noise-reduction"
             ]
+          },
+          {
+            "group": "Speech APIs",
+            "pages": [
+              "api-reference/speaker-extraction",
+              "api-reference/speech-translation",
+              "api-reference/speech-to-text"
+            ]
+          },
+          {
+            "group": "Utilities",
+            "pages": ["api-reference/media-extraction"]
+          },
+          {
+            "group": "Account & Credits APIs",
+            "pages": ["api-reference/account", "api-reference/credits"]
           }
         ]
       }
@@ -71,57 +73,63 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "AudioPod AI",
+          "href": "https://www.audiopod.ai",
+          "icon": "house"
         },
         {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
+          "anchor": "API Playground",
+          "href": "https://api.audiopod.ai/api/v1/docs",
+          "icon": "code"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Discord Community",
+          "href": "https://discord.gg/audiopod",
+          "icon": "discord"
+        },
+        {
+          "anchor": "Support",
+          "href": "mailto:support@audiopod.ai",
+          "icon": "envelope"
         }
       ]
     }
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/logo.png",
+    "dark": "/logo/logo.png",
+    "href": "https://www.audiopod.ai"
   },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Manage Account",
+        "href": "https://www.audiopod.ai/dashboard/account"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Get API Key",
+      "href": "https://www.audiopod.ai/dashboard/account/api-keys"
     }
   },
   "contextual": {
     "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
+      "copy",
+      "view",
+      "chatgpt",
+      "claude",
+      "perplexity",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "x": "https://x.com/audiopodai",
+      "github": "https://github.com/audiopod-ai",
+      "linkedin": "https://linkedin.com/company/audiopod-ai"
     }
   }
 }

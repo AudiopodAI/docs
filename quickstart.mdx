@@ -1,80 +1,187 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quick Start Guide"
+description: "Get started with AudioPod AI in minutes. Learn how to authenticate, make your first API call, and integrate audio processing into your app."
 ---
 
-## Get started in three steps
+## Overview
 
-Get your documentation site running locally and make your first customization.
+Welcome to AudioPod AI! This guide will help you make your first API call in just a few minutes. By the end of this guide, you'll have:
 
-### Step 1: Set up your local environment
+1. Created an AudioPod AI account
+2. Generated your API key
+3. Made your first text-to-speech API call
+4. Understood credit usage and billing
+
+## Step 1: Create Your Account
+
+Sign up for a free AudioPod AI account to get started:
+
+<Card
+  title="Sign Up for AudioPod AI"
+  icon="user-plus"
+  href="https://www.audiopod.ai/signup"
+>
+  Create your free account with $5 in credits
+</Card>
+
+## Step 2: Get Your API Key
+
+After creating your account:
+
+1. Log into the [AudioPod AI Dashboard](https://www.audiopod.ai/dashboard)
+2. Navigate to **API Keys** in the sidebar
+3. Click **Create New API Key**
+4. Copy your API key and store it securely
+
+<Warning>
+  Keep your API key secure and never expose it in client-side code. Use
+  environment variables in production.
+</Warning>
+
+## Step 3: Install SDK (Optional)
+
+While you can use any HTTP client, we recommend using our official SDKs:
+
+<Tabs>
+  <Tab title="Python">```bash pip install audiopod-python ```</Tab>
+  <Tab title="Node.js">```bash npm install audiopod-js ```</Tab>
+  <Tab title="cURL">No installation required - use cURL directly</Tab>
+</Tabs>
+
+## Step 4: Make Your First API Call
+
+Let's create your first AI-generated speech:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import os
+    from audiopod import AudioPod
+
+    # Initialize the client
+    client = AudioPod(api_key=os.getenv("AUDIOPOD_API_KEY"))
+
+    # Generate speech
+    response = client.text_to_speech.create(
+        text="Hello world! This is my first AudioPod AI generated voice.",
+        voice_id="aura",  # Pre-built voice
+        output_format="mp3"
+    )
+
+    # Save the audio file
+    with open("hello_world.mp3", "wb") as f:
+        f.write(response.audio_data)
+
+    print("Audio generated successfully!")
+    ```
+
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    import { AudioPod } from 'audiopod-js';
+    import fs from 'fs';
+
+    // Initialize the client
+    const client = new AudioPod({
+      apiKey: process.env.AUDIOPOD_API_KEY
+    });
+
+    // Generate speech
+    const response = await client.textToSpeech.create({
+      text: "Hello world! This is my first AudioPod AI generated voice.",
+      voiceId: "aura",  // Pre-built voice
+      outputFormat: "mp3"
+    });
+
+    // Save the audio file
+    fs.writeFileSync("hello_world.mp3", response.audioData);
+    console.log("Audio generated successfully!");
+    ```
+
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/text-to-speech" \
+      -H "Authorization: Bearer YOUR_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "text": "Hello world! This is my first AudioPod AI generated voice.",
+        "voice_id": "aura",
+        "output_format": "mp3"
+      }' \
+      --output hello_world.mp3
+    ```
+  </Tab>
+</Tabs>
+
+## Step 5: Understanding Credits
+
+AudioPod AI uses a credit-based billing system:
+
+- **Text-to-Speech**: ~1 credit per 1,000 characters
+- **Speech-to-Text**: ~1 credit per minute of audio
+- **Voice Cloning**: ~50 credits per voice model
+- **Music Generation**: ~10 credits per 30-second track
+
+<Info>
+  New accounts receive $5 in credits (~5,000 credits) to get started. Check your
+  [billing dashboard](https://www.audiopod.ai/dashboard/billing) to monitor
+  usage.
+</Info>
+
+## Next Steps
+
+Congratulations! You've successfully made your first API call. Here's what to explore next:
+
+<Columns cols={2}>
+  <Card
+    title="Explore Voice Options"
+    icon="microphone"
+    href="/features/text-to-speech"
+  >
+    Learn about our 50+ pre-built voices and voice cloning.
+  </Card>
+  <Card
+    title="Try Speech-to-Text"
+    icon="waveform"
+    href="/features/speech-to-text"
+  >
+    Convert audio to text with speaker separation.
+  </Card>
+  <Card title="Authentication Guide" icon="key" href="/authentication">
+    Learn about API keys, webhooks, and security best practices.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/text-to-speech">
+    Dive deep into all available endpoints and parameters.
+  </Card>
+</Columns>
+
+## Common Issues
 
 <AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
+  <Accordion title="401 Unauthorized Error">
+    This usually means your API key is invalid or missing. Make sure you're
+    including the `Authorization: Bearer YOUR_API_KEY` header in your requests.
   </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
+
+  <Accordion title="Credit Limit Exceeded">
+    Check your [billing dashboard](https://www.audiopod.ai/dashboard/billing) to
+    see your credit balance and add more credits if needed.
+  </Accordion>
+
+  <Accordion title="Audio File Not Playing">
+    Ensure you're saving the response as binary data. The audio is returned as
+    raw bytes that need to be written to a file.
   </Accordion>
 </AccordionGroup>
 
-### Step 2: Deploy your changes
+## Need Help?
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
+<Card
+  title="Join Our Discord Community"
+  icon="discord"
+  href="https://discord.gg/audiopod"
+>
+  Get help from our team and connect with other developers building with
+  AudioPod AI.
 </Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

@@ -1,0 +1,1142 @@
+---
+title: "Voice Management API"
+description: "Manage available voices, create custom voices, and handle voice collections using AudioPod AI's Voice Management API endpoints."
+---
+
+## Overview
+
+The Voice Management API allows you to discover available voices, create and manage custom voices, and organize voice collections. This API is essential for applications that need dynamic voice selection and custom voice creation capabilities.
+
+### Base URL
+
+```
+https://api.audiopod.ai/api/v1
+```
+
+### Authentication
+
+All voice management endpoints require authentication using your API key in the Authorization header:
+
+```
+Authorization: Bearer your_api_key_here
+```
+
+## Available Voices
+
+### List Public Voices
+
+Get all publicly available pre-built voices.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /voices/public
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = client.voices.list_public(
+        language="en",           # Optional: filter by language
+        gender="female",         # Optional: filter by gender
+        style="professional",    # Optional: filter by style
+        limit=50,               # Optional: limit results
+        offset=0                # Optional: pagination offset
+    )
+    
+    for voice in response.voices:
+        print(f"ID: {voice.id}")
+        print(f"Name: {voice.name}")
+        print(f"Language: {voice.language}")
+        print(f"Gender: {voice.gender}")
+        print(f"Style: {voice.style}")
+        print(f"Description: {voice.description}")
+        print("---")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const response = await client.voices.listPublic({
+      language: 'en',
+      gender: 'female', 
+      style: 'professional',
+      limit: 50,
+      offset: 0
+    });
+    
+    response.voices.forEach(voice => {
+      console.log(`ID: ${voice.id}`);
+      console.log(`Name: ${voice.name}`);
+      console.log(`Language: ${voice.language}`);
+      console.log(`Gender: ${voice.gender}`);
+      console.log(`Style: ${voice.style}`);
+      console.log(`Description: ${voice.description}`);
+      console.log('---');
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/voices/public?language=en&gender=female" \
+      -H "Authorization: Bearer your_api_key"
+    ```
+  </Tab>
+</Tabs>
+
+#### Query Parameters
+
+| Parameter   | Type    | Description                                                               |
+| ----------- | ------- | ------------------------------------------------------------------------- |
+| `language`  | string  | Filter by language code (e.g., "en", "es", "fr")                          |
+| `gender`    | string  | Filter by gender ("male", "female", "neutral")                            |
+| `style`     | string  | Filter by voice style ("professional", "casual", "dramatic", etc.)        |
+| `age_range` | string  | Filter by age range ("young", "adult", "mature")                          |
+| `accent`    | string  | Filter by accent ("american", "british", "australian", etc.)              |
+| `use_case`  | string  | Filter by intended use case ("narration", "conversation", "announcement") |
+| `limit`     | integer | Maximum number of results (default: 50, max: 200)                         |
+| `offset`    | integer | Number of results to skip for pagination (default: 0)                     |
+
+#### Response
+
+```json
+{
+  "voices": [
+    {
+      "id": "aura-en-female",
+      "name": "Aura",
+      "display_name": "Aura - Bright Female Voice",
+      "language": "en",
+      "language_name": "English",
+      "gender": "female",
+      "age_range": "adult",
+      "style": "bright",
+      "accent": "american",
+      "description": "Luminous voice with crystal-clear delivery and sparkling energy",
+      "use_cases": ["narration", "presentation", "commercial"],
+      "sample_audio_url": "https://samples.audiopod.ai/aura-sample.mp3",
+      "characteristics": {
+        "pitch_range": "180-280 Hz",
+        "speaking_rate": "normal",
+        "energy_level": "high",
+        "warmth": "medium",
+        "clarity": "high"
+      },
+      "supported_languages": ["en", "es", "fr"],
+      "multilingual": true,
+      "premium": false,
+      "created_at": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 156,
+    "limit": 50,
+    "offset": 0,
+    "has_more": true
+  },
+  "filters_applied": {
+    "language": "en",
+    "gender": "female"
+  }
+}
+```
+
+### Get Voice Details
+
+Get detailed information about a specific voice.
+
+<Tabs>
+  <Tab title="GET">
+    ```http GET /voices/{voice_id}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    voice = client.voices.get("aura-en-female")
+    print(f"Voice ID: {voice.id}")
+    print(f"Name: {voice.name}")
+    print(f"Languages: {voice.supported_languages}")
+    print(f"Sample URL: {voice.sample_audio_url}")
+    print(f"Characteristics: {voice.characteristics}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const voice = await client.voices.get('aura-en-female');
+    console.log(`Voice ID: ${voice.id}`);
+    console.log(`Name: ${voice.name}`);
+    console.log(`Languages: ${voice.supportedLanguages}`);
+    console.log(`Sample URL: ${voice.sampleAudioUrl}`);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/voices/aura-en-female" \
+      -H "Authorization: Bearer your_api_key"
+    ```
+  </Tab>
+</Tabs>
+
+#### Response
+
+```json
+{
+  "id": "aura-en-female",
+  "name": "Aura",
+  "display_name": "Aura - Bright Female Voice",
+  "type": "public",
+  "language": "en",
+  "language_name": "English",
+  "gender": "female",
+  "age_range": "adult",
+  "style": "bright",
+  "accent": "american",
+  "description": "Luminous voice with crystal-clear delivery and sparkling energy",
+  "long_description": "Aura is perfect for presentations, commercials, and any content that needs an uplifting, professional sound. Her voice combines clarity with warmth, making complex information accessible and engaging.",
+  "use_cases": ["narration", "presentation", "commercial", "e-learning"],
+  "sample_audio_url": "https://samples.audiopod.ai/aura-sample.mp3",
+  "preview_text": "Hello! This is Aura speaking. I'm excited to help bring your content to life with clear, engaging narration.",
+  "characteristics": {
+    "pitch_range": "180-280 Hz",
+    "speaking_rate": "normal",
+    "energy_level": "high",
+    "warmth": "medium",
+    "clarity": "high",
+    "expressiveness": "high",
+    "formality": "medium"
+  },
+  "supported_languages": ["en", "es", "fr", "de"],
+  "multilingual": true,
+  "premium": false,
+  "quality_tier": "standard",
+  "technical_specs": {
+    "sample_rate": 22050,
+    "bit_depth": 16,
+    "recommended_text_length": "1-5000 characters",
+    "max_text_length": 10000
+  },
+  "usage_stats": {
+    "popularity_rank": 3,
+    "monthly_uses": 45230,
+    "average_rating": 4.8
+  },
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-15T10:30:00Z"
+}
+```
+
+## Custom Voices
+
+### List Custom Voices
+
+Get all custom voices associated with your account.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /voices/custom
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = client.voices.list_custom(
+        status="ready",          # Optional: filter by status
+        created_after="2024-01-01",  # Optional: filter by creation date
+        limit=20,
+        offset=0
+    )
+    
+    for voice in response.voices:
+        print(f"ID: {voice.id}")
+        print(f"Name: {voice.name}")
+        print(f"Status: {voice.status}")
+        print(f"Created: {voice.created_at}")
+        print(f"Training Progress: {voice.training_progress}%")
+        print("---")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const response = await client.voices.listCustom({
+      status: 'ready',
+      createdAfter: '2024-01-01',
+      limit: 20,
+      offset: 0
+    });
+    
+    response.voices.forEach(voice => {
+      console.log(`ID: ${voice.id}`);
+      console.log(`Name: ${voice.name}`);
+      console.log(`Status: ${voice.status}`);
+      console.log(`Created: ${voice.createdAt}`);
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/voices/custom?status=ready" \
+      -H "Authorization: Bearer your_api_key"
+    ```
+  </Tab>
+</Tabs>
+
+#### Query Parameters
+
+| Parameter        | Type    | Description                                                   |
+| ---------------- | ------- | ------------------------------------------------------------- |
+| `status`         | string  | Filter by status ("training", "ready", "failed", "cancelled") |
+| `created_after`  | string  | Filter by creation date (ISO 8601 format)                     |
+| `created_before` | string  | Filter by creation date (ISO 8601 format)                     |
+| `name`           | string  | Search by voice name (partial match)                          |
+| `limit`          | integer | Maximum number of results (default: 20, max: 100)             |
+| `offset`         | integer | Number of results to skip for pagination                      |
+
+#### Response
+
+```json
+{
+  "voices": [
+    {
+      "id": "voice_custom_abc123",
+      "name": "John's Professional Voice",
+      "display_name": "John's Professional Voice",
+      "type": "custom",
+      "status": "ready",
+      "description": "Custom voice clone for business presentations",
+      "language": "en",
+      "gender": "male",
+      "training_progress": 100,
+      "quality_score": 0.94,
+      "sample_audio_url": "https://samples.audiopod.ai/custom/voice_custom_abc123-sample.mp3",
+      "characteristics": {
+        "pitch_range": "100-180 Hz",
+        "speaking_rate": "normal",
+        "energy_level": "medium",
+        "warmth": "high",
+        "clarity": "high"
+      },
+      "usage_stats": {
+        "total_generations": 156,
+        "total_characters": 45230,
+        "last_used": "2024-01-15T14:30:00Z"
+      },
+      "created_at": "2024-01-10T09:00:00Z",
+      "completed_at": "2024-01-10T09:15:00Z"
+    }
+  ],
+  "pagination": {
+    "total": 12,
+    "limit": 20,
+    "offset": 0,
+    "has_more": false
+  }
+}
+```
+
+### Create Custom Voice
+
+Create a new custom voice by training on audio samples.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /voices/custom
+    Content-Type: multipart/form-data
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Single audio sample
+    with open("voice_sample.mp3", "rb") as audio_file:
+        response = client.voices.create_custom(
+            name="Sarah's Narrator Voice",
+            description="Professional female voice for audiobook narration",
+            sample_audio=audio_file,
+            language="en",
+            gender="female",
+            use_case="narration",
+            training_options={
+                "quality": "high",
+                "multilingual": True,
+                "preserve_style": True
+            }
+        )
+    
+    print(f"Voice ID: {response.id}")
+    print(f"Status: {response.status}")
+    print(f"Training started: {response.training_started_at}")
+    
+    # Multiple audio samples for better quality
+    sample_files = [
+        "sample1_reading.mp3",
+        "sample2_conversation.mp3", 
+        "sample3_presentation.mp3"
+    ]
+    
+    response = client.voices.create_custom(
+        name="High Quality Custom Voice",
+        description="Multi-sample trained voice for premium quality",
+        sample_files=sample_files,
+        language="en",
+        training_options={
+            "quality": "premium",
+            "multilingual": True,
+            "training_duration": "extended"
+        }
+    )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const fs = require('fs');
+    
+    // Single sample
+    const audioSample = fs.readFileSync('voice_sample.mp3');
+    
+    const response = await client.voices.createCustom({
+      name: "Sarah's Narrator Voice",
+      description: "Professional female voice for audiobook narration",
+      sampleAudio: audioSample,
+      language: 'en',
+      gender: 'female',
+      useCase: 'narration',
+      trainingOptions: {
+        quality: 'high',
+        multilingual: true,
+        preserveStyle: true
+      }
+    });
+    
+    console.log(`Voice ID: ${response.id}`);
+    console.log(`Status: ${response.status}`);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/" \
+      -H "Authorization: Bearer your_api_key" \
+      -F "name=Sarah's Narrator Voice" \
+      -F "description=Professional female voice for audiobook narration" \
+      -F "sample_audio=@voice_sample.mp3" \
+      -F "language=en" \
+      -F "gender=female" \
+      -F "use_case=narration" \
+      -F "training_options[quality]=high" \
+      -F "training_options[multilingual]=true"
+    ```
+  </Tab>
+</Tabs>
+
+#### Request Parameters
+
+| Parameter          | Type   | Required | Description                                                     |
+| ------------------ | ------ | -------- | --------------------------------------------------------------- |
+| `name`             | string | Yes      | Display name for the custom voice                               |
+| `description`      | string | No       | Description of the voice and its intended use                   |
+| `sample_audio`     | file   | Yes\*    | Primary audio sample (MP3, WAV, M4A)                            |
+| `sample_files`     | file[] | Yes\*    | Multiple audio samples for higher quality                       |
+| `language`         | string | Yes      | Primary language code (e.g., "en", "es")                        |
+| `gender`           | string | No       | Voice gender ("male", "female", "neutral")                      |
+| `age_range`        | string | No       | Age range ("young", "adult", "mature")                          |
+| `use_case`         | string | No       | Intended use case ("narration", "conversation", "presentation") |
+| `training_options` | object | No       | Training configuration options                                  |
+
+\*Either `sample_audio` or `sample_files` is required
+
+#### Training Options
+
+| Option              | Type    | Description                                                 |
+| ------------------- | ------- | ----------------------------------------------------------- |
+| `quality`           | string  | Training quality ("standard", "high", "premium")            |
+| `multilingual`      | boolean | Enable multilingual capabilities                            |
+| `preserve_style`    | boolean | Preserve original speaking style                            |
+| `training_duration` | string  | Training time ("fast", "standard", "extended")              |
+| `emotion_range`     | string  | Emotional range ("limited", "normal", "extended")           |
+| `noise_tolerance`   | string  | Background noise handling ("strict", "moderate", "lenient") |
+
+#### Response
+
+```json
+{
+  "id": "voice_custom_def456",
+  "name": "Sarah's Narrator Voice",
+  "description": "Professional female voice for audiobook narration",
+  "type": "custom",
+  "status": "training",
+  "language": "en",
+  "gender": "female",
+  "age_range": "adult",
+  "use_case": "narration",
+  "training_progress": 0,
+  "estimated_completion": "2024-01-15T10:45:00Z",
+  "training_options": {
+    "quality": "high",
+    "multilingual": true,
+    "preserve_style": true,
+    "training_duration": "standard"
+  },
+  "sample_info": {
+    "total_duration": 45.2,
+    "sample_count": 1,
+    "quality_score": 0.89,
+    "languages_detected": ["en"]
+  },
+  "credits_used": 500,
+  "created_at": "2024-01-15T10:30:00Z",
+  "training_started_at": "2024-01-15T10:30:15Z"
+}
+```
+
+### Get Custom Voice Training Status
+
+Check the training progress of a custom voice.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /voices/custom/{voice_id}/status
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    status = client.voices.get_training_status("voice_custom_def456")
+    
+    print(f"Status: {status.status}")
+    print(f"Progress: {status.training_progress}%")
+    print(f"Estimated completion: {status.estimated_completion}")
+    
+    if status.status == "failed":
+        print(f"Error: {status.error_message}")
+        print(f"Suggestions: {status.improvement_suggestions}")
+    elif status.status == "ready":
+        print(f"Quality score: {status.quality_score}")
+        print(f"Sample URL: {status.sample_audio_url}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const status = await client.voices.getTrainingStatus('voice_custom_def456');
+    
+    console.log(`Status: ${status.status}`);
+    console.log(`Progress: ${status.trainingProgress}%`);
+    
+    if (status.status === 'ready') {
+      console.log(`Quality score: ${status.qualityScore}`);
+      console.log(`Sample URL: ${status.sampleAudioUrl}`);
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/voices/custom/voice_custom_def456/status" \
+      -H "Authorization: Bearer your_api_key"
+    ```
+  </Tab>
+</Tabs>
+
+#### Response
+
+```json
+{
+  "id": "voice_custom_def456",
+  "status": "ready",
+  "training_progress": 100,
+  "quality_score": 0.94,
+  "training_duration": "15 minutes",
+  "sample_audio_url": "https://samples.audiopod.ai/custom/voice_custom_def456-sample.mp3",
+  "characteristics": {
+    "pitch_range": "180-280 Hz",
+    "speaking_rate": "normal",
+    "energy_level": "medium",
+    "warmth": "high",
+    "clarity": "high",
+    "expressiveness": "medium"
+  },
+  "supported_features": {
+    "multilingual": true,
+    "emotion_control": true,
+    "speed_control": true,
+    "pitch_control": false
+  },
+  "training_completed_at": "2024-01-15T10:45:30Z",
+  "next_steps": [
+    "Test the voice with sample text",
+    "Generate your first audio with this voice",
+    "Fine-tune voice parameters if needed"
+  ]
+}
+```
+
+### Update Custom Voice
+
+Update the metadata or settings of a custom voice.
+
+<Tabs>
+  <Tab title="PATCH">
+    ```http
+    PATCH /voices/custom/{voice_id}
+    Content-Type: application/json
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    updated_voice = client.voices.update_custom(
+        voice_id="voice_custom_def456",
+        name="Sarah's Premium Narrator Voice",
+        description="Updated description with more details about usage",
+        tags=["narration", "audiobook", "professional"],
+        settings={
+            "default_speed": 0.95,
+            "default_emotion": "calm",
+            "preferred_language": "en"
+        }
+    )
+    
+    print(f"Updated voice: {updated_voice.name}")
+    print(f"New tags: {updated_voice.tags}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const updatedVoice = await client.voices.updateCustom('voice_custom_def456', {
+      name: "Sarah's Premium Narrator Voice",
+      description: "Updated description with more details about usage",
+      tags: ['narration', 'audiobook', 'professional'],
+      settings: {
+        defaultSpeed: 0.95,
+        defaultEmotion: 'calm',
+        preferredLanguage: 'en'
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X PATCH "https://api.audiopod.ai/api/v1/voices/custom/voice_custom_def456" \
+      -H "Authorization: Bearer your_api_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "Sarah'\''s Premium Narrator Voice",
+        "description": "Updated description with more details",
+        "tags": ["narration", "audiobook", "professional"]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+#### Request Body
+
+```json
+{
+  "name": "Sarah's Premium Narrator Voice",
+  "description": "Premium quality voice optimized for audiobook narration and professional content",
+  "tags": ["narration", "audiobook", "professional", "female"],
+  "settings": {
+    "default_speed": 0.95,
+    "default_emotion": "calm",
+    "default_pitch": 1.0,
+    "preferred_language": "en"
+  },
+  "visibility": "private"
+}
+```
+
+### Delete Custom Voice
+
+Delete a custom voice from your account.
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /voices/custom/{voice_id}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    result = client.voices.delete_custom("voice_custom_def456")
+    
+    if result.success:
+        print("Voice deleted successfully")
+        print(f"Deletion ID: {result.deletion_id}")
+    else:
+        print(f"Deletion failed: {result.error}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const result = await client.voices.deleteCustom('voice_custom_def456');
+    
+    if (result.success) {
+      console.log('Voice deleted successfully');
+      console.log(`Deletion ID: ${result.deletionId}`);
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE "https://api.audiopod.ai/api/v1/voices/custom/voice_custom_def456" \
+      -H "Authorization: Bearer your_api_key"
+    ```
+  </Tab>
+</Tabs>
+
+#### Response
+
+```json
+{
+  "success": true,
+  "message": "Voice deleted successfully",
+  "deletion_id": "del_abc123",
+  "deleted_at": "2024-01-15T15:30:00Z",
+  "note": "This action cannot be undone. Generated audio using this voice will continue to work."
+}
+```
+
+## Voice Collections
+
+### Create Voice Collection
+
+Organize voices into collections for easier management.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /voices/collections
+    Content-Type: application/json
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    collection = client.voices.create_collection(
+        name="Podcast Voices",
+        description="Voices used for our weekly podcast",
+        voice_ids=["voice_custom_abc123", "aura-en-female", "sage-en-male"],
+        tags=["podcast", "conversation", "professional"],
+        default_settings={
+            "speed": 1.0,
+            "emotion": "conversational"
+        }
+    )
+    
+    print(f"Collection ID: {collection.id}")
+    print(f"Voice count: {len(collection.voices)}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const collection = await client.voices.createCollection({
+      name: 'Podcast Voices',
+      description: 'Voices used for our weekly podcast',
+      voiceIds: ['voice_custom_abc123', 'aura-en-female', 'sage-en-male'],
+      tags: ['podcast', 'conversation', 'professional'],
+      defaultSettings: {
+        speed: 1.0,
+        emotion: 'conversational'
+      }
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/voices/collections" \
+      -H "Authorization: Bearer your_api_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "Podcast Voices",
+        "description": "Voices used for our weekly podcast",
+        "voice_ids": ["voice_custom_abc123", "aura-en-female", "sage-en-male"],
+        "tags": ["podcast", "conversation", "professional"]
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### List Voice Collections
+
+Get all voice collections for your account.
+
+<Tabs>
+  <Tab title="GET">```http GET /voices/collections ```</Tab>
+  <Tab title="Python">
+    ```python collections = client.voices.list_collections() for collection in
+    collections.items: print(f"Name: {collection.name}") print(f"Voices:{" "}
+    {len(collection.voices)}") print(f"Tags: {collection.tags}") print("---")
+    ```
+  </Tab>
+</Tabs>
+
+## Voice Search and Filtering
+
+### Advanced Voice Search
+
+Search across all available voices with advanced filtering.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /voices/search
+    Content-Type: application/json
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    results = client.voices.search(
+        query="professional female narrator",
+        filters={
+            "languages": ["en", "es"],
+            "gender": "female",
+            "use_cases": ["narration", "presentation"],
+            "characteristics": {
+                "clarity": {"min": 0.8},
+                "warmth": {"min": 0.6},
+                "energy_level": ["medium", "high"]
+            }
+        },
+        include_custom=True,
+        sort_by="popularity",
+        limit=20
+    )
+    
+    for voice in results.voices:
+        print(f"{voice.name}: {voice.match_score}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const results = await client.voices.search({
+      query: 'professional female narrator',
+      filters: {
+        languages: ['en', 'es'],
+        gender: 'female',
+        useCases: ['narration', 'presentation'],
+        characteristics: {
+          clarity: { min: 0.8 },
+          warmth: { min: 0.6 },
+          energyLevel: ['medium', 'high']
+        }
+      },
+      includeCustom: true,
+      sortBy: 'popularity',
+      limit: 20
+    });
+    ```
+  </Tab>
+</Tabs>
+
+#### Request Body
+
+```json
+{
+  "query": "professional female narrator",
+  "filters": {
+    "languages": ["en", "es"],
+    "gender": "female",
+    "age_range": ["adult"],
+    "use_cases": ["narration", "presentation"],
+    "styles": ["professional", "warm"],
+    "characteristics": {
+      "clarity": { "min": 0.8 },
+      "warmth": { "min": 0.6, "max": 1.0 },
+      "energy_level": ["medium", "high"]
+    },
+    "premium_only": false,
+    "multilingual_only": false
+  },
+  "include_custom": true,
+  "include_public": true,
+  "sort_by": "popularity",
+  "sort_order": "desc",
+  "limit": 20,
+  "offset": 0
+}
+```
+
+## Voice Analytics
+
+### Voice Usage Statistics
+
+Get usage statistics for your voices.
+
+<Tabs>
+  <Tab title="GET">```http GET /voices/analytics/usage ```</Tab>
+  <Tab title="Python">
+    ```python
+    analytics = client.voices.get_usage_analytics(
+        start_date="2024-01-01", 
+        end_date="2024-01-31",
+        voice_ids=["voice_custom_abc123", "aura-en-female"]
+    )
+    
+    for voice_stats in analytics.voice_statistics:
+        print(f"Voice: {voice_stats.voice_name}")
+        print(f"Total uses: {voice_stats.total_uses}")
+        print(f"Total characters: {voice_stats.total_characters}")
+        print(f"Credits consumed: {voice_stats.credits_used}")
+        print("---")
+    ```
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+### Common Error Responses
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - Invalid Voice Parameters">
+    ```json
+    {
+      "error": {
+        "code": "invalid_voice_parameters",
+        "message": "Invalid training parameters provided",
+        "details": {
+          "sample_audio": ["Audio file is too short (minimum 10 seconds required)"],
+          "language": ["Unsupported language code 'xyz'"]
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="404 Not Found - Voice Not Found">
+    ```json
+    {
+      "error": {
+        "code": "voice_not_found",
+        "message": "Voice with ID 'voice_invalid_123' not found",
+        "suggestion": "Check the voice ID or list available voices using /voices/public or /voices/custom"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    ```json
+    {
+      "error": {
+        "code": "insufficient_credits",
+        "message": "Not enough credits for voice training",
+        "details": {
+          "required_credits": 500,
+          "available_credits": 150,
+          "credit_shortage": 350
+        }
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="429 Too Many Requests - Rate Limited">
+    ```json
+    {
+      "error": {
+        "code": "rate_limit_exceeded",
+        "message": "Too many voice creation requests",
+        "retry_after": 3600,
+        "limit_info": {
+          "max_requests": 5,
+          "window": "1 hour",
+          "current_usage": 5
+        }
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Rate Limits
+
+Voice management endpoints have the following rate limits:
+
+| Endpoint            | Rate Limit   | Window   |
+| ------------------- | ------------ | -------- |
+| List voices         | 100 requests | 1 minute |
+| Get voice details   | 200 requests | 1 minute |
+| Create custom voice | 5 requests   | 1 hour   |
+| Update custom voice | 50 requests  | 1 minute |
+| Delete custom voice | 10 requests  | 1 minute |
+| Voice search        | 30 requests  | 1 minute |
+
+## Best Practices
+
+### Voice Creation Tips
+
+**✅ Recommended:**
+
+- Use high-quality audio samples (16kHz+, minimal noise)
+- Provide 30 seconds to 5 minutes of sample audio
+- Use natural, conversational speech
+- Include variety in tone and pacing
+- Test with sample text before full deployment
+
+**❌ Avoid:**
+
+- Low-quality or compressed audio
+- Background music or noise
+- Robotic or synthetic-sounding samples
+- Extremely short samples (< 10 seconds)
+- Multiple speakers in the same sample
+
+### API Usage Optimization
+
+```python
+# Good: Cache voice lists locally
+voices_cache = client.voices.list_public()
+# Use cached data for voice selection UI
+
+# Good: Use collections for organized voice management
+podcast_voices = client.voices.create_collection(
+    name="Podcast Collection",
+    voice_ids=frequently_used_voices
+)
+
+# Good: Monitor voice performance
+analytics = client.voices.get_usage_analytics()
+# Optimize voice selection based on usage patterns
+```
+
+## SDK Examples
+
+### Voice Discovery Workflow
+
+```python
+def discover_perfect_voice(requirements):
+    """Find the best voice based on specific requirements"""
+
+    # Search for voices matching requirements
+    search_results = client.voices.search(
+        query=requirements["description"],
+        filters={
+            "languages": requirements["languages"],
+            "gender": requirements.get("gender"),
+            "use_cases": requirements["use_cases"],
+            "characteristics": requirements.get("characteristics", {})
+        },
+        include_custom=True,
+        sort_by="match_score",
+        limit=10
+    )
+
+    # Test top candidates
+    top_voices = search_results.voices[:3]
+    test_results = []
+
+    for voice in top_voices:
+        # Generate test audio
+        test_audio = client.text_to_speech.create(
+            text=requirements["test_text"],
+            voice_id=voice.id
+        )
+
+        test_results.append({
+            "voice": voice,
+            "test_audio": test_audio.audio_data,
+            "match_score": voice.match_score
+        })
+
+    return test_results
+
+# Example usage
+requirements = {
+    "description": "warm professional female voice for customer service",
+    "languages": ["en"],
+    "use_cases": ["conversation", "customer_service"],
+    "characteristics": {
+        "warmth": {"min": 0.7},
+        "clarity": {"min": 0.8},
+        "professionalism": {"min": 0.8}
+    },
+    "test_text": "Thank you for calling customer support. How can I help you today?"
+}
+
+voice_candidates = discover_perfect_voice(requirements)
+```
+
+### Custom Voice Training Pipeline
+
+```python
+def create_and_monitor_custom_voice(voice_config):
+    """Complete pipeline for custom voice creation"""
+
+    # Validate audio samples
+    for sample_file in voice_config["sample_files"]:
+        validation = client.voices.validate_sample(sample_file)
+        if not validation.is_valid:
+            raise ValueError(f"Invalid sample {sample_file}: {validation.issues}")
+
+    # Create custom voice
+    voice_creation = client.voices.create_custom(
+        name=voice_config["name"],
+        description=voice_config["description"],
+        sample_files=voice_config["sample_files"],
+        language=voice_config["language"],
+        training_options=voice_config.get("training_options", {})
+    )
+
+    print(f"Voice training started: {voice_creation.id}")
+
+    # Monitor training progress
+    while True:
+        status = client.voices.get_training_status(voice_creation.id)
+
+        print(f"Training progress: {status.training_progress}%")
+
+        if status.status == "ready":
+            print(f"Voice training completed! Quality score: {status.quality_score}")
+
+            # Test the new voice
+            test_audio = client.text_to_speech.create(
+                text="This is a test of my new custom voice.",
+                voice_id=voice_creation.id
+            )
+
+            return {
+                "voice_id": voice_creation.id,
+                "quality_score": status.quality_score,
+                "test_audio": test_audio.audio_data,
+                "sample_url": status.sample_audio_url
+            }
+
+        elif status.status == "failed":
+            raise Exception(f"Voice training failed: {status.error_message}")
+
+        # Wait before checking again
+        time.sleep(30)
+
+# Example usage
+voice_config = {
+    "name": "CEO Voice Clone",
+    "description": "Custom voice for company announcements",
+    "sample_files": ["ceo_sample1.mp3", "ceo_sample2.mp3"],
+    "language": "en",
+    "training_options": {
+        "quality": "premium",
+        "multilingual": True,
+        "preserve_style": True
+    }
+}
+
+result = create_and_monitor_custom_voice(voice_config)
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card
+    title="Text-to-Speech API"
+    icon="microphone"
+    href="/api-reference/text-to-speech"
+  >
+    Use your managed voices with the Text-to-Speech API.
+  </Card>
+  <Card
+    title="Voice Cloning Guide"
+    icon="user-clone"
+    href="/features/voice-cloning"
+  >
+    Learn best practices for creating custom voices.
+  </Card>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    Set up API authentication for voice management.
+  </Card>
+  <Card title="SDKs & Libraries" icon="code" href="/sdks">
+    Use our official SDKs for easier voice management integration.
+  </Card>
+</Columns>
