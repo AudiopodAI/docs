@@ -1,0 +1,744 @@
+---
+title: "Stem Separation API"
+description: "Isolate and extract individual audio components from mixed recordings using advanced AI-powered source separation technology."
+---
+
+## Overview
+
+AudioPod AI's Stem Separation API uses state-of-the-art AI models to separate mixed audio recordings into individual components (stems). Extract vocals, drums, bass, and other instruments from songs, or separate speech from background music in recordings.
+
+### Key Features
+
+- **Multi-Stem Extraction**: Separate vocals, drums, bass, and other instruments
+- **AI-Powered Models**: Advanced neural networks for high-quality separation
+- **Multiple Output Formats**: Get individual stems or specific combinations
+- **Background Music Removal**: Extract clean speech from music backgrounds
+- **Karaoke Track Creation**: Generate instrumental versions by removing vocals
+- **Music Production Ready**: Professional quality for remixing and production
+- **Batch Processing**: Handle multiple files efficiently
+
+## Authentication
+
+All endpoints require authentication:
+- **API Key**: `Authorization: Bearer your_api_key`
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Music Stem Separation
+
+### Extract All Stems
+
+Separate a full song into individual instrument and vocal tracks.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/stem-extraction/extract
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    file: (audio file)
+    output_format: all_stems
+    model: spleeter_5stem
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    with open("song.mp3", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "output_format": "all_stems",     # Extract all components
+                "model": "spleeter_5stem"         # 5-stem model (vocals, drums, bass, piano, other)
+            },
+            files={"file": audio_file}
+        )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        job_id = job_data["id"]
+        print(f"Stem extraction job created: {job_id}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/extract" \
+      -H "Authorization: Bearer your_api_key" \
+      -F "file=@song.mp3" \
+      -F "output_format=all_stems" \
+      -F "model=spleeter_5stem"
+    ```
+  </Tab>
+</Tabs>
+
+### Extract Specific Stems
+
+Extract only specific components from audio.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/stem-extraction/extract
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    file: (audio file)
+    output_format: vocals_only
+    model: demucs_htdemucs
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    with open("recording.wav", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "output_format": "vocals_only",    # Extract only vocals
+                "model": "demucs_htdemucs"         # High-quality Demucs model
+            },
+            files={"file": audio_file}
+        )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        print(f"Vocal extraction job: {job_data['id']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Extract from URL
+
+Separate stems from online audio/video content.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/stem-extraction/extract
+    Authorization: Bearer {api_key}
+    Content-Type: application/x-www-form-urlencoded
+    
+    url=https://youtube.com/watch?v=example123&output_format=karaoke&model=spleeter_2stem
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/stem-extraction/extract",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "url": "https://youtube.com/watch?v=example123",
+            "output_format": "karaoke",    # Instrumental + vocals separately
+            "model": "spleeter_2stem"      # Simple vocal/accompaniment separation
+        }
+    )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        print(f"URL stem extraction started: {job_data['id']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Available Models:**
+- **`spleeter_2stem`**: Separates vocals and accompaniment (fastest)
+- **`spleeter_4stem`**: Vocals, drums, bass, other instruments
+- **`spleeter_5stem`**: Vocals, drums, bass, piano, other instruments
+- **`demucs_htdemucs`**: High-quality separation (slower, best quality)
+- **`demucs_mdx_extra`**: Latest Demucs model with extra processing
+
+**Output Formats:**
+- **`all_stems`**: All available stems from the model
+- **`vocals_only`**: Extract only vocal tracks
+- **`instrumental_only`**: Remove vocals, keep music
+- **`karaoke`**: Both vocal and instrumental versions
+- **`drums_only`**: Extract drum tracks
+- **`bass_only`**: Extract bass tracks
+
+**Response:**
+
+```json
+{
+  "id": 123,
+  "status": "PROCESSING",
+  "progress": 0,
+  "input_path": "/uploads/song.mp3",
+  "model": "spleeter_5stem",
+  "output_format": "all_stems",
+  "task_id": "celery_task_uuid_here",
+  "created_at": "2024-01-15T10:30:00Z",
+  "original_filename": "song.mp3"
+}
+```
+
+
+## Job Management
+
+### Get Job Status
+
+Monitor the progress of stem separation jobs.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/stem-extraction/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        job_status = response.json()
+        print(f"Status: {job_status['status']}")
+        print(f"Progress: {job_status['progress']}%")
+        
+        if job_status["status"] == "COMPLETED":
+            print("Stem extraction complete!")
+            result = job_status["result"]
+            print(f"Generated {len(result['stems'])} stems")
+            
+            for stem in result["stems"]:
+                print(f"- {stem['name']}: {stem['download_url']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response (Completed):**
+
+```json
+{
+  "id": 123,
+  "status": "COMPLETED",
+  "progress": 100,
+  "input_path": "/uploads/song.mp3",
+  "model": "spleeter_5stem",
+  "output_format": "all_stems",
+  "task_id": "celery_task_uuid_here",
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:35:45Z",
+  "completed_at": "2024-01-15T10:35:45Z",
+  "original_filename": "song.mp3",
+  "result": {
+    "num_stems": 5,
+    "stems": [
+      {
+        "name": "vocals",
+        "filename": "vocals.wav",
+        "path": "/processed/stems_123/vocals.wav",
+        "download_url": "https://api.audiopod.ai/download/stems_123_vocals.wav",
+        "duration": 245.7,
+        "rms_level": -18.4
+      },
+      {
+        "name": "drums",
+        "filename": "drums.wav",
+        "path": "/processed/stems_123/drums.wav",
+        "download_url": "https://api.audiopod.ai/download/stems_123_drums.wav",
+        "duration": 245.7,
+        "rms_level": -14.2
+      },
+      {
+        "name": "bass",
+        "filename": "bass.wav",
+        "path": "/processed/stems_123/bass.wav",
+        "download_url": "https://api.audiopod.ai/download/stems_123_bass.wav",
+        "duration": 245.7,
+        "rms_level": -16.8
+      },
+      {
+        "name": "piano",
+        "filename": "piano.wav",
+        "path": "/processed/stems_123/piano.wav",
+        "download_url": "https://api.audiopod.ai/download/stems_123_piano.wav",
+        "duration": 245.7,
+        "rms_level": -19.1
+      },
+      {
+        "name": "other",
+        "filename": "other.wav",
+        "path": "/processed/stems_123/other.wav",
+        "download_url": "https://api.audiopod.ai/download/stems_123_other.wav",
+        "duration": 245.7,
+        "rms_level": -17.3
+      }
+    ],
+    "archive_url": "https://api.audiopod.ai/download/stems_123_all.zip",
+    "processing_stats": {
+      "model_processing_time": 312.4,
+      "audio_duration": 245.7,
+      "separation_quality": "high"
+    }
+  }
+}
+```
+
+### List Extraction Jobs
+
+Get all stem separation jobs for the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/stem-extraction/jobs?model=spleeter_5stem&status=COMPLETED&limit=50
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/stem-extraction/jobs",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "model": "spleeter_5stem",     # Filter by model
+            "status": "COMPLETED",        # Filter by status
+            "skip": 0,
+            "limit": 50
+        }
+    )
+    
+    if response.status_code == 200:
+        jobs_data = response.json()
+        for job in jobs_data["items"]:
+            print(f"Job {job['id']}: {job['status']} - {job['original_filename']}")
+            print(f"  Model: {job['model']}, Format: {job['output_format']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Download All Stems
+
+Download a ZIP archive containing all extracted stems.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/stem-extraction/jobs/{job_id}/download-all
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}/download-all",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        zip_filename = f"stems_{job_id}.zip"
+        with open(zip_filename, "wb") as f:
+            f.write(response.content)
+        print(f"Downloaded stems archive: {zip_filename}")
+    ```
+  </Tab>
+</Tabs>
+
+## Job Control
+
+### Retry Failed Job
+
+Retry a failed stem extraction job.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/stem-extraction/jobs/{job_id}/retry
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}/retry",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        retried_job = response.json()
+        print(f"Job {retried_job['id']} retried successfully")
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Job
+
+Remove a stem extraction job and its results.
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /api/v1/stem-extraction/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 204:
+        print("Job deleted successfully")
+    ```
+  </Tab>
+</Tabs>
+
+## Use Cases & Examples
+
+### Music Production Workflow
+
+```python
+def extract_stems_for_remix(song_file, api_key):
+    """Extract all stems from a song for remixing"""
+    
+    print("Starting stem extraction for remix...")
+    
+    with open(song_file, "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "output_format": "all_stems",
+                "model": "demucs_htdemucs"  # Best quality for production
+            },
+            files={"file": audio_file}
+        )
+    
+    if response.status_code != 200:
+        return {"error": "Failed to start extraction"}
+    
+    job_data = response.json()
+    job_id = job_data["id"]
+    
+    # Wait for completion
+    import time
+    while True:
+        status_response = requests.get(
+            f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        job_status = status_response.json()
+        print(f"Progress: {job_status['progress']}%")
+        
+        if job_status["status"] == "COMPLETED":
+            break
+        elif job_status["status"] == "FAILED":
+            return {"error": "Job failed"}
+        
+        time.sleep(10)
+    
+    # Download stems
+    result = job_status["result"]
+    downloaded_stems = []
+    
+    for stem in result["stems"]:
+        stem_response = requests.get(stem["download_url"])
+        filename = f"remix_{stem['name']}.wav"
+        
+        with open(filename, "wb") as f:
+            f.write(stem_response.content)
+        
+        downloaded_stems.append({
+            "name": stem["name"],
+            "filename": filename,
+            "rms_level": stem["rms_level"]
+        })
+        
+        print(f"Downloaded {stem['name']}: {filename}")
+    
+    return {
+        "success": True,
+        "job_id": job_id,
+        "stems": downloaded_stems,
+        "total_stems": result["num_stems"]
+    }
+
+# Usage
+result = extract_stems_for_remix("song.mp3", "your_api_key")
+if result.get("success"):
+    print(f"Successfully extracted {result['total_stems']} stems")
+    for stem in result["stems"]:
+        print(f"  {stem['name']}: {stem['filename']}")
+```
+
+### Karaoke Track Generation
+
+```python
+def create_karaoke_track(song_file, api_key):
+    """Create karaoke version by removing vocals"""
+    
+    with open(song_file, "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "output_format": "karaoke",    # Get both vocal and instrumental
+                "model": "spleeter_2stem"      # Fast processing for karaoke
+            },
+            files={"file": audio_file}
+        )
+    
+    job_id = response.json()["id"]
+    
+    # Monitor job (simplified)
+    while True:
+        status_response = requests.get(
+            f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        job_status = status_response.json()
+        if job_status["status"] == "COMPLETED":
+            break
+        time.sleep(5)
+    
+    # Download karaoke track (instrumental)
+    result = job_status["result"]
+    for stem in result["stems"]:
+        if stem["name"] == "accompaniment" or stem["name"] == "instrumental":
+            karaoke_response = requests.get(stem["download_url"])
+            karaoke_filename = f"karaoke_{song_file}"
+            
+            with open(karaoke_filename, "wb") as f:
+                f.write(karaoke_response.content)
+            
+            return {
+                "karaoke_file": karaoke_filename,
+                "original_duration": stem["duration"],
+                "job_id": job_id
+            }
+    
+    return {"error": "No instrumental track found"}
+```
+
+### Podcast Speech Enhancement
+
+```python
+def enhance_podcast_speech(podcast_file, api_key):
+    """Remove background music from podcast to improve speech clarity"""
+    
+    with open(podcast_file, "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/stem-extraction/speech-enhance",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "enhancement_type": "music_removal"
+            },
+            files={"file": audio_file}
+        )
+    
+    job_id = response.json()["id"]
+    
+    # Wait for completion
+    while True:
+        status_response = requests.get(
+            f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        job_status = status_response.json()
+        if job_status["status"] == "COMPLETED":
+            break
+        time.sleep(5)
+    
+    # Download enhanced speech
+    result = job_status["result"]
+    speech_stem = next((s for s in result["stems"] if "speech" in s["name"] or "vocals" in s["name"]), None)
+    
+    if speech_stem:
+        speech_response = requests.get(speech_stem["download_url"])
+        enhanced_filename = f"enhanced_{podcast_file}"
+        
+        with open(enhanced_filename, "wb") as f:
+            f.write(speech_response.content)
+        
+        return {
+            "enhanced_file": enhanced_filename,
+            "original_file": podcast_file,
+            "speech_quality_improvement": True
+        }
+    
+    return {"error": "No speech track extracted"}
+```
+
+## Error Handling
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - Invalid Audio">
+    **Causes:** - Audio file format not supported - No audio content detected - File corrupted
+    **Solutions:** - Use supported formats (WAV, MP3, M4A, FLAC) - Verify audio contains music/speech - Check file integrity
+  </Accordion>
+
+  <Accordion title="422 Processing Error - Separation Failed">
+    **Causes:** - Audio too complex for separation - Mono audio (some models require stereo) - Very short duration
+    **Solutions:** - Try different separation model - Use stereo audio - Ensure minimum 10 seconds duration
+  </Accordion>
+
+  <Accordion title="413 Payload Too Large">
+    **Causes:** - Audio file exceeds size limits - Very long recordings
+    **Solutions:** - Split large files into segments - Use URL processing for large files - Compress audio
+  </Accordion>
+
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    **Causes:** - Not enough credits for processing duration
+    **Solutions:** - Purchase additional credits - Check credit requirements
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+### Model Selection Guide
+
+```python
+def choose_separation_model(use_case, quality_priority, processing_speed):
+    """Choose optimal model based on requirements"""
+    
+    models = {
+        "spleeter_2stem": {
+            "quality": "good",
+            "speed": "fast",
+            "stems": ["vocals", "accompaniment"],
+            "best_for": ["karaoke", "vocal_removal", "quick_processing"]
+        },
+        "spleeter_4stem": {
+            "quality": "good", 
+            "speed": "medium",
+            "stems": ["vocals", "drums", "bass", "other"],
+            "best_for": ["music_production", "balanced_needs"]
+        },
+        "spleeter_5stem": {
+            "quality": "good",
+            "speed": "medium",
+            "stems": ["vocals", "drums", "bass", "piano", "other"],
+            "best_for": ["detailed_separation", "piano_music"]
+        },
+        "demucs_htdemucs": {
+            "quality": "excellent",
+            "speed": "slow",
+            "stems": ["vocals", "drums", "bass", "other"],
+            "best_for": ["professional_production", "highest_quality"]
+        }
+    }
+    
+    if quality_priority == "highest":
+        return "demucs_htdemucs"
+    elif processing_speed == "fast":
+        return "spleeter_2stem"
+    elif use_case in ["karaoke", "vocal_removal"]:
+        return "spleeter_2stem"
+    elif use_case == "professional_production":
+        return "demucs_htdemucs"
+    else:
+        return "spleeter_4stem"  # Good balance
+```
+
+### Quality Assessment
+
+```python
+def assess_separation_quality(job_id, api_key):
+    """Assess the quality of stem separation results"""
+    
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    job_data = response.json()
+    result = job_data.get("result", {})
+    
+    if not result:
+        return {"assessment": "no_results"}
+    
+    stems = result.get("stems", [])
+    processing_stats = result.get("processing_stats", {})
+    
+    # Analyze RMS levels for balance
+    rms_levels = [stem.get("rms_level", 0) for stem in stems if stem.get("rms_level")]
+    
+    assessment = {
+        "num_stems": len(stems),
+        "separation_quality": processing_stats.get("separation_quality", "unknown"),
+        "rms_analysis": {
+            "avg_level": sum(rms_levels) / len(rms_levels) if rms_levels else 0,
+            "level_variance": max(rms_levels) - min(rms_levels) if rms_levels else 0,
+            "balanced_levels": (max(rms_levels) - min(rms_levels)) < 10 if rms_levels else False
+        },
+        "processing_efficiency": {
+            "processing_time": processing_stats.get("model_processing_time", 0),
+            "audio_duration": processing_stats.get("audio_duration", 0),
+            "efficiency_ratio": 0
+        },
+        "quality_indicators": {}
+    }
+    
+    # Calculate efficiency ratio
+    if processing_stats.get("audio_duration", 0) > 0:
+        assessment["processing_efficiency"]["efficiency_ratio"] = (
+            processing_stats.get("model_processing_time", 0) / 
+            processing_stats.get("audio_duration", 1)
+        )
+    
+    # Quality indicators
+    assessment["quality_indicators"] = {
+        "good_balance": assessment["rms_analysis"]["balanced_levels"],
+        "reasonable_processing": assessment["processing_efficiency"]["efficiency_ratio"] < 5.0,
+        "all_stems_present": len(stems) >= 2,
+        "high_quality_model": processing_stats.get("separation_quality") == "high"
+    }
+    
+    # Overall score
+    quality_score = sum(assessment["quality_indicators"].values())
+    assessment["overall_rating"] = {
+        4: "excellent",
+        3: "good", 
+        2: "acceptable",
+        1: "poor",
+        0: "failed"
+    }.get(quality_score, "unknown")
+    
+    return assessment
+```
+
+## Pricing
+
+Stem separation pricing is based on audio duration and model complexity:
+
+| Model | Cost | Description |
+|-------|------|-------------|
+| Spleeter 2-stem | 990 credits/minute | Fast vocal/accompaniment separation |
+| Spleeter 4/5-stem | 990 credits/minute | Multi-instrument separation |
+| Demucs HTDemucs | 990 credits/minute | Highest quality separation |
+
+### Cost Examples
+
+| Duration | Model | Credits | USD Cost |
+|----------|-------|---------|----------|
+| 4 minutes | Spleeter 2-stem | 3960 | $0.53 |
+| 6 minutes | Spleeter 5-stem | 5940 | $0.79 |
+| 5 minutes | Demucs HTDemucs | 4950 | $0.66 |
+| 10 minutes | Mixed models | 9900 | $1.32 |
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Music Generation" icon="music" href="/api-reference/music-generation">
+    Create new music using separated stems as input.
+  </Card>
+  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-cloning">
+    Train voice models using extracted vocal stems.
+  </Card>
+  <Card title="Noise Reduction" icon="volume-x" href="/api-reference/noise-reduction">
+    Clean up individual stems for better quality.
+  </Card>
+  <Card title="Karaoke Generation" icon="microphone" href="/api-reference/karaoke-generation">
+    Create professional karaoke tracks with lyrics.
+  </Card>
+</Columns>

@@ -1,33 +1,45 @@
 ---
 title: "Media Extraction API"
-description: "Download and extract audio from YouTube videos, social media, and web content for processing with AudioPod AI"
+description: "Extract audio and video from online platforms including YouTube, TikTok, Instagram, and more using AudioPod AI's media extraction service."
 ---
 
 ## Overview
 
-The AudioPod AI Media Extraction API enables seamless download and processing of audio content from various online sources including YouTube, social media platforms, and direct media URLs. Our advanced system supports direct YouTube integration for processing videos, playlists, and live streams, with automatic format detection and quality optimization.
+AudioPod AI's Media Extraction API provides powerful tools for downloading and extracting audio/video content from various online platforms. Extract high-quality audio from videos, download content in multiple formats, and get detailed metadata for content analysis.
 
-<Info>
-  Our media extraction service respects platform terms of service and copyright
-  laws. Only extract content you have rights to use or that falls under fair use
-  provisions.
-</Info>
+### Key Features
 
-## Quick Start
+- **Multi-Platform Support**: YouTube, TikTok, Instagram, Vimeo, Spotify, and more
+- **Multiple Formats**: MP4, MP3, WAV, WebM, AAC, and other audio/video formats
+- **Quality Options**: From 144p to 4K video, various audio bitrates
+- **Metadata Extraction**: Title, description, duration, uploader info, view counts
+- **Thumbnail Download**: Automatic thumbnail extraction and download
+- **Batch Processing**: Download multiple videos efficiently
+- **Public Access**: Limited public access without authentication
+- **No Duration Limits**: Full-length content extraction for authenticated users
 
-### Extract from YouTube
+## Authentication
+
+- **Public Access**: Limited features, 10-minute duration limit, basic formats only
+- **Authenticated Access**: Full features with API key or JWT token
+  - **API Key**: `Authorization: Bearer your_api_key`
+  - **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Video Information
+
+### Get Video Info (Public)
+
+Extract basic video metadata without authentication.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /media/extract
-    Authorization: Bearer {access_token}
+    POST /api/v1/video/public/info
     Content-Type: application/json
     
     {
-      "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-      "format": "mp3",
-      "quality": "high"
+      "url": "https://youtube.com/watch?v=example123",
+      "include_formats": false
     }
     ```
   </Tab>
@@ -35,302 +47,77 @@ The AudioPod AI Media Extraction API enables seamless download and processing of
     ```python
     import requests
     
+    # Get basic video info (no auth required)
+    video_info_request = {
+        "url": "https://youtube.com/watch?v=example123",
+        "include_formats": False  # Limited format info for public access
+    }
+    
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/media/extract",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-            "format": "mp3",
-            "quality": "high"
-        }
+        "https://api.audiopod.ai/api/v1/video/public/info",
+        json=video_info_request
     )
     
     if response.status_code == 200:
-        result = response.json()
-        audio_url = result["audio_url"]
-        print(f"Extracted audio: {audio_url}")
+        video_info = response.json()
+        print(f"Title: {video_info['title']}")
+        print(f"Duration: {video_info['duration']} seconds")
+        print(f"Uploader: {video_info['uploader']}")
+        print(f"View count: {video_info['view_count']}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/media/extract" \
-      -H "Authorization: Bearer YOUR_TOKEN" \
+    curl -X POST "https://api.audiopod.ai/api/v1/video/public/info" \
       -H "Content-Type: application/json" \
       -d '{
-        "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-        "format": "mp3",
-        "quality": "high"
+        "url": "https://youtube.com/watch?v=example123",
+        "include_formats": false
       }'
     ```
   </Tab>
 </Tabs>
 
-**Response:**
+### Get Video Info (Authenticated)
 
-```json
-{
-  "job_id": "extract_abc123",
-  "status": "processing",
-  "source": {
-    "url": "https://youtube.com/watch?v=dQw4w9WgXcQ",
-    "title": "Rick Astley - Never Gonna Give You Up",
-    "duration": 213,
-    "uploader": "RickAstleyVEVO"
-  },
-  "extraction_settings": {
-    "format": "mp3",
-    "quality": "high",
-    "sample_rate": 44100
-  },
-  "estimated_completion": "2024-01-15T10:32:00Z"
-}
-```
-
-## Supported Platforms
-
-### Video Platforms
-
-Extract audio from major video hosting services:
-
-| Platform    | Support       | Max Duration | Notes                      |
-| ----------- | ------------- | ------------ | -------------------------- |
-| YouTube     | ✅ Full       | 4 hours      | Videos, playlists, shorts  |
-| Vimeo       | ✅ Full       | 2 hours      | Public and unlisted videos |
-| Dailymotion | ✅ Full       | 2 hours      | Public videos              |
-| Twitch      | ✅ Clips only | 1 hour       | Clips and highlights       |
-| TikTok      | ✅ Full       | 10 minutes   | Public videos              |
-| Instagram   | ✅ Limited    | 5 minutes    | Public videos and reels    |
-
-### Audio Platforms
-
-Direct audio extraction support:
-
-| Platform     | Support | Max Duration | Notes                       |
-| ------------ | ------- | ------------ | --------------------------- |
-| SoundCloud   | ✅ Full | 4 hours      | Public tracks and playlists |
-| Bandcamp     | ✅ Full | 2 hours      | Free tracks only            |
-| Mixcloud     | ✅ Full | 8 hours      | Public mixes                |
-| Podcast URLs | ✅ Full | 12 hours     | Direct MP3/RSS feeds        |
-
-### Advanced Extraction
-
-Configure extraction parameters for optimal quality:
+Extract comprehensive video metadata with full format information.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /media/extract/advanced
-    Authorization: Bearer {access_token}
+    POST /api/v1/video/info
+    Authorization: Bearer {api_key}
     Content-Type: application/json
     
     {
-      "url": "https://youtube.com/watch?v=example",
-      "settings": {
-        "format": "wav",
-        "quality": "best",
-        "sample_rate": 48000,
-        "bitrate": 320,
-        "audio_only": true,
-        "trim_silence": true,
-        "normalize_volume": true
-      },
-      "segment": {
-        "start_time": 30,
-        "end_time": 180
-      }
+      "url": "https://youtube.com/watch?v=example123",
+      "include_formats": true
     }
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/media/extract/advanced",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "url": "https://youtube.com/watch?v=example",
-            "settings": {
-                "format": "wav",
-                "quality": "best",
-                "sample_rate": 48000,
-                "bitrate": 320,
-                "audio_only": True,
-                "trim_silence": True,
-                "normalize_volume": True
-            },
-            "segment": {
-                "start_time": 30,
-                "end_time": 180
-            }
-        }
-    )
-    
-    extraction_job = response.json()
-    job_id = extraction_job["job_id"]
-    ```
-  </Tab>
-</Tabs>
-
-## Batch Extraction
-
-### Process Multiple URLs
-
-Extract audio from multiple sources simultaneously:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /media/extract/batch
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "urls": [
-        {
-          "url": "https://youtube.com/watch?v=video1",
-          "name": "intro_music"
-        },
-        {
-          "url": "https://youtube.com/watch?v=video2",
-          "name": "background_track"
-        },
-        {
-          "url": "https://soundcloud.com/track1",
-          "name": "sound_effect"
-        }
-      ],
-      "global_settings": {
-        "format": "mp3",
-        "quality": "high",
-        "normalize_volume": true
-      }
+    # Get comprehensive video info (authentication required)
+    video_info_request = {
+        "url": "https://youtube.com/watch?v=example123",
+        "include_formats": True  # Get all available formats and qualities
     }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    urls_to_extract = [
-        {"url": "https://youtube.com/watch?v=video1", "name": "intro_music"},
-        {"url": "https://youtube.com/watch?v=video2", "name": "background_track"},
-        {"url": "https://soundcloud.com/track1", "name": "sound_effect"}
-    ]
     
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/media/extract/batch",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "urls": urls_to_extract,
-            "global_settings": {
-                "format": "mp3",
-                "quality": "high",
-                "normalize_volume": True
-            }
-        }
+        "https://api.audiopod.ai/api/v1/video/info",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json=video_info_request
     )
     
-    batch_job = response.json()
-    batch_id = batch_job["batch_id"]
-    
-    # Monitor batch progress
-    def check_batch_status(batch_id):
-        response = requests.get(
-            f"https://api.audiopod.ai/api/v1/media/extract/batch/{batch_id}",
-            headers={"Authorization": f"Bearer {access_token}"}
-        )
-        return response.json()
-    
-    # Poll until complete
-    while True:
-        status = check_batch_status(batch_id)
-        if status["status"] == "completed":
-            break
-        print(f"Progress: {status['completed']}/{status['total']}")
-        time.sleep(5)
-    ```
-  </Tab>
-</Tabs>
-
-### Playlist Extraction
-
-Extract entire playlists with smart chunking:
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /media/extract/playlist
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "playlist_url": "https://youtube.com/playlist?list=PLexample",
-      "settings": {
-        "max_videos": 50,
-        "min_duration": 30,
-        "max_duration": 600,
-        "format": "mp3",
-        "quality": "medium"
-      },
-      "filters": {
-        "exclude_shorts": true,
-        "exclude_live": true,
-        "title_contains": ["music", "song"],
-        "exclude_title": ["remix", "cover"]
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/media/extract/playlist",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "playlist_url": "https://youtube.com/playlist?list=PLexample",
-            "settings": {
-                "max_videos": 50,
-                "min_duration": 30,
-                "max_duration": 600,
-                "format": "mp3",
-                "quality": "medium"
-            },
-            "filters": {
-                "exclude_shorts": True,
-                "exclude_live": True,
-                "title_contains": ["music", "song"],
-                "exclude_title": ["remix", "cover"]
-            }
-        }
-    )
-    
-    playlist_job = response.json()
-    ```
-  </Tab>
-</Tabs>
-
-## Media Information
-
-### Get Media Metadata
-
-Retrieve detailed information about media before extraction:
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /media/info?url=https://youtube.com/watch?v=example
-    Authorization: Bearer {access_token}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/media/info",
-        headers={"Authorization": f"Bearer {access_token}"},
-        params={"url": "https://youtube.com/watch?v=example"}
-    )
-    
-    media_info = response.json()
-    print(f"Title: {media_info['title']}")
-    print(f"Duration: {media_info['duration']} seconds")
-    print(f"Available formats: {media_info['available_formats']}")
+    if response.status_code == 200:
+        video_info = response.json()
+        print(f"Title: {video_info['title']}")
+        print(f"Duration: {video_info['duration']} seconds")
+        print(f"Estimated credits: {video_info['estimated_credits']}")
+        
+        # Available formats
+        for format_info in video_info.get("formats", []):
+            print(f"Format: {format_info['format']} - {format_info['quality']}")
     ```
   </Tab>
 </Tabs>
@@ -339,557 +126,821 @@ Retrieve detailed information about media before extraction:
 
 ```json
 {
-  "url": "https://youtube.com/watch?v=example",
-  "title": "Example Video Title",
-  "description": "Video description...",
-  "duration": 245,
-  "uploader": "Channel Name",
-  "upload_date": "2024-01-10",
-  "view_count": 1500000,
+  "title": "Amazing Video Content",
+  "description": "This is an example video with great content...",
+  "uploader": "Content Creator",
+  "upload_date": "2024-01-15",
+  "duration": 185.4,
+  "view_count": 1250000,
   "like_count": 45000,
-  "available_formats": [
+  "thumbnail_url": "https://img.youtube.com/vi/example123/maxresdefault.jpg",
+  "platform": "youtube",
+  "video_id": "example123",
+  "estimated_credits": 25,
+  "formats": [
     {
-      "format_id": "140",
-      "ext": "m4a",
-      "quality": "medium",
-      "bitrate": 128
+      "format_id": "22",
+      "format": "mp4",
+      "quality": "720p",
+      "resolution": "1280x720",
+      "fps": 30,
+      "file_size": 85600000,
+      "audio_codec": "aac",
+      "video_codec": "h264"
     },
     {
-      "format_id": "251",
-      "ext": "webm",
-      "quality": "high",
-      "bitrate": 160
-    }
-  ],
-  "thumbnails": [
-    {
-      "url": "https://img.youtube.com/vi/example/maxresdefault.jpg",
-      "width": 1280,
-      "height": 720
+      "format_id": "140",
+      "format": "mp3",
+      "quality": "128kbps",
+      "audio_codec": "aac",
+      "file_size": 3000000
     }
   ]
 }
 ```
 
-### Search and Extract
+## Media Download
 
-Search for content and extract directly:
+### Download Media (Public)
+
+Download videos with public access limitations.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /media/search-extract
-    Authorization: Bearer {access_token}
+    POST /api/v1/video/public/download
     Content-Type: application/json
     
     {
-      "query": "jazz instrumental background music",
-      "platform": "youtube",
-      "filters": {
-        "duration": "4-20",
-        "quality": "high",
-        "upload_date": "this_year"
-      },
-      "max_results": 5,
-      "extract_immediately": true
+      "url": "https://youtube.com/watch?v=example123",
+      "format": "mp3",
+      "quality": "128kbps"
     }
     ```
   </Tab>
   <Tab title="Python">
     ```python
+    # Public download (10-minute limit, basic formats only)
+    download_request = {
+        "url": "https://youtube.com/watch?v=example123",
+        "format": "mp3",        # mp4, mp3, wav only for public
+        "quality": "128kbps",   # Limited quality options
+        "extract_audio": True   # For audio-only download
+    }
+    
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/media/search-extract",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "query": "jazz instrumental background music",
-            "platform": "youtube",
-            "filters": {
-                "duration": "4-20",
-                "quality": "high",
-                "upload_date": "this_year"
-            },
-            "max_results": 5,
-            "extract_immediately": True
-        }
+        "https://api.audiopod.ai/api/v1/video/public/download",
+        json=download_request
     )
     
-    search_results = response.json()
-    for result in search_results["results"]:
-        print(f"Extracting: {result['title']}")
-        print(f"Job ID: {result['extraction_job_id']}")
+    if response.status_code == 200:
+        download_job = response.json()
+        job_id = download_job["job"]["id"]
+        print(f"Public download job created: {job_id}")
+        print(f"Status: {download_job['job']['status']}")
     ```
   </Tab>
 </Tabs>
 
-## Format Conversion
+### Download Media (Authenticated)
 
-### Audio Format Options
-
-Support for multiple output formats with quality controls:
-
-| Format | Extension | Quality Levels | Use Case               |
-| ------ | --------- | -------------- | ---------------------- |
-| MP3    | .mp3      | 64-320 kbps    | General use, streaming |
-| WAV    | .wav      | 16/24-bit      | Professional editing   |
-| FLAC   | .flac     | Lossless       | Archival quality       |
-| AAC    | .aac      | 64-256 kbps    | Mobile, web            |
-| OGG    | .ogg      | 64-320 kbps    | Open source            |
-| M4A    | .m4a      | 64-256 kbps    | Apple ecosystem        |
-
-### Quality Settings
-
-Configure extraction quality based on your needs:
-
-```json
-{
-  "quality_presets": {
-    "low": {
-      "sample_rate": 22050,
-      "bitrate": 64,
-      "channels": 1
-    },
-    "medium": {
-      "sample_rate": 44100,
-      "bitrate": 128,
-      "channels": 2
-    },
-    "high": {
-      "sample_rate": 44100,
-      "bitrate": 192,
-      "channels": 2
-    },
-    "best": {
-      "sample_rate": 48000,
-      "bitrate": 320,
-      "channels": 2
-    },
-    "lossless": {
-      "sample_rate": 48000,
-      "bitrate": null,
-      "channels": 2,
-      "format": "flac"
-    }
-  }
-}
-```
-
-## Job Management
-
-### Monitor Extraction Progress
-
-Track extraction jobs in real-time:
+Download videos with full features and no restrictions.
 
 <Tabs>
-  <Tab title="GET">
+  <Tab title="POST">
     ```http
-    GET /media/extract/jobs/{job_id}
-    Authorization: Bearer {access_token}
+    POST /api/v1/video/download
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "url": "https://youtube.com/watch?v=example123",
+      "format": "mp4",
+      "quality": "1080p",
+      "extract_audio": false,
+      "include_thumbnail": true
+    }
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    def monitor_extraction(job_id, callback=None):
-        while True:
-            response = requests.get(
-                f"https://api.audiopod.ai/api/v1/media/extract/jobs/{job_id}",
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-            
-            job = response.json()
-            status = job["status"]
-            
-            if callback:
-                callback(job)
-            
-            if status == "completed":
-                return job["result"]
-            elif status == "failed":
-                raise Exception(f"Extraction failed: {job['error']}")
-            elif status == "processing":
-                print(f"Progress: {job.get('progress', 0)}%")
-            
-            time.sleep(2)
+    # Authenticated download (full features)
+    download_request = {
+        "url": "https://youtube.com/watch?v=example123",
+        "format": "mp4",           # Any supported format
+        "quality": "1080p",        # Any available quality
+        "extract_audio": False,    # Keep video, set True for audio-only
+        "include_thumbnail": True, # Download thumbnail
+        "format_selector": "best", # "best", "worst", or specific format_id
+        "output_filename": "my_video.mp4"  # Custom filename
+    }
     
-    # Monitor with callback
-    def progress_callback(job):
-        print(f"Status: {job['status']} - {job.get('progress', 0)}%")
-        if job.get('current_stage'):
-            print(f"Stage: {job['current_stage']}")
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/video/download",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json=download_request
+    )
     
-    result = monitor_extraction(job_id, progress_callback)
+    if response.status_code == 200:
+        download_job = response.json()
+        job_id = download_job["job"]["id"]
+        print(f"Download job created: {job_id}")
+        print(f"Estimated credits: {download_job['estimated_credits']}")
     ```
   </Tab>
 </Tabs>
+
+**Request Parameters:**
+- **`url`** (required): URL of the video to download
+- **`format`** (optional): Output format (mp4, mp3, wav, webm, mkv, etc.)
+- **`quality`** (optional): Quality setting (144p, 720p, 1080p, 4K for video; 128kbps, 320kbps for audio)
+- **`extract_audio`** (optional): Extract audio only (default: false)
+- **`include_thumbnail`** (optional): Download thumbnail image (default: false)
+- **`format_selector`** (optional): Format selection strategy ("best", "worst", or specific format_id)
+- **`output_filename`** (optional): Custom output filename
 
 **Response:**
 
 ```json
 {
-  "job_id": "extract_abc123",
-  "status": "processing",
-  "progress": 75,
-  "current_stage": "audio_extraction",
-  "source": {
-    "url": "https://youtube.com/watch?v=example",
-    "title": "Example Video",
-    "duration": 245
+  "job": {
+    "id": 123,
+    "status": "PROCESSING",
+    "progress": 0,
+    "url": "https://youtube.com/watch?v=example123",
+    "format": "mp4",
+    "quality": "1080p",
+    "extract_audio": false,
+    "include_thumbnail": true,
+    "estimated_duration": 185.4,
+    "created_at": "2024-01-15T10:30:00Z",
+    "task_id": "celery_task_uuid_here"
   },
-  "result": null,
-  "error": null,
-  "created_at": "2024-01-15T10:30:00Z",
-  "estimated_completion": "2024-01-15T10:32:00Z"
+  "estimated_credits": 25,
+  "message": "Download job created successfully"
 }
 ```
 
-### List Extraction Jobs
+## Batch Downloads
 
-Get history of all extraction jobs:
+### Bulk Download Multiple Videos
+
+Download multiple videos in a single request.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/video/bulk
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "downloads": [
+        {
+          "url": "https://youtube.com/watch?v=video1",
+          "format": "mp3",
+          "quality": "320kbps"
+        },
+        {
+          "url": "https://youtube.com/watch?v=video2", 
+          "format": "mp4",
+          "quality": "720p"
+        }
+      ],
+      "extract_audio": true,
+      "include_thumbnails": false
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Bulk download multiple videos
+    bulk_request = {
+        "downloads": [
+            {
+                "url": "https://youtube.com/watch?v=video1",
+                "format": "mp3",
+                "quality": "320kbps"
+            },
+            {
+                "url": "https://youtube.com/watch?v=video2", 
+                "format": "mp4",
+                "quality": "720p"
+            },
+            {
+                "url": "https://youtube.com/watch?v=video3",
+                "format": "wav"  # High quality audio
+            }
+        ],
+        "extract_audio": True,      # Apply to all downloads
+        "include_thumbnails": False # Apply to all downloads
+    }
+    
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/video/bulk",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json=bulk_request
+    )
+    
+    if response.status_code == 200:
+        bulk_job = response.json()
+        print(f"Bulk download created with {len(bulk_job['jobs'])} jobs")
+        for job in bulk_job["jobs"]:
+            print(f"  Job {job['id']}: {job['url']}")
+    ```
+  </Tab>
+</Tabs>
+
+## Job Management
+
+### Get Download Status
+
+Monitor the progress of download jobs.
 
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /media/extract/jobs?status=completed&limit=20&platform=youtube
-    Authorization: Bearer {access_token}
+    GET /api/v1/video/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        job_status = response.json()
+        print(f"Status: {job_status['status']}")
+        print(f"Progress: {job_status['progress']}%")
+        
+        if job_status["status"] == "COMPLETED":
+            print("Download complete!")
+            print(f"Video URL: {job_status['download_url']}")
+            if job_status.get("thumbnail_url"):
+                print(f"Thumbnail URL: {job_status['thumbnail_url']}")
+            
+            # File information
+            print(f"File size: {job_status['file_size']} bytes")
+            print(f"Duration: {job_status['duration']} seconds")
+    ```
+  </Tab>
+</Tabs>
+
+**Response (Completed Job):**
+
+```json
+{
+  "id": 123,
+  "status": "COMPLETED",
+  "progress": 100,
+  "url": "https://youtube.com/watch?v=example123",
+  "format": "mp4",
+  "quality": "1080p",
+  "extract_audio": false,
+  "include_thumbnail": true,
+  "created_at": "2024-01-15T10:30:00Z",
+  "completed_at": "2024-01-15T10:33:15Z",
+  "download_url": "https://api.audiopod.ai/download/video_123.mp4",
+  "thumbnail_url": "https://api.audiopod.ai/download/thumbnail_123.jpg",
+  "original_title": "Amazing Video Content",
+  "file_size": 85600000,
+  "duration": 185.4,
+  "resolution": "1920x1080",
+  "fps": 30,
+  "audio_codec": "aac",
+  "video_codec": "h264",
+  "credits_used": 25,
+  "processing_time": 195.2
+}
+```
+
+### List Download Jobs
+
+Get all download jobs for the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/video/jobs?status=COMPLETED&platform=youtube&limit=50
+    Authorization: Bearer {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/media/extract/jobs",
-        headers={"Authorization": f"Bearer {access_token}"},
+        "https://api.audiopod.ai/api/v1/video/jobs",
+        headers={"Authorization": f"Bearer {api_key}"},
         params={
-            "status": "completed",
-            "limit": 20,
-            "platform": "youtube",
-            "order_by": "created_at",
-            "order": "desc"
+            "status": "COMPLETED",     # Filter by status
+            "platform": "youtube",     # Filter by platform
+            "format": "mp3",          # Filter by format
+            "limit": 50,
+            "skip": 0
         }
     )
     
-    jobs = response.json()["jobs"]
-    for job in jobs:
-        print(f"Job {job['id']}: {job['source']['title']}")
-        print(f"  Status: {job['status']}")
-        print(f"  Audio URL: {job['result']['audio_url'] if job['result'] else 'N/A'}")
+    if response.status_code == 200:
+        jobs_data = response.json()
+        for job in jobs_data["items"]:
+            print(f"Job {job['id']}: {job['status']} - {job['original_title']}")
+            print(f"  Platform: {job['platform']}, Format: {job['format']}")
+            print(f"  Duration: {job['duration']}s, Size: {job['file_size']} bytes")
     ```
   </Tab>
 </Tabs>
 
-## Integration with Other APIs
+### Download Files
 
-### Chain with Voice Processing
-
-Extract and immediately process with AudioPod services:
+Download the extracted media files.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /media/extract-and-process
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
-    
-    {
-      "source_url": "https://youtube.com/watch?v=example",
-      "extraction_settings": {
-        "format": "wav",
-        "quality": "high"
-      },
-      "processing_chain": [
-        {
-          "service": "denoiser",
-          "settings": {
-            "strength": 0.8,
-            "method": "deep_learning"
-          }
-        },
-        {
-          "service": "transcription",
-          "settings": {
-            "language": "auto",
-            "speaker_diarization": true
-          }
-        }
-      ]
-    }
-    ```
-  </Tab>
   <Tab title="Python">
     ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/media/extract-and-process",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "source_url": "https://youtube.com/watch?v=example",
-            "extraction_settings": {
-                "format": "wav",
-                "quality": "high"
-            },
-            "processing_chain": [
-                {
-                    "service": "denoiser",
-                    "settings": {
-                        "strength": 0.8,
-                        "method": "deep_learning"
-                    }
-                },
-                {
-                    "service": "transcription",
-                    "settings": {
-                        "language": "auto",
-                        "speaker_diarization": True
-                    }
-                }
-            ]
+    def download_extracted_media(job_id, api_key, download_thumbnail=True):
+        """Download extracted media and thumbnail from completed job"""
+        
+        # Get job details
+        response = requests.get(
+            f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        if response.status_code != 200:
+            return {"error": "Job not found"}
+        
+        job = response.json()
+        
+        if job["status"] != "COMPLETED":
+            return {"error": f"Job not completed. Status: {job['status']}"}
+        
+        downloaded_files = []
+        
+        # Download main media file
+        if job.get("download_url"):
+            media_response = requests.get(job["download_url"])
+            if media_response.status_code == 200:
+                # Use original title for filename, cleaned up
+                title = job["original_title"].replace("/", "_").replace("\\", "_")
+                extension = job["format"]
+                filename = f"{title}_{job_id}.{extension}"
+                
+                with open(filename, "wb") as f:
+                    f.write(media_response.content)
+                
+                downloaded_files.append({
+                    "type": "media",
+                    "filename": filename,
+                    "size": len(media_response.content)
+                })
+        
+        # Download thumbnail if available and requested
+        if download_thumbnail and job.get("thumbnail_url"):
+            thumb_response = requests.get(job["thumbnail_url"])
+            if thumb_response.status_code == 200:
+                thumb_filename = f"{title}_thumbnail_{job_id}.jpg"
+                
+                with open(thumb_filename, "wb") as f:
+                    f.write(thumb_response.content)
+                
+                downloaded_files.append({
+                    "type": "thumbnail",
+                    "filename": thumb_filename,
+                    "size": len(thumb_response.content)
+                })
+        
+        return {
+            "success": True,
+            "job_id": job_id,
+            "title": job["original_title"],
+            "duration": job["duration"],
+            "format": job["format"],
+            "quality": job["quality"],
+            "files": downloaded_files,
+            "credits_used": job["credits_used"]
         }
-    )
     
-    pipeline_job = response.json()
+    # Usage
+    result = download_extracted_media(123, "your_api_key", download_thumbnail=True)
+    if result.get("success"):
+        print(f"Downloaded: {result['title']}")
+        for file_info in result["files"]:
+            print(f"  {file_info['type']}: {file_info['filename']} ({file_info['size']} bytes)")
     ```
   </Tab>
 </Tabs>
 
-### Voice Clone from YouTube
+## Platform Support
 
-Extract audio and create voice clone:
+### Supported Platforms
 
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /media/extract-for-voice-clone
-    Authorization: Bearer {access_token}
-    Content-Type: application/json
+| Platform | Audio | Video | Playlists | Live Streams |
+|----------|-------|-------|-----------|--------------|
+| YouTube | ✅ | ✅ | ✅ | ✅ |
+| TikTok | ✅ | ✅ | ❌ | ❌ |
+| Instagram | ✅ | ✅ | ❌ | ❌ |
+| Vimeo | ✅ | ✅ | ✅ | ❌ |
+| Twitter/X | ✅ | ✅ | ❌ | ❌ |
+| Facebook | ✅ | ✅ | ❌ | ❌ |
+| Spotify | ✅ | ❌ | ✅ | ❌ |
+| SoundCloud | ✅ | ❌ | ✅ | ❌ |
+
+### Format Support
+
+**Video Formats:**
+- MP4 (H.264, H.265)
+- WebM (VP8, VP9)
+- MKV
+- AVI
+- MOV
+
+**Audio Formats:**
+- MP3 (various bitrates)
+- WAV (uncompressed)
+- AAC
+- OGG
+- FLAC (lossless)
+
+**Quality Options:**
+- **Video**: 144p, 240p, 360p, 480p, 720p, 1080p, 1440p, 2160p (4K)
+- **Audio**: 64kbps, 128kbps, 192kbps, 256kbps, 320kbps
+
+## Use Cases & Examples
+
+### Podcast Content Creation
+
+```python
+def extract_podcast_audio_from_videos(video_urls, api_key):
+    """Extract high-quality audio from video content for podcast creation"""
     
-    {
-      "source_url": "https://youtube.com/watch?v=interview_example",
-      "voice_settings": {
-        "voice_name": "Interview Subject Voice",
-        "description": "Voice cloned from interview",
-        "language": "en"
-      },
-      "extraction_settings": {
-        "segment": {
-          "start_time": 60,
-          "end_time": 300
-        },
-        "quality": "best"
-      }
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    # Extract and create voice clone in one step
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/media/extract-for-voice-clone",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={
-            "source_url": "https://youtube.com/watch?v=interview_example",
-            "voice_settings": {
-                "voice_name": "Interview Subject Voice",
-                "description": "Voice cloned from interview",
-                "language": "en"
-            },
-            "extraction_settings": {
-                "segment": {
-                    "start_time": 60,
-                    "end_time": 300
-                },
-                "quality": "best"
+    podcast_audios = []
+    
+    for url in video_urls:
+        print(f"Extracting audio from: {url}")
+        
+        # Request high-quality audio extraction
+        download_request = {
+            "url": url,
+            "extract_audio": True,
+            "format": "wav",        # High quality for editing
+            "quality": "best",      # Best available audio quality
+            "include_thumbnail": True  # For podcast artwork
+        }
+        
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/video/download",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=download_request
+        )
+        
+        if response.status_code == 200:
+            job_data = response.json()
+            podcast_audios.append({
+                "url": url,
+                "job_id": job_data["job"]["id"],
+                "status": "processing"
+            })
+    
+    # Monitor all extractions
+    completed_audios = []
+    
+    while len(completed_audios) < len(podcast_audios):
+        for audio_job in podcast_audios:
+            if any(c["job_id"] == audio_job["job_id"] for c in completed_audios):
+                continue
+            
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/video/jobs/{audio_job['job_id']}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            job_status = status_response.json()
+            
+            if job_status["status"] == "COMPLETED":
+                # Download the audio file
+                audio_response = requests.get(job_status["download_url"])
+                filename = f"podcast_audio_{audio_job['job_id']}.wav"
+                
+                with open(filename, "wb") as f:
+                    f.write(audio_response.content)
+                
+                completed_audios.append({
+                    "original_url": audio_job["url"],
+                    "job_id": audio_job["job_id"],
+                    "filename": filename,
+                    "title": job_status["original_title"],
+                    "duration": job_status["duration"],
+                    "thumbnail_url": job_status.get("thumbnail_url")
+                })
+                
+                print(f"Extracted: {filename}")
+        
+        time.sleep(5)
+    
+    return completed_audios
+
+# Usage
+video_urls = [
+    "https://youtube.com/watch?v=interview1",
+    "https://youtube.com/watch?v=interview2", 
+    "https://youtube.com/watch?v=interview3"
+]
+
+podcast_content = extract_podcast_audio_from_videos(video_urls, "your_api_key")
+print(f"Extracted {len(podcast_content)} audio files for podcast:")
+for content in podcast_content:
+    print(f"  {content['title']} - {content['filename']} ({content['duration']:.1f}s)")
+```
+
+### Educational Content Archive
+
+```python
+def archive_educational_content(playlist_urls, api_key):
+    """Download educational videos for offline access"""
+    
+    archived_content = {}
+    
+    for playlist_name, url in playlist_urls.items():
+        print(f"Archiving {playlist_name}...")
+        
+        # Get video info first
+        info_response = requests.post(
+            "https://api.audiopod.ai/api/v1/video/info",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"url": url, "include_formats": True}
+        )
+        
+        if info_response.status_code == 200:
+            video_info = info_response.json()
+            
+            # Download in appropriate quality for education
+            download_request = {
+                "url": url,
+                "format": "mp4",
+                "quality": "720p",      # Good balance of quality/size
+                "include_thumbnail": True,
+                "output_filename": f"{playlist_name}_{video_info['video_id']}.mp4"
             }
-        }
-    )
+            
+            download_response = requests.post(
+                "https://api.audiopod.ai/api/v1/video/download",
+                headers={"Authorization": f"Bearer {api_key}"},
+                json=download_request
+            )
+            
+            if download_response.status_code == 200:
+                job_data = download_response.json()
+                archived_content[playlist_name] = {
+                    "job_id": job_data["job"]["id"],
+                    "title": video_info["title"],
+                    "duration": video_info["duration"],
+                    "estimated_credits": job_data["estimated_credits"],
+                    "status": "downloading"
+                }
     
-    clone_job = response.json()
-    print(f"Voice clone job started: {clone_job['job_id']}")
-    ```
-  </Tab>
-</Tabs>
+    return archived_content
+
+# Usage for educational content
+educational_playlists = {
+    "math_basics": "https://youtube.com/watch?v=math_lesson_1",
+    "science_intro": "https://youtube.com/watch?v=science_intro",
+    "history_overview": "https://youtube.com/watch?v=history_basics"
+}
+
+archive = archive_educational_content(educational_playlists, "your_api_key")
+print("Educational content archiving started:")
+for subject, info in archive.items():
+    print(f"  {subject}: {info['title']} ({info['duration']}s)")
+```
+
+### Social Media Content Analysis
+
+```python
+def extract_social_media_content(social_urls, api_key):
+    """Extract content from various social media platforms for analysis"""
+    
+    extracted_content = []
+    
+    for url in social_urls:
+        # Detect platform
+        platform = "unknown"
+        if "tiktok.com" in url:
+            platform = "tiktok"
+        elif "instagram.com" in url:
+            platform = "instagram" 
+        elif "youtube.com" in url or "youtu.be" in url:
+            platform = "youtube"
+        elif "vimeo.com" in url:
+            platform = "vimeo"
+        
+        print(f"Extracting from {platform}: {url}")
+        
+        # Platform-specific extraction settings
+        if platform == "tiktok":
+            # TikTok: usually short videos, extract both video and audio
+            download_config = {
+                "format": "mp4",
+                "quality": "best",
+                "extract_audio": False,  # Keep video for visual analysis
+                "include_thumbnail": True
+            }
+        elif platform == "instagram":
+            # Instagram: stories, reels, posts
+            download_config = {
+                "format": "mp4", 
+                "quality": "720p",
+                "extract_audio": True,   # Often interested in audio
+                "include_thumbnail": True
+            }
+        else:
+            # YouTube, Vimeo: longer content
+            download_config = {
+                "format": "mp3",         # Audio for analysis
+                "quality": "320kbps",
+                "extract_audio": True,
+                "include_thumbnail": True
+            }
+        
+        download_config["url"] = url
+        
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/video/download",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=download_config
+        )
+        
+        if response.status_code == 200:
+            job_data = response.json()
+            extracted_content.append({
+                "platform": platform,
+                "url": url,
+                "job_id": job_data["job"]["id"],
+                "config": download_config,
+                "status": "processing"
+            })
+    
+    return extracted_content
+
+# Usage for social media analysis
+social_urls = [
+    "https://tiktok.com/@user/video/123",
+    "https://instagram.com/p/ABC123/",
+    "https://youtube.com/watch?v=analysis_video",
+    "https://vimeo.com/123456789"
+]
+
+social_content = extract_social_media_content(social_urls, "your_api_key")
+print(f"Extracting content from {len(social_content)} social media sources")
+```
 
 ## Error Handling
 
-### Common Error Responses
-
 <AccordionGroup>
   <Accordion title="400 Bad Request - Invalid URL">
-    ```json
-    {
-      "error": {
-        "code": "invalid_url",
-        "message": "URL is not valid or not supported",
-        "details": {
-          "url": "https://invalid-site.com/video",
-          "supported_platforms": ["youtube", "vimeo", "soundcloud"]
-        }
-      }
-    }
-    ```
+    **Causes:** - URL format not supported - Private/restricted content - Invalid video ID
+    **Solutions:** - Verify URL is publicly accessible - Check platform support - Ensure URL format is correct
   </Accordion>
-  
-  <Accordion title="403 Forbidden - Private Content">
-    ```json
-    {
-      "error": {
-        "code": "content_unavailable",
-        "message": "Content is private or requires authentication",
-        "suggestion": "Ensure the content is publicly accessible"
-      }
-    }
-    ```
+
+  <Accordion title="403 Forbidden - Access Denied">
+    **Causes:** - Content is private or restricted - Geographic restrictions - Platform blocking
+    **Solutions:** - Use publicly accessible content - Check content availability in your region - Try different platform
   </Accordion>
-  
-  <Accordion title="404 Not Found - Content Removed">
-    ```json
-    {
-      "error": {
-        "code": "content_not_found",
-        "message": "The requested content was not found",
-        "details": {
-          "possible_reasons": [
-            "Video was deleted",
-            "Video was made private",
-            "Invalid video ID"
-          ]
-        }
-      }
-    }
-    ```
+
+  <Accordion title="404 Not Found - Content Not Available">
+    **Causes:** - Video deleted or removed - Invalid video ID - Platform content policy violation
+    **Solutions:** - Verify content still exists - Check for updated URL - Use alternative source
   </Accordion>
-  
-  <Accordion title="413 Payload Too Large - Duration Limit">
-    ```json
-    {
-      "error": {
-        "code": "duration_exceeded",
-        "message": "Content duration exceeds maximum limit",
-        "details": {
-          "content_duration": 18000,
-          "max_duration": 14400,
-          "suggestion": "Use segment extraction to process parts of the content"
-        }
-      }
-    }
-    ```
+
+  <Accordion title="413 Payload Too Large - File Size Limit">
+    **Causes:** - Video file too large for processing - Very long duration content
+    **Solutions:** - Use lower quality settings - Extract audio only - Split long content
   </Accordion>
-  
-  <Accordion title="429 Rate Limited">
-    ```json
-    {
-      "error": {
-        "code": "rate_limit_exceeded",
-        "message": "Too many extraction requests",
-        "retry_after": 120
-      }
-    }
-    ```
-  </Accordion>
-  
-  <Accordion title="503 Service Unavailable - Platform Issues">
-    ```json
-    {
-      "error": {
-        "code": "platform_unavailable",
-        "message": "Source platform is temporarily unavailable",
-        "details": {
-          "platform": "youtube",
-          "estimated_recovery": "2024-01-15T11:00:00Z"
-        }
-      }
-    }
-    ```
+
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    **Causes:** - Not enough credits for download duration/quality
+    **Solutions:** - Purchase additional credits - Use lower quality settings - Check credit requirements
   </Accordion>
 </AccordionGroup>
 
-## Rate Limits & Costs
-
-### Rate Limiting
-
-| Endpoint                  | Rate Limit   | Window |
-| ------------------------- | ------------ | ------ |
-| `/media/extract`          | 20 requests  | 1 hour |
-| `/media/extract/batch`    | 5 requests   | 1 hour |
-| `/media/extract/playlist` | 2 requests   | 1 hour |
-| `/media/info`             | 100 requests | 1 hour |
-
-### Credit Costs
-
-| Operation               | Credits per Minute      |
-| ----------------------- | ----------------------- |
-| Basic extraction        | 1 credit                |
-| High quality extraction | 2 credits               |
-| Playlist extraction     | 1 credit per video      |
-| Search and extract      | 2 credits per result    |
-| Processing pipeline     | Base + processing costs |
-
-### Duration Limits
-
-| Plan       | Max Duration per File | Daily Extraction Limit |
-| ---------- | --------------------- | ---------------------- |
-| Free       | 10 minutes            | 30 minutes             |
-| Pro        | 4 hours               | 8 hours                |
-| Enterprise | Unlimited             | Unlimited              |
-
 ## Best Practices
 
-### Optimization Tips
-
-1. **Use appropriate quality**: Don't over-extract if lower quality suffices
-2. **Segment long content**: Extract specific portions instead of entire videos
-3. **Batch similar requests**: Group extractions to optimize processing
-4. **Cache metadata**: Store media info to avoid repeated API calls
-5. **Handle failures gracefully**: Implement retry logic for transient errors
-
-### Legal Considerations
-
-1. **Respect copyright**: Only extract content you have rights to use
-2. **Follow platform ToS**: Respect source platform terms of service
-3. **Fair use guidelines**: Understand fair use provisions for your use case
-4. **Attribution**: Provide proper attribution when required
-5. **Commercial use**: Ensure you have rights for commercial applications
-
-### Integration Examples
+### Quality vs. File Size Optimization
 
 ```python
-# Production media extraction pipeline
-class MediaExtractor:
-    def __init__(self, api_key):
-        self.client = AudioPodClient(api_key)
-        self.quality_settings = {
-            "podcast": {"format": "mp3", "bitrate": 128},
-            "music": {"format": "wav", "quality": "high"},
-            "voice_clone": {"format": "wav", "quality": "best"}
-        }
-
-    def extract_for_purpose(self, url, purpose, **kwargs):
-        settings = self.quality_settings.get(purpose, self.quality_settings["podcast"])
-        settings.update(kwargs)
-
-        # Get media info first
-        info = self.client.media.get_info(url)
-
-        # Validate duration
-        if info.duration > self.get_max_duration(purpose):
-            raise ValueError(f"Content too long for {purpose}")
-
-        # Extract with appropriate settings
-        job = self.client.media.extract(url, **settings)
-
-        # Monitor and return result
-        return self.wait_for_completion(job.job_id)
-
-    def extract_playlist_highlights(self, playlist_url, max_videos=10):
-        # Extract playlist info
-        playlist_info = self.client.media.get_playlist_info(playlist_url)
-
-        # Filter and sort by popularity
-        videos = sorted(
-            playlist_info.videos,
-            key=lambda v: v.view_count,
-            reverse=True
-        )[:max_videos]
-
-        # Batch extract
-        urls = [{"url": v.url, "name": v.title} for v in videos]
-        batch_job = self.client.media.extract_batch(urls)
-
-        return self.monitor_batch(batch_job.batch_id)
+# Quality recommendations by use case
+quality_recommendations = {
+    "podcast_audio": {
+        "format": "wav",
+        "quality": "320kbps",
+        "extract_audio": True,
+        "reason": "High quality for editing and processing"
+    },
+    "social_media_analysis": {
+        "format": "mp3", 
+        "quality": "128kbps",
+        "extract_audio": True,
+        "reason": "Sufficient quality, smaller file size"
+    },
+    "educational_archive": {
+        "format": "mp4",
+        "quality": "720p",
+        "extract_audio": False,
+        "reason": "Good balance of quality and storage"
+    },
+    "professional_video": {
+        "format": "mp4",
+        "quality": "1080p",
+        "extract_audio": False,
+        "reason": "High quality for professional use"
+    }
+}
 ```
+
+### Batch Processing Strategy
+
+```python
+def optimize_batch_downloads(urls, api_key, max_concurrent=5):
+    """Optimize batch downloads with concurrency control"""
+    
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    
+    def process_single_download(url):
+        download_request = {
+            "url": url,
+            "format": "mp3",
+            "quality": "192kbps",
+            "extract_audio": True
+        }
+        
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/video/download",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json=download_request
+        )
+        
+        return response.json() if response.status_code == 200 else None
+    
+    # Process in batches to avoid overwhelming the API
+    batch_size = max_concurrent
+    all_jobs = []
+    
+    for i in range(0, len(urls), batch_size):
+        batch_urls = urls[i:i + batch_size]
+        
+        with ThreadPoolExecutor(max_workers=max_concurrent) as executor:
+            batch_jobs = list(executor.map(process_single_download, batch_urls))
+        
+        all_jobs.extend([job for job in batch_jobs if job])
+        
+        # Brief pause between batches
+        time.sleep(2)
+    
+    return all_jobs
+```
+
+## Pricing
+
+Media extraction pricing based on actual credit costs:
+
+| Service | Cost | Description |
+|---------|------|-------------|
+| Video Info | Free | Get metadata without downloading |
+| Video Download (All Formats) | 6 credits/minute | Download audio/video in any quality |
+| Thumbnail Extraction | 1 credit | Download video thumbnail |
+
+### Cost Examples
+
+| Duration | Service | Quality | Credits | USD Cost |
+|----------|---------|---------|---------|----------|
+| 5 minutes | Audio Only | 320kbps | 30 | $0.004 |
+| 10 minutes | Video | 720p | 60 | $0.008 |
+| 30 minutes | Video | 1080p | 180 | $0.024 |
+| 2 hours | Audio Only | 192kbps | 720 | $0.096 |
+
+### Cost Optimization Tips
+
+1. **Extract audio only** when video is not needed
+2. **Use appropriate quality** - don't download 4K for analysis
+3. **Batch process** similar content for efficiency
+4. **Get info first** to estimate costs before downloading
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
+    Transcribe extracted audio content.
+  </Card>
+  <Card title="Speaker Extraction" icon="users" href="/api-reference/speaker-extraction">
+    Separate speakers in extracted audio.
+  </Card>
+  <Card title="Noise Reduction" icon="volume-x" href="/api-reference/noise-reduction">
+    Clean up extracted audio for better quality.
+  </Card>
+  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-cloning">
+    Create voice models from extracted audio.
+  </Card>
+</Columns>

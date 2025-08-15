@@ -144,7 +144,7 @@ Use traditional spectral subtraction for specific noise types and fine control.
   <Tab title="Python">
     ```python
     with open("recording_with_hum.wav", "rb") as audio_file:
-        response = requests.post(
+    response = requests.post(
             "https://api.audiopod.ai/api/v1/denoiser/spectral/denoise",
             headers={"Authorization": f"Bearer {api_key}"},
             data={
@@ -256,7 +256,7 @@ Get all noise reduction jobs for the authenticated user.
     
     if response.status_code == 200:
         jobs = response.json()
-        for job in jobs:
+    for job in jobs:
             print(f"Job {job['id']}: {job['status']} - {job['original_filename']}")
     ```
   </Tab>
@@ -295,12 +295,12 @@ Remove a completed job and its results.
     **Causes:** - Audio file corrupted or invalid format - File contains no audio content - Unsupported codec
     **Solutions:** - Use supported formats (WAV, MP3, M4A, MP4) - Verify file integrity - Check audio content exists
   </Accordion>
-
+  
   <Accordion title="422 Processing Error - Denoising Failed">
     **Causes:** - Audio quality too poor for processing - Extreme noise levels - Very short audio duration
     **Solutions:** - Try different quality mode - Use spectral processing for specific noise types - Ensure minimum 5 seconds duration
   </Accordion>
-
+  
   <Accordion title="402 Payment Required - Insufficient Credits">
     **Causes:** - Not enough credits for processing duration
     **Solutions:** - Purchase additional credits - Check credit requirements before processing
@@ -313,16 +313,16 @@ Noise reduction pricing is based on audio duration:
 
 | Service | Cost | Description |
 |---------|------|-------------|
-| AI Denoising | 5 credits/minute | Advanced neural network processing |
-| Spectral Processing | 3 credits/minute | Traditional spectral subtraction |
+| AI Denoising | 330 credits/minute | Advanced neural network processing |
+| Spectral Processing | 660 credits/minute | Traditional spectral subtraction |
 
 ### Cost Examples
 
 | Duration | Method | Credits | USD Cost |
 |----------|--------|---------|----------|
-| 10 minutes | AI Denoising | 50 | $0.05 |
-| 30 minutes | Spectral | 90 | $0.09 |
-| 1 hour | AI Denoising | 300 | $0.30 |
+| 10 minutes | AI Denoising | 3300 | $0.44 |
+| 30 minutes | Spectral | 19800 | $2.64 |
+| 1 hour | AI Denoising | 19800 | $2.64 |
 
 ## Next Steps
 

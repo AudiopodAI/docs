@@ -43,8 +43,8 @@ After creating your account:
 While you can use any HTTP client, we recommend using our official SDKs:
 
 <Tabs>
-  <Tab title="Python">```bash pip install audiopod-python ```</Tab>
-  <Tab title="Node.js">```bash npm install audiopod-js ```</Tab>
+  <Tab title="Python">```bash pip install audiopod ```</Tab>
+  <Tab title="Node.js">```bash npm install @audiopod/sdk ```</Tab>
   <Tab title="cURL">No installation required - use cURL directly</Tab>
 </Tabs>
 
@@ -56,60 +56,60 @@ Let's create your first AI-generated speech:
   <Tab title="Python">
     ```python
     import os
-    from audiopod import AudioPod
+    import requests
 
-    # Initialize the client
-    client = AudioPod(api_key=os.getenv("AUDIOPOD_API_KEY"))
-
-    # Generate speech
-    response = client.text_to_speech.create(
-        text="Hello world! This is my first AudioPod AI generated voice.",
-        voice_id="aura",  # Pre-built voice
-        output_format="mp3"
+    # Generate speech using voice generation API
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
+        headers={"Authorization": f"Bearer {os.getenv('AUDIOPOD_API_KEY')}"},
+        data={
+            "input_text": "Hello world! This is my first AudioPod AI generated voice.",
+            "audio_format": "mp3",
+            "speed": 1.0
+        }
     )
 
-    # Save the audio file
-    with open("hello_world.mp3", "wb") as f:
-        f.write(response.audio_data)
-
-    print("Audio generated successfully!")
+    if response.status_code == 200:
+        job_data = response.json()
+        job_id = job_data["id"]
+        print(f"Voice generation job created: {job_id}")
+        print("Check job status to download audio when ready")
     ```
 
   </Tab>
   <Tab title="Node.js">
     ```javascript
-    import { AudioPod } from 'audiopod-js';
-    import fs from 'fs';
+    const fetch = require('node-fetch');
 
-    // Initialize the client
-    const client = new AudioPod({
-      apiKey: process.env.AUDIOPOD_API_KEY
+    // Generate speech using voice generation API
+    const formData = new FormData();
+    formData.append('input_text', 'Hello world! This is my first AudioPod AI generated voice.');
+    formData.append('audio_format', 'mp3');
+    formData.append('speed', '1.0');
+    
+    const response = await fetch('https://api.audiopod.ai/api/v1/voice/voices/aura/generate', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.AUDIOPOD_API_KEY}`
+      },
+      body: formData
     });
 
-    // Generate speech
-    const response = await client.textToSpeech.create({
-      text: "Hello world! This is my first AudioPod AI generated voice.",
-      voiceId: "aura",  // Pre-built voice
-      outputFormat: "mp3"
-    });
-
-    // Save the audio file
-    fs.writeFileSync("hello_world.mp3", response.audioData);
-    console.log("Audio generated successfully!");
+    if (response.ok) {
+      const jobData = await response.json();
+      console.log(`Voice generation job created: ${jobData.id}`);
+      console.log("Check job status to download audio when ready");
+    }
     ```
 
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/text-to-speech" \
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/aura/generate" \
       -H "Authorization: Bearer YOUR_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "text": "Hello world! This is my first AudioPod AI generated voice.",
-        "voice_id": "aura",
-        "output_format": "mp3"
-      }' \
-      --output hello_world.mp3
+      -F "input_text=Hello world! This is my first AudioPod AI generated voice." \
+      -F "audio_format=mp3" \
+      -F "speed=1.0"
     ```
   </Tab>
 </Tabs>
@@ -118,14 +118,14 @@ Let's create your first AI-generated speech:
 
 AudioPod AI uses a credit-based billing system:
 
-- **Text-to-Speech**: ~1 credit per 1,000 characters
-- **Speech-to-Text**: ~1 credit per minute of audio
-- **Voice Cloning**: ~50 credits per voice model
-- **Music Generation**: ~10 credits per 30-second track
+- **Voice Generation**: 330 credits per minute
+- **Speech-to-Text**: 660 credits per minute
+- **Voice Cloning**: 330 credits per minute
+- **Music Generation**: 1320 credits per minute
 
 <Info>
-  New accounts receive $5 in credits (~5,000 credits) to get started. Check your
-  [billing dashboard](https://www.audiopod.ai/dashboard/billing) to monitor
+  New accounts receive 10,000 credits to get started. Check your
+  [AudioPod Account](https://www.audiopod.ai/dashboard/account) to monitor
   usage.
 </Info>
 
@@ -137,14 +137,14 @@ Congratulations! You've successfully made your first API call. Here's what to ex
   <Card
     title="Explore Voice Options"
     icon="microphone"
-    href="/features/text-to-speech"
+    href="/api-reference/voice-management"
   >
     Learn about our 50+ pre-built voices and voice cloning.
   </Card>
   <Card
     title="Try Speech-to-Text"
     icon="waveform"
-    href="/features/speech-to-text"
+    href="/api-reference/speech-to-text"
   >
     Convert audio to text with speaker separation.
   </Card>
@@ -165,7 +165,7 @@ Congratulations! You've successfully made your first API call. Here's what to ex
   </Accordion>
 
   <Accordion title="Credit Limit Exceeded">
-    Check your [billing dashboard](https://www.audiopod.ai/dashboard/billing) to
+    Check your [AudioPod Account](https://www.audiopod.ai/dashboard/account) to
     see your credit balance and add more credits if needed.
   </Accordion>
 

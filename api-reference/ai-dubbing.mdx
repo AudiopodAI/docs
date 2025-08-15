@@ -1,0 +1,338 @@
+---
+title: "Speech Translation API" 
+description: "Translate speech from audio and video files into multiple languages with voice cloning and speaker preservation using AudioPod AI's advanced speech translation technology."
+---
+
+## Overview
+
+AudioPod AI's Speech Translation API provides end-to-end speech-to-speech translation that preserves the original speaker's voice characteristics. Transform spoken content from audio and video files into over 90+ languages while maintaining speaker identity, timing, and natural pronunciation.
+
+### Key Features
+
+- **21+ Languages**: Translate between major world languages
+- **Voice Cloning**: Preserve original speaker voice characteristics  
+- **Speaker Separation**: Maintain distinct speakers in multi-speaker content
+- **Video Support**: Translate video files with audio replacement
+- **Automatic Language Detection**: Detect source language automatically
+- **High-Quality Synthesis**: Natural-sounding translated speech output
+
+## Authentication
+
+All endpoints require authentication:
+- **API Key**: `Authorization: Bearer your_api_key` 
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Speech Translation
+
+### Create Speech Translation Job
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/translation/translate/speech
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    file: (audio/video file)
+    target_language: es
+    source_language: en
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    with open("english_speech.wav", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/translation/translate/speech",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "target_language": "es",        # Spanish
+                "source_language": "en"         # English (optional - auto-detect if not provided)
+            },
+            files={"file": audio_file}
+        )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        job_id = job_data["id"]
+        print(f"Speech translation job created: {job_id}")
+    else:
+        print(f"Error: {response.status_code} - {response.json()}")
+    ```
+  </Tab>
+  <Tab title="URL Upload">
+    ```python
+    import requests
+    
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/translation/translate/speech",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "target_language": "es",
+            "source_language": "en",
+            "url": "https://example.com/audio.mp3"  # Direct media URL
+        }
+    )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        print(f"Job ID: {job_data['id']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Supported Languages** (Use ISO 639-1 codes):
+- **`en`**: English, **`es`**: Spanish, **`fr`**: French, **`de`**: German
+- **`it`**: Italian, **`pt`**: Portuguese, **`ru`**: Russian, **`ja`**: Japanese
+- **`ko`**: Korean, **`zh`**: Chinese, **`ar`**: Arabic, **`hi`**: Hindi
+- And 90+ more languages...
+
+**Request Parameters:**
+- **`file`**: Audio or video file (required if no URL)
+- **`url`**: Direct media URL (required if no file)
+- **`target_language`**: Target language code (required)
+- **`source_language`**: Source language code (optional - auto-detected if not provided)
+
+**Response:**
+
+```json
+{
+  "id": 123,
+  "status": "PENDING",
+  "source_language": "en",
+  "target_language": "es", 
+  "input_path": "translations/inputs/20241215_143022_uuid.wav",
+  "input_source": "FILE",
+  "created_at": "2024-12-15T14:30:22Z",
+  "original_filename": "english_speech.wav",
+  "task_id": "celery-task-uuid",
+  "parameters": {
+    "source_type": "FILE",
+    "is_video": false,
+    "duration": 45.6,
+    "is_speech_translation": true
+  }
+}
+```
+
+## Job Management
+
+### Get Translation Status
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/translation/translations/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/translation/translations/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        job_status = response.json()
+        print(f"Status: {job_status['status']}")
+        print(f"Display Name: {job_status['display_name']}")
+        
+        if job_status["status"] == "COMPLETED":
+            print(f"Translated Audio URL: {job_status.get('translated_audio_url')}")
+            print(f"Video Output URL: {job_status.get('video_output_url')}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response (Processing):**
+
+```json
+{
+  "id": 123,
+  "status": "PROCESSING",
+  "source_language": "en",
+  "target_language": "es",
+  "input_path": "translations/inputs/20241215_143022_uuid.wav",
+  "display_name": "english_speech.wav",
+  "created_at": "2024-12-15T14:30:22Z",
+  "parameters": {
+    "is_speech_translation": true,
+    "duration": 45.6,
+    "is_video": false
+  }
+}
+```
+
+**Response (Completed):**
+
+```json
+{
+  "id": 123,
+  "status": "COMPLETED",
+  "source_language": "en",
+  "target_language": "es",
+  "display_name": "english_speech.wav",
+  "audio_output_path": "outputs/translations/translated_20241215_143525_es.wav",
+  "video_output_path": "outputs/translation/videos/20241215_143525_translated.mp4",
+  "transcript_path": "transcripts/translations/2024/12/15/20241215_143525_uuid.json",
+  "translated_audio_url": "https://presigned-url-to-audio.s3.amazonaws.com/...",
+  "video_output_url": "https://presigned-url-to-video.s3.amazonaws.com/...",
+  "transcript_urls": {
+    "json": "https://presigned-url-to-transcript.s3.amazonaws.com/...",
+    "source_audio": "https://presigned-url-to-source.s3.amazonaws.com/..."
+  }
+}
+```
+
+### List Translation Jobs
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/translation/translations?skip=0&limit=50
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/translation/translations",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "skip": 0,        # Pagination offset
+            "limit": 50       # Number of results (max 100)
+        }
+    )
+    
+    if response.status_code == 200:
+        translations = response.json()
+        for job in translations:
+            print(f"Job {job['id']}: {job['display_name']} - Status: {job['status']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Retry Failed Translation
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/translation/translations/{job_id}/retry
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/translation/translations/{job_id}/retry",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        retry_job = response.json()
+        print(f"Created retry job: {retry_job['id']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Translation Job
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /api/v1/translation/translations/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/translation/translations/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(result["message"])  # "Translation job {job_id} deleted successfully"
+    ```
+  </Tab>
+</Tabs>
+
+## Error Handling
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - Invalid Input">
+    **Causes:** 
+    - Missing required parameters (file or URL)
+    - Invalid file format or extension
+    - Unsupported language code
+    - Invalid URL format
+    
+    **Solutions:** 
+    - Provide either file or URL (not both)
+    - Use supported audio/video formats
+    - Use valid ISO 639-1 language codes
+    - Ensure URLs start with http:// or https://
+  </Accordion>
+
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    **Causes:** 
+    - Not enough credits for processing duration
+    - Account credit balance too low
+    
+    **Solutions:** 
+    - Purchase additional credits
+    - Check account balance before processing
+  </Accordion>
+
+  <Accordion title="404 Not Found">
+    **Causes:** 
+    - Job ID not found
+    - Access denied to job
+    - User not found
+    
+    **Solutions:** 
+    - Verify job ID is correct
+    - Ensure you own the job
+    - Check authentication
+  </Accordion>
+
+  <Accordion title="500 Internal Server Error">
+    **Causes:** 
+    - Audio extraction failed
+    - Processing pipeline error
+    - Storage service unavailable
+    
+    **Solutions:** 
+    - Retry the request
+    - Use retry endpoint for failed jobs
+    - Contact support if persistent
+  </Accordion>
+</AccordionGroup>
+
+## Status Values
+
+- **`PENDING`**: Job created and queued for processing
+- **`PROCESSING`**: Active speech translation in progress  
+- **`COMPLETED`**: Translation finished successfully
+- **`FAILED`**: Processing failed (use retry endpoint)
+
+## Pricing
+
+| Service | Cost | Description |
+|---------|------|-------------|
+| Speech Translation | 10+ credits/minute | Complete speech-to-speech translation with voice cloning |
+| Video Translation | 10+ credits/minute | Speech translation + video recombination |
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Voice Cloning" icon="mic" href="/api-reference/text-to-speech">
+    Learn about voice cloning technology used in translations.
+  </Card>
+  <Card title="Speaker Separation" icon="users" href="/api-reference/speaker-separation">
+    Understand multi-speaker processing capabilities.
+  </Card>
+</Columns>

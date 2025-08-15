@@ -33,42 +33,40 @@
           {
             "group": "Authentication & Account",
             "pages": [
-              "api-reference/authentication",
-              "api-reference/account",
-              "api-reference/credits"
+              "api-reference/auth",
+              "api-reference/account"
             ]
           },
           {
-            "group": "Voice & Speech APIs",
+            "group": "Voice",
             "pages": [
-              "api-reference/text-to-speech",
-              "api-reference/voice-cloning",
-              "api-reference/voice-changer",
               "api-reference/voice-management",
-              "api-reference/speech-to-text",
-              "api-reference/speech-translation"
+              "api-reference/text-to-speech",
+              "api-reference/voice-changer"
             ]
           },
+
           {
-            "group": "Audio Processing APIs",
-            "pages": [
-              "api-reference/speaker-extraction",
-              "api-reference/noise-reduction",
-              "api-reference/stem-separation"
-            ]
-          },
-          {
-            "group": "Content Generation APIs",
+            "group": "Music",
             "pages": [
               "api-reference/music-generation",
-              "api-reference/karaoke-generation"
+              "api-reference/stem-splitter",
+              "api-reference/noise-reduction"
             ]
           },
           {
-            "group": "Media & Utilities",
+            "group": "Speech",
+            "pages": [
+              "api-reference/speaker-separation",
+              "api-reference/speech-to-text",
+              "api-reference/ai-dubbing"
+            ]
+          },
+          {
+            "group": "Utilities",
             "pages": [
               "api-reference/media-extraction",
-              "api-reference/contact"
+              "api-reference/credits-management"
             ]
           }
         ]

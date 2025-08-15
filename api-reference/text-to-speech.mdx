@@ -1,65 +1,152 @@
 ---
-title: "Text-to-Speech (TTS)"
-description: "Generate natural-sounding speech from text in 64+ languages with AudioPod AI's advanced text-to-speech technology."
+title: "Voice Generation"
+description: "Generate natural-sounding speech from text using AudioPod AI's voice generation technology with support for custom voices."
 ---
 
 ## Overview
 
-AudioPod AI's Text-to-Speech service uses XTTS V2 (Cross-lingual Text-to-Speech) models to convert text into natural-sounding speech. Our advanced system supports 22+ languages including English, Spanish, French, German, Italian, Portuguese, and more, with studio-grade quality and real-time generation capabilities.
+AudioPod AI's Voice Generation service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Using state of the art Text to Speech Models, generate speech with any voice in 60+ supported languages.
+
+### Supported Voice Types
+
+- **Standard Voices**: Pre-built professional voices 
+- **Custom Voices**: Your own voice clones created via [Voice Management](/api-reference/voice-management)
+- **Unified API**: Same endpoint works for both voice types seamlessly
 
 ### Key Features
 
-- **22+ Languages**: XTTS V2 support for major languages including English, Spanish, French, German, Italian, Portuguese, Polish, Turkish, Russian, Dutch, Czech, Arabic, Chinese, Japanese, Hungarian, Korean, Hindi, and more
 - **50+ Premium Voices**: Pre-built voices with unique characteristics
-- **Custom Voice Cloning**: Create personalized voices from audio samples
-- **SSML Support**: Advanced speech synthesis markup for fine control
-- **Multiple Formats**: MP3, WAV, OGG, and more
-- **Streaming Audio**: Real-time audio generation for low latency
+- **Custom Voice Support**: Use your own voice clones and collections
+- **Variable Speed Control**: Adjust speech speed from 0.25x to 4.0x
+- **Multiple Formats**: MP3, WAV, OGG and provider-specific formats
+- **Real-time Generation**: Background job processing with status tracking
 
-## Quick Start
+## Authentication
 
-### Basic Text-to-Speech
+All endpoints require authentication using either:
+- **API Key**: `Authorization: Bearer your_api_key`
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
 
-Make a POST request to generate speech from text. Your frontend application can call this endpoint directly.
+## Generate Speech
 
-```bash
-curl -X POST "https://api.audiopod.ai/api/v1/text-to-speech" \
-  -H "Authorization: Bearer your_api_key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "text": "Hello! This is AudioPod AI generating natural speech.",
-    "voice_id": "aura",
-    "output_format": "mp3",
-    "speed": 1.0,
-    "stability": 0.5,
-    "similarity_boost": 0.5
-  }' \
-  --output output.mp3
+### Basic Voice Generation
+
+Generate speech from text using any voice in your collection.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voices/{voice_identifier}/generate
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    input_text=Hello! This is AudioPod AI generating natural speech.
+    audio_format=mp3
+    speed=1.0
+    language=en
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "input_text": "Hello! This is AudioPod AI generating natural speech.",
+            "audio_format": "mp3",
+            "speed": 1.0,
+            "language": "en"
+        }
+    )
+    
+    if response.status_code == 200:
+        job_data = response.json()
+        job_id = job_data["id"]
+        print(f"Voice generation job created: {job_id}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/aura/generate" \
+      -H "Authorization: Bearer your_api_key" \
+      -F "input_text=Hello! This is AudioPod AI generating natural speech." \
+      -F "audio_format=mp3" \
+      -F "speed=1.0" \
+      -F "language=en"
+    ```
+  </Tab>
+</Tabs>
+
+**Parameters:**
+- `voice_identifier` (required): Voice name or UUID from your voice collection
+- `input_text` (required): Text to convert to speech  
+- `audio_format` (optional): Output format - mp3, wav, ogg (default: mp3)
+- `speed` (optional): Speech speed 0.25-4.0 (default: 1.0)
+- `language` (optional): Language code - auto-detected if not provided
+
+### Standard vs Custom Voice Examples
+
+#### Using Standard Pre-built Voice
+
+```python
+# Generate with a standard voice
+response = requests.post(
+    "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
+    headers={"Authorization": f"Bearer {api_key}"},
+    data={
+        "input_text": "Hello! This uses a standard pre-built voice.",
+        "audio_format": "mp3",
+        "speed": 1.0
+    }
+)
 ```
 
-**Request Schema:**
-```json
-{
-  "text": "string (required) - Text to convert to speech",
-  "voice_id": "string (required) - Voice identifier or custom voice ID", 
-  "output_format": "string (optional) - mp3, wav, ogg (default: mp3)",
-  "speed": "number (optional) - Speech speed 0.5-2.0 (default: 1.0)",
-  "stability": "number (optional) - Voice stability 0.0-1.0 (default: 0.5)",
-  "similarity_boost": "number (optional) - Voice similarity 0.0-1.0 (default: 0.5)",
-  "language": "string (optional) - Language code (auto-detected if not provided)"
-}
+#### Using Custom Voice Clone
+
+```python
+# Generate with your custom voice (created via Voice Management)
+response = requests.post(
+    "https://api.audiopod.ai/api/v1/voice/voices/123/generate",  # Your custom voice ID
+    headers={"Authorization": f"Bearer {api_key}"},
+    data={
+        "input_text": "Hello! This uses my custom cloned voice.",
+        "audio_format": "mp3",
+        "speed": 1.0
+    }
+)
 ```
 
-**Response Schema:**
+#### Using Custom Voice UUID
+
+```python
+# Generate with custom voice using UUID
+response = requests.post(
+    "https://api.audiopod.ai/api/v1/voice/voices/550e8400-e29b-41d4-a716-446655440000/generate",
+    headers={"Authorization": f"Bearer {api_key}"},
+    data={
+        "input_text": "Hello! This uses my custom voice via UUID.",
+        "audio_format": "mp3",
+        "speed": 1.0
+    }
+)
+```
+
+**Response:**
+
 ```json
 {
-  "audio_data": "base64_encoded_audio_content",
-  "duration": 5.2,
-  "voice_id": "aura",
-  "text": "Hello! This is AudioPod AI generating natural speech.",
-  "format": "mp3",
-  "size_bytes": 83726,
-  "credits_used": 1
+  "id": 12345,
+  "status": "pending",
+  "voice_id": "aura", 
+  "input_text": "Hello! This is AudioPod AI generating natural speech.",
+  "audio_format": "mp3",
+  "speed": 1.0,
+  "language": "en",
+  "created_at": "2024-01-15T10:30:00Z",
+  "estimated_completion": "2024-01-15T10:31:00Z",
+  "credits_reserved": 5
 }
 ```
 
@@ -78,66 +165,7 @@ AudioPod AI offers a diverse collection of premium voices across different categ
 | `surge`  | Male   | Multi    | Energetic    | High-energy voice for exciting content     |
 | `willow` | Female | Multi    | Gentle       | Delicate, youthful voice with elegance     |
 
-### Language-Specific Voices
-
-<Tabs>
-  <Tab title="English">
-    - `emma-us` - American English, warm female voice - `james-uk` - British
-    English, sophisticated male voice - `sarah-au` - Australian English,
-    friendly female voice - `david-ca` - Canadian English, professional male
-    voice
-  </Tab>
-  <Tab title="Spanish">
-    - `maria-es` - Castilian Spanish, elegant female voice - `carlos-mx` -
-    Mexican Spanish, warm male voice - `sofia-ar` - Argentinian Spanish,
-    expressive female voice
-  </Tab>
-  <Tab title="French">
-    - `amelie-fr` - Metropolitan French, sophisticated female voice -
-    `pierre-ca` - Canadian French, professional male voice
-  </Tab>
-  <Tab title="German">
-    - `greta-de` - Standard German, clear female voice - `hans-at` - Austrian
-    German, friendly male voice
-  </Tab>
-</Tabs>
-
-<Card
-  title="Browse All Voices"
-  icon="microphone"
-  href="https://www.audiopod.ai/voices"
->
-  Listen to samples and explore our complete voice library
-</Card>
-
 ## Advanced Features
-
-### SSML Support
-
-Use Speech Synthesis Markup Language (SSML) for precise control:
-
-```python
-ssml_text = '''
-<speak>
-    <p>Welcome to AudioPod AI!</p>
-    <break time="1s"/>
-    <p>Here are some advanced features:</p>
-    <p>
-        You can control <emphasis level="strong">emphasis</emphasis>,
-        <prosody rate="slow">speaking rate</prosody>,
-        and <prosody pitch="high">pitch levels</prosody>.
-    </p>
-    <p>Numbers like <say-as interpret-as="cardinal">12345</say-as>
-    are pronounced correctly.</p>
-</speak>
-'''
-
-response = client.text_to_speech.create(
-    text=ssml_text,
-    voice_id="aura",
-    text_format="ssml"
-)
-```
 
 ### Streaming Audio
 
@@ -468,21 +496,21 @@ def generate_speech_with_retry(text, voice_id, max_retries=3):
 
 ## Pricing
 
-Text-to-Speech pricing is based on character count:
+Voice generation pricing is based on audio duration:
 
-- **1 credit per 1,000 characters**
-- Minimum charge: 0.1 credits per request
-- SSML tags don't count toward character limit
-- Punctuation and spaces are included
+- **330 credits per minute** of generated audio
+- Pricing is calculated on the actual audio output duration
+- All voice types (standard and custom) use the same rate
+- Quality settings don't affect pricing
 
 ### Cost Examples
 
-| Text Length       | Credits Used | USD Cost |
-| ----------------- | ------------ | -------- |
-| 100 characters    | 0.1 credits  | $0.0001  |
-| 1,000 characters  | 1 credit     | $0.001   |
-| 5,000 characters  | 5 credits    | $0.005   |
-| 50,000 characters | 50 credits   | $0.05    |
+| Audio Duration | Credits Used | USD Cost |
+| -------------- | ------------ | -------- |
+| 30 seconds     | 165 credits  | $0.022   |
+| 1 minute       | 330 credits  | $0.044   |
+| 2 minutes      | 660 credits  | $0.088   |
+| 5 minutes      | 1,650 credits| $0.220   |
 
 ## Next Steps
 

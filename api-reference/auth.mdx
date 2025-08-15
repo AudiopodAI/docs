@@ -93,7 +93,7 @@ Refresh an expired access token using the refresh token.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /auth/refresh
+    POST /api/v1/auth/refresh
     Content-Type: application/json
     
     {
@@ -122,7 +122,7 @@ Invalidate current tokens and end the session.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /auth/logout
+    POST /api/v1/auth/logout
     Authorization: Bearer {access_token}
     ```
   </Tab>
@@ -145,23 +145,23 @@ Authenticate using Google account.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /auth/google/login?redirect_uri=https://yourapp.com/callback
+    GET /api/v1/auth/oauth/google?redirect_uri=https://yourapp.com/callback
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # Redirect user to Google OAuth URL
-    oauth_url = "https://api.audiopod.ai/api/v1/auth/google/login"
+    oauth_url = "https://api.audiopod.ai/api/v1/auth/oauth/google"
     params = {
         "redirect_uri": "https://yourapp.com/callback"
     }
     
     # After Google callback, exchange code for tokens
     callback_response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/google/callback",
+        "https://api.audiopod.ai/api/v1/auth/oauth/google",
         json={
-            "code": "google_auth_code",
-            "state": "csrf_state_token"
+            "profile": google_profile_data,
+            "account": google_account_data
         }
     )
     ```
@@ -175,13 +175,13 @@ Authenticate using GitHub account.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /auth/github/login?redirect_uri=https://yourapp.com/callback
+    GET /api/v1/auth/oauth/github?redirect_uri=https://yourapp.com/callback
     ```
   </Tab>
   <Tab title="Python">
     ```python
     # Similar to Google OAuth flow
-    oauth_url = "https://api.audiopod.ai/api/v1/auth/github/login"
+    oauth_url = "https://api.audiopod.ai/api/v1/auth/oauth/github"
     params = {
         "redirect_uri": "https://yourapp.com/callback"
     }
@@ -198,26 +198,24 @@ Create a new API key for programmatic access.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /api/v1/api-keys
+    POST /api/v1/auth/api-keys
     Authorization: Bearer {access_token}
     Content-Type: application/json
     
     {
       "name": "Production API Key",
-      "scopes": ["voice:read", "voice:write", "music:generate"],
-      "expires_in_days": 365
+      "scopes": ["voice:read", "voice:write"]
     }
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/api-keys",
+        "https://api.audiopod.ai/api/v1/auth/api-keys",
         headers={"Authorization": f"Bearer {access_token}"},
         json={
             "name": "Production API Key",
-            "scopes": ["voice:read", "voice:write", "music:generate"],
-            "expires_in_days": 365
+            "scopes": ["voice:read", "voice:write"]
         }
     )
     
@@ -236,9 +234,9 @@ Create a new API key for programmatic access.
   "id": "550e8400-e29b-41d4-a716-446655440000",
   "name": "Production API Key",
   "api_key": "ap_live_sk_1234567890abcdef",
-  "scopes": ["voice:read", "voice:write", "music:generate"],
+  "description": "API key for production environment",
+  "status": "active",
   "created_at": "2024-01-15T10:30:00Z",
-  "expires_at": "2025-01-15T10:30:00Z",
   "last_used_at": null,
   "revoked_at": null
 }
@@ -251,14 +249,14 @@ Get all API keys for the authenticated user.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/api-keys?status=active
+    GET /api/v1/auth/api-keys?status=active
     Authorization: Bearer {access_token}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/api-keys?status=active",
+        "https://api.audiopod.ai/api/v1/auth/api-keys?status=active",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     
@@ -276,14 +274,14 @@ Disable an API key permanently.
 <Tabs>
   <Tab title="DELETE">
     ```http
-    DELETE /api/v1/api-keys/{key_id}
+    DELETE /api/v1/auth/api-keys/{key_id}
     Authorization: Bearer {access_token}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.delete(
-        f"https://api.audiopod.ai/api/v1/api-keys/{key_id}",
+        f"https://api.audiopod.ai/api/v1/auth/api-keys/{key_id}",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     ```
@@ -435,7 +433,7 @@ Retrieve information about the authenticated user.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /auth/me
+    GET /api/v1/auth/me
     Authorization: Bearer {access_token}
     ```
   </Tab>
@@ -461,17 +459,14 @@ Update user profile information.
 <Tabs>
   <Tab title="PATCH">
     ```http
-    PATCH /auth/me
+    PATCH /api/v1/auth/me
     Authorization: Bearer {access_token}
     Content-Type: application/json
     
     {
-      "name": "Updated Name",
-      "email": "newemail@example.com",
-      "preferences": {
-        "default_voice": "aura-en-female",
-        "email_notifications": true
-      }
+      "full_name": "Updated Name",
+      "user_type": "individual",
+      "audio_usage": "personal"
     }
     ```
   </Tab>
@@ -481,12 +476,9 @@ Update user profile information.
         "https://api.audiopod.ai/api/v1/auth/me",
         headers={"Authorization": f"Bearer {access_token}"},
         json={
-            "name": "Updated Name",
-            "email": "newemail@example.com",
-            "preferences": {
-                "default_voice": "aura-en-female",
-                "email_notifications": True
-            }
+            "full_name": "Updated Name",
+            "user_type": "individual",
+            "audio_usage": "personal"
         }
     )
     ```
@@ -495,35 +487,30 @@ Update user profile information.
 
 ## Security Features
 
-### Two-Factor Authentication
+### Session Management
 
-Enable 2FA for enhanced security.
+View and manage your active sessions.
 
 <Tabs>
-  <Tab title="POST">
+  <Tab title="GET">
     ```http
-    POST /auth/2fa/enable
+    GET /api/v1/auth/sessions
     Authorization: Bearer {access_token}
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Enable 2FA
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/2fa/enable",
+    # Get active sessions
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/sessions",
         headers={"Authorization": f"Bearer {access_token}"}
     )
     
-    qr_data = response.json()
-    print(f"QR Code: {qr_data['qr_code_url']}")
-    print(f"Secret: {qr_data['secret']}")
-    
-    # Verify 2FA setup
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/auth/2fa/verify",
-        headers={"Authorization": f"Bearer {access_token}"},
-        json={"code": "123456"}  # From authenticator app
-    )
+    sessions = response.json()
+    for session in sessions:
+        print(f"Session: {session['session_id']}")
+        print(f"Device: {session['device_info']}")
+        print(f"Last Active: {session['last_active']}")
     ```
   </Tab>
 </Tabs>

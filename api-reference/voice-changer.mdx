@@ -1,733 +1,645 @@
 ---
-title: "Voice Changer"
-description: "Transform voices in real-time with AudioPod AI's voice transformation technology. Modify pitch, timbre, emotion, and style while preserving speech clarity."
+title: "Voice Changer API"
+description: "Transform voice characteristics in audio recordings using AudioPod AI's advanced voice conversion technology powered by OpenVoice v2."
 ---
 
 ## Overview
 
-AudioPod AI's Voice Changer technology allows you to transform voices in real-time or batch processing. Modify pitch, timbre, speaking style, and emotional expression while maintaining speech clarity and natural flow.
+AudioPod AI's Voice Changer API uses OpenVoice v2 technology to convert source audio to match target voice characteristics. Transform any speech recording to sound like a different voice while preserving the original speech content, timing, and emotional expression.
 
 ### Key Features
 
-- **Real-time Processing**: Transform voices with low latency for live applications
-- **Style Transfer**: Change speaking style while preserving content
-- **Pitch Control**: Modify voice pitch from deep bass to high soprano
-- **Timbre Adjustment**: Alter voice characteristics and texture
-- **Emotion Modulation**: Add or modify emotional expression
-- **Gender Transformation**: Convert between male and female voices
-- **Age Modification**: Make voices sound younger or older
-- **Accent Control**: Modify regional accents and pronunciation
+- **Voice Conversion**: Transform source audio to match target voice characteristics
+- **Content Preservation**: Maintains original speech content, timing, and emotional expression
+- **Multiple Voice Sources**: Use any completed voice profile as a target voice
+- **High Quality Processing**: Advanced OpenVoice v2 technology for natural-sounding results
+- **Public Voice Support**: Access to both user-owned and public voice profiles
+- **Flexible Input**: Support for various audio formats (WAV, MP3, M4A, etc.)
+- **Real-time Processing**: Fast conversion for production workflows
 
-## Quick Start
+## Authentication
 
-### Basic Voice Transformation
+All endpoints require authentication:
+- **API Key**: `Authorization: Bearer your_api_key`
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Voice Conversion
+
+### Convert Audio to Target Voice
+
+Transform the voice characteristics in a source audio file to match a target voice profile.
 
 <Tabs>
-  <Tab title="Python">
-    ```python
-    from audiopod import AudioPod
-
-    client = AudioPod(api_key="your_api_key")
-
-    # Transform voice in audio file
-    with open("original_voice.mp3", "rb") as audio_file:
-        response = client.voice_changer.transform(
-            audio=audio_file,
-            target_voice="deep_male",  # Preset transformation
-            intensity=0.7,             # 0.0 to 1.0
-            preserve_timing=True       # Keep original timing
-        )
-
-    # Save transformed audio
-    with open("transformed_voice.mp3", "wb") as f:
-        f.write(response.audio_data)
-
-    print(f"Voice transformed successfully!")
-    print(f"Original: {response.original_characteristics}")
-    print(f"Transformed: {response.transformed_characteristics}")
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voice-convert
+    Authorization: Bearer {api_key}
+    Content-Type: multipart/form-data
+    
+    file: (source audio file)
+    voice_uuid: "550e8400-e29b-41d4-a716-446655440000"
     ```
   </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    import { AudioPod } from 'audiopod-js';
-    import fs from 'fs';
-
-    const client = new AudioPod({ apiKey: 'your_api_key' });
-
-    const audioFile = fs.readFileSync('original_voice.mp3');
-
-    const response = await client.voiceChanger.transform({
-      audio: audioFile,
-      targetVoice: "deep_male",
-      intensity: 0.7,
-      preserveTiming: true
-    });
-
-    fs.writeFileSync('transformed_voice.mp3', response.audioData);
-
-    console.log('Voice transformed successfully!');
-    console.log(`Original: ${response.originalCharacteristics}`);
-    console.log(`Transformed: ${response.transformedCharacteristics}`);
+  <Tab title="Python">
+    ```python
+    import requests
+    
+    # Convert audio to match target voice
+    with open("source_speech.wav", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/voice/voice-convert",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={
+                "voice_uuid": "550e8400-e29b-41d4-a716-446655440000"  # Target voice UUID
+            },
+            files={"file": audio_file}
+        )
+    
+    if response.status_code == 200:
+        conversion_job = response.json()
+        job_id = conversion_job["id"]
+        print(f"Voice conversion job created: {job_id}")
+        print(f"Status: {conversion_job['status']}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/voice-changer" \
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-convert" \
       -H "Authorization: Bearer your_api_key" \
-      -F "audio=@original_voice.mp3" \
-      -F "target_voice=deep_male" \
-      -F "intensity=0.7" \
-      -F "preserve_timing=true" \
-      --output transformed_voice.mp3
+      -F "file=@source_speech.wav" \
+      -F "voice_uuid=550e8400-e29b-41d4-a716-446655440000"
     ```
   </Tab>
 </Tabs>
 
-### Response Format
+### Convert from URL
+
+Convert audio from online sources (YouTube, etc.) to match a target voice.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voice-convert
+    Authorization: Bearer {api_key}
+    Content-Type: application/x-www-form-urlencoded
+    
+    url=https://youtube.com/watch?v=example123&voice_uuid=550e8400-e29b-41d4-a716-446655440000
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voice-convert",
+        headers={"Authorization": f"Bearer {api_key}"},
+        data={
+            "url": "https://youtube.com/watch?v=example123",
+            "voice_uuid": "550e8400-e29b-41d4-a716-446655440000"
+        }
+    )
+    
+    if response.status_code == 200:
+        conversion_job = response.json()
+        print(f"URL voice conversion started: {conversion_job['id']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Parameters:**
+- **`file`** or **`url`** (required): Source audio file or URL containing speech to convert
+- **`voice_uuid`** (required): UUID of the target voice profile to match
+
+**Voice UUID Sources:**
+- User's own custom voice profiles (from voice cloning)
+- Public voice profiles available in the voice library
+- Voice must have status "COMPLETED" and available audio file
+
+**Response:**
 
 ```json
 {
-  "audio_data": "base64_encoded_audio",
-  "original_characteristics": {
-    "gender": "female",
-    "age_estimate": "25-35",
-    "pitch_range": "180-280 Hz",
-    "speaking_rate": "normal",
-    "accent": "american_english"
-  },
-  "transformed_characteristics": {
-    "gender": "male", 
-    "age_estimate": "35-45",
-    "pitch_range": "100-180 Hz",
-    "speaking_rate": "normal",
-    "accent": "american_english"
-  },
-  "processing_info": {
-    "duration": 45.2,
-    "intensity_applied": 0.7,
-    "quality_score": 0.92,
-    "credits_used": 23
+  "id": 123,
+  "status": "PROCESSING",
+  "progress": 0,
+  "source_type": "FILE",
+  "original_filename": "source_speech.wav",
+  "target_voice_uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "target_voice_name": "Professional Speaker Voice",
+  "conversion_method": "openvoice_v2",
+  "created_at": "2024-01-15T10:30:00Z",
+  "task_id": "celery_task_uuid_here",
+  "user_id": "user_abc123def456"
+}
+```
+
+## Job Management
+
+### Get Conversion Status
+
+Monitor the progress of voice conversion jobs.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/voice/conversions/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        job_status = response.json()
+        print(f"Status: {job_status['status']}")
+        print(f"Progress: {job_status['progress']}%")
+        
+        if job_status["status"] == "COMPLETED":
+            print("Voice conversion complete!")
+            print(f"Output URL: {job_status['output_url']}")
+            print(f"Original duration: {job_status['original_duration']}s")
+            print(f"Converted duration: {job_status['converted_duration']}s")
+    ```
+  </Tab>
+</Tabs>
+
+**Response (Completed Job):**
+
+```json
+{
+  "id": 123,
+  "status": "COMPLETED",
+  "progress": 100,
+  "source_type": "FILE",
+  "original_filename": "source_speech.wav",
+  "target_voice_uuid": "550e8400-e29b-41d4-a716-446655440000",
+  "target_voice_name": "Professional Speaker Voice",
+  "conversion_method": "openvoice_v2",
+  "created_at": "2024-01-15T10:30:00Z",
+  "completed_at": "2024-01-15T10:33:45Z",
+  "output_path": "/converted/voice_conversion_123.wav",
+  "output_url": "https://api.audiopod.ai/download/voice_conversion_123.wav",
+  "original_duration": 45.2,
+  "converted_duration": 45.2,
+  "conversion_quality": "high",
+  "processing_stats": {
+    "preprocessing_time": 2.1,
+    "conversion_time": 28.4,
+    "postprocessing_time": 3.2,
+    "total_time": 33.7
   }
 }
 ```
 
-## Preset Transformations
+### List Conversion Jobs
 
-### Voice Presets
-
-AudioPod AI offers a variety of preset voice transformations:
+Get all voice conversion jobs for the authenticated user.
 
 <Tabs>
-  <Tab title="Gender & Age">
-    - `deep_male` - Deep, mature male voice
-    - `young_male` - Youthful male voice
-    - `professional_male` - Business-appropriate male voice
-    - `warm_female` - Friendly, warm female voice
-    - `young_female` - Youthful female voice
-    - `professional_female` - Business-appropriate female voice
-    - `elderly_male` - Mature, aged male voice
-    - `elderly_female` - Mature, aged female voice
+  <Tab title="GET">
+    ```http
+    GET /api/v1/voice/conversions?status=COMPLETED&limit=50
+    Authorization: Bearer {api_key}
+    ```
   </Tab>
-  <Tab title="Character Voices">
-    - `robot` - Robotic, synthetic voice
-    - `narrator` - Professional narrator style
-    - `announcer` - Radio/TV announcer voice
-    - `whisper` - Soft, whispered speech
-    - `dramatic` - Theatrical, expressive voice
-    - `child` - Child-like voice characteristics
-    - `monster` - Deep, intimidating voice
-    - `cartoon` - Animated character voice
-  </Tab>
-  <Tab title="Emotional Styles">
-    - `happy` - Upbeat, cheerful expression
-    - `sad` - Melancholic, subdued tone
-    - `angry` - Aggressive, intense delivery
-    - `calm` - Peaceful, relaxed speech
-    - `excited` - High-energy, enthusiastic
-    - `mysterious` - Intriguing, secretive tone
-    - `confident` - Strong, assertive delivery
-    - `nervous` - Uncertain, anxious speech
-  </Tab>
-  <Tab title="Accents">
-    - `british` - British English accent
-    - `australian` - Australian English accent
-    - `southern_us` - Southern American accent
-    - `new_york` - New York accent
-    - `scottish` - Scottish accent
-    - `irish` - Irish accent
-    - `canadian` - Canadian accent
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/voice/conversions",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "status": "COMPLETED",      # Filter by status
+            "target_voice": "voice_uuid",  # Filter by target voice
+            "limit": 50,
+            "skip": 0
+        }
+    )
+    
+    if response.status_code == 200:
+        jobs_data = response.json()
+        for job in jobs_data["items"]:
+            print(f"Job {job['id']}: {job['status']} - {job['original_filename']}")
+            print(f"  Target: {job['target_voice_name']}")
+            print(f"  Duration: {job.get('original_duration', 'N/A')}s")
+    ```
   </Tab>
 </Tabs>
 
-## Advanced Transformations
+### Download Converted Audio
 
-### Custom Voice Parameters
-
-Fine-tune voice characteristics with precise control:
-
-```python
-response = client.voice_changer.transform(
-    audio=audio_file,
-    # Pitch control
-    pitch_shift=0.8,           # 0.5-2.0 (0.5=octave down, 2.0=octave up)
-    pitch_variation=0.1,       # Natural pitch variation
+<Tabs>
+  <Tab title="Python">
+    ```python
+    def download_converted_audio(job_id, api_key):
+        """Download converted audio from completed job"""
+        
+        # Get job details
+        response = requests.get(
+            f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        if response.status_code != 200:
+            return {"error": "Job not found"}
+        
+        job = response.json()
+        
+        if job["status"] != "COMPLETED":
+            return {"error": f"Job not completed. Status: {job['status']}"}
+        
+        if not job.get("output_url"):
+            return {"error": "No download URL available"}
+        
+        # Download converted audio
+        audio_response = requests.get(job["output_url"])
+        if audio_response.status_code == 200:
+            filename = f"converted_{job['target_voice_name'].replace(' ', '_')}_{job_id}.wav"
+            with open(filename, "wb") as f:
+                f.write(audio_response.content)
+            
+            return {
+                "success": True,
+                "filename": filename,
+                "original_duration": job.get("original_duration"),
+                "converted_duration": job.get("converted_duration"),
+                "target_voice": job["target_voice_name"]
+            }
+        else:
+            return {"error": "Failed to download audio"}
     
-    # Timbre modification  
-    formant_shift=1.2,         # Voice texture/resonance
-    spectral_tilt=0.9,         # Brightness/darkness
-    
-    # Speaking characteristics
-    speaking_rate=0.9,         # 0.5-2.0 (slower/faster)
-    energy_level=1.1,          # Volume and intensity
-    
-    # Voice quality
-    breathiness=0.2,           # Add breathy quality
-    roughness=0.1,             # Add vocal roughness
-    tenseness=0.3,             # Vocal tension
-    
-    # Emotional expression
-    emotion="confident",
-    emotion_intensity=0.6,
-    
-    # Technical settings
-    preserve_timing=True,      # Keep original timing
-    noise_reduction=True,      # Clean up artifacts
-    quality="high"             # standard, high, premium
-)
-```
+    # Usage
+    result = download_converted_audio(123, "your_api_key")
+    if result.get("success"):
+        print(f"Downloaded: {result['filename']}")
+        print(f"Target voice: {result['target_voice']}")
+    ```
+  </Tab>
+</Tabs>
 
-### Real-time Voice Changing
+## Voice Profile Management
 
-For live applications like streaming or gaming:
+### Find Available Voices
 
-```python
-# Initialize real-time voice changer
-stream = client.voice_changer.create_stream(
-    target_voice="deep_male",
-    latency="low",          # low, medium, high (quality vs speed)
-    buffer_size=1024,       # Audio buffer size
-    sample_rate=44100
-)
+Before converting, you can browse available voice profiles to use as targets.
 
-# Process audio chunks in real-time
-def process_audio_chunk(chunk):
-    transformed_chunk = stream.process(chunk)
-    return transformed_chunk
-
-# Start streaming
-while streaming:
-    audio_chunk = get_microphone_input()
-    transformed_audio = process_audio_chunk(audio_chunk)
-    play_audio_output(transformed_audio)
-
-# Clean up
-stream.close()
-```
-
-### Voice Morphing Between Speakers
-
-Blend characteristics from multiple voices:
-
-```python
-# Morph between two voices
-with open("voice_a.mp3", "rb") as voice_a, open("voice_b.mp3", "rb") as voice_b:
-    morphed_voice = client.voice_changer.morph_voices(
-        source_voice=voice_a,
-        target_voice=voice_b,
-        morph_ratio=0.6,        # 0.0=source, 1.0=target, 0.5=blend
-        preserve_content=True,   # Keep original words
-        smooth_transition=True   # Gradual morphing
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Get available voices for conversion
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/voice/voices",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "category": "professional",  # Filter by category
+            "language": "en",           # Filter by language
+            "limit": 20
+        }
     )
-```
+    
+    if response.status_code == 200:
+        voices_data = response.json()
+        print("Available voices for conversion:")
+        for voice in voices_data["voices"]:
+            if voice["is_custom"] or voice.get("is_public"):
+                print(f"- {voice['name']} (UUID: {voice['voice_id']})")
+                print(f"  Category: {voice['category']}")
+                print(f"  Language: {voice['language']}")
+                print(f"  Type: {'Custom' if voice['is_custom'] else 'Public'}")
+                print()
+    ```
+  </Tab>
+</Tabs>
 
 ## Use Cases & Examples
 
-### Gaming and Streaming
+### Podcast Voice Consistency
 
 ```python
-def setup_gaming_voice_changer(streamer_preferences):
-    """Set up voice changer for gaming streamers"""
+def convert_podcast_guest_to_host_voice(guest_audio, host_voice_uuid, api_key):
+    """Convert guest audio to match host voice for consistency"""
     
-    # Create different character voices for roleplay
-    character_voices = {
-        "hero": {
-            "target_voice": "confident",
-            "pitch_shift": 1.1,
-            "energy_level": 1.2,
-            "emotion": "brave"
-        },
-        "villain": {
-            "target_voice": "deep_male", 
-            "pitch_shift": 0.7,
-            "roughness": 0.4,
-            "emotion": "menacing"
-        },
-        "narrator": {
-            "target_voice": "professional_male",
-            "speaking_rate": 0.9,
-            "clarity_enhanced": True,
-            "emotion": "neutral"
-        },
-        "disguised": {
-            "target_voice": "robot",
-            "formant_shift": 0.8,
-            "add_effects": ["vocoder", "distortion"]
-        }
-    }
+    print("Converting guest audio to match host voice...")
     
-    # Set up real-time processing
-    voice_stream = client.voice_changer.create_stream(
-        presets=character_voices,
-        quick_switch=True,      # Allow instant voice switching
-        latency="low",          # Essential for gaming
-        noise_gate=True,        # Reduce background noise
-        auto_gain=True          # Consistent volume levels
-    )
-    
-    return voice_stream
-
-# Example usage
-def switch_character_voice(stream, character_name):
-    """Switch to different character voice during gameplay"""
-    stream.switch_preset(character_name)
-    print(f"Switched to {character_name} voice")
-
-# Gaming integration
-gaming_stream = setup_gaming_voice_changer({
-    "primary_style": "hero",
-    "enable_hotkeys": True
-})
-```
-
-### Content Creation and Dubbing
-
-```python
-def create_multi_character_dialogue(script, character_voices):
-    """Generate dialogue with different voices for each character"""
-    
-    dialogue_audio = []
-    
-    for line in script:
-        character = line["character"]
-        text = line["text"]
-        emotion = line.get("emotion", "neutral")
-        
-        # Generate speech with character's base voice
-        speech = client.text_to_speech.create(
-            text=text,
-            voice_id=character_voices[character]["base_voice"]
-        )
-        
-        # Apply voice transformation for character consistency
-        transformed_speech = client.voice_changer.transform(
-            audio=speech.audio_data,
-            target_voice=character_voices[character]["style"],
-            emotion=emotion,
-            emotion_intensity=0.7,
-            preserve_timing=True
-        )
-        
-        dialogue_audio.append({
-            "character": character,
-            "audio": transformed_speech.audio_data,
-            "timestamp": line["timestamp"]
-        })
-    
-    return dialogue_audio
-
-# Example character setup
-character_voices = {
-    "protagonist": {
-        "base_voice": "emma-us",
-        "style": "confident",
-        "default_emotion": "determined"
-    },
-    "antagonist": {
-        "base_voice": "james-uk", 
-        "style": "deep_male",
-        "default_emotion": "menacing"
-    },
-    "sidekick": {
-        "base_voice": "young_male",
-        "style": "cheerful",
-        "default_emotion": "optimistic"
-    }
-}
-```
-
-### Privacy Protection and Anonymization
-
-```python
-def anonymize_voice_recording(audio_file, anonymization_level="medium"):
-    """Anonymize voice while preserving speech clarity"""
-    
-    anonymization_settings = {
-        "low": {
-            "pitch_shift": 1.1,
-            "formant_shift": 1.05,
-            "add_noise": 0.02
-        },
-        "medium": {
-            "pitch_shift": 1.3,
-            "formant_shift": 1.2,
-            "timbre_scrambling": 0.3,
-            "add_noise": 0.05
-        },
-        "high": {
-            "target_voice": "robot",
-            "pitch_shift": 1.5,
-            "formant_shift": 1.4,
-            "timbre_scrambling": 0.6,
-            "add_effects": ["vocoder"]
-        }
-    }
-    
-    settings = anonymization_settings[anonymization_level]
-    
-    with open(audio_file, "rb") as audio:
-        anonymized = client.voice_changer.transform(
-            audio=audio,
-            **settings,
-            preserve_timing=True,
-            preserve_content=True,  # Keep words intact
-            remove_identifying_features=True
+    with open(guest_audio, "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/voice/voice-convert",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={"voice_uuid": host_voice_uuid},
+            files={"file": audio_file}
         )
     
-    return anonymized.audio_data
+    if response.status_code != 200:
+        return {"error": "Failed to start conversion"}
+    
+    job_data = response.json()
+    job_id = job_data["id"]
+    
+    # Wait for completion
+    import time
+    while True:
+        status_response = requests.get(
+            f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        job_status = status_response.json()
+        print(f"Progress: {job_status['progress']}%")
+        
+        if job_status["status"] == "COMPLETED":
+            break
+        elif job_status["status"] == "FAILED":
+            return {"error": "Conversion failed"}
+        
+        time.sleep(5)
+    
+    # Download result
+    output_url = job_status["output_url"]
+    converted_filename = f"guest_as_host_{job_id}.wav"
+    
+    audio_response = requests.get(output_url)
+    with open(converted_filename, "wb") as f:
+        f.write(audio_response.content)
+    
+    return {
+        "success": True,
+        "job_id": job_id,
+        "output_file": converted_filename,
+        "original_duration": job_status["original_duration"],
+        "processing_time": job_status["processing_stats"]["total_time"]
+    }
 
-# Example: Anonymize whistleblower recording
-anonymized_recording = anonymize_voice_recording(
-    "sensitive_interview.mp3",
-    anonymization_level="high"
+# Usage
+result = convert_podcast_guest_to_host_voice(
+    "guest_interview.wav", 
+    "host_voice_uuid_here",
+    "your_api_key"
 )
+
+if result.get("success"):
+    print(f"Guest voice converted successfully!")
+    print(f"Output: {result['output_file']}")
+    print(f"Processing time: {result['processing_time']:.1f}s")
 ```
 
-### Voice Training and Accent Reduction
+### Content Localization
 
 ```python
-def accent_training_session(original_audio, target_accent="neutral_american"):
-    """Help users practice accent modification"""
+def localize_content_voice(source_audio, target_locale_voices, api_key):
+    """Convert content to different regional voice variations"""
     
-    # Analyze original accent
-    analysis = client.voice_changer.analyze_accent(original_audio)
+    localized_versions = {}
     
-    # Generate target accent version
-    with open(original_audio, "rb") as audio:
-        target_version = client.voice_changer.transform(
-            audio=audio,
-            target_accent=target_accent,
-            preserve_personality=True,  # Keep speaker's unique traits
-            gradual_transition=True,    # Subtle changes for training
-            intensity=0.5               # Moderate transformation
-        )
+    for locale, voice_uuid in target_locale_voices.items():
+        print(f"Creating {locale} version...")
+        
+        with open(source_audio, "rb") as audio_file:
+            response = requests.post(
+                "https://api.audiopod.ai/api/v1/voice/voice-convert",
+                headers={"Authorization": f"Bearer {api_key}"},
+                data={"voice_uuid": voice_uuid},
+                files={"file": audio_file}
+            )
+        
+        if response.status_code == 200:
+            job_data = response.json()
+            localized_versions[locale] = {
+                "job_id": job_data["id"],
+                "status": "processing",
+                "target_voice": job_data["target_voice_name"]
+            }
     
-    # Provide feedback and exercises
-    feedback = {
-        "original_accent": analysis.detected_accent,
-        "accent_strength": analysis.accent_intensity,
-        "target_audio": target_version.audio_data,
-        "key_differences": analysis.pronunciation_differences,
-        "practice_words": analysis.recommended_practice_words
-    }
+    # Monitor all jobs
+    completed_versions = {}
     
-    return feedback
+    while len(completed_versions) < len(localized_versions):
+        for locale, job_info in localized_versions.items():
+            if locale in completed_versions:
+                continue
+            
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/voice/conversions/{job_info['job_id']}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            job_status = status_response.json()
+            
+            if job_status["status"] == "COMPLETED":
+                # Download localized version
+                audio_response = requests.get(job_status["output_url"])
+                filename = f"content_{locale}_{job_info['job_id']}.wav"
+                
+                with open(filename, "wb") as f:
+                    f.write(audio_response.content)
+                
+                completed_versions[locale] = {
+                    "filename": filename,
+                    "target_voice": job_status["target_voice_name"],
+                    "duration": job_status["converted_duration"]
+                }
+                
+                print(f"Completed {locale} version: {filename}")
+        
+        time.sleep(5)
+    
+    return completed_versions
 
-# Generate practice exercises
-def generate_accent_exercises(target_accent, difficulty="beginner"):
-    """Create targeted pronunciation exercises"""
-    
-    exercises = client.voice_changer.get_accent_exercises(
-        target_accent=target_accent,
-        difficulty=difficulty,
-        focus_areas=["vowels", "consonants", "rhythm", "intonation"]
-    )
-    
-    return exercises
-```
-
-### Voice Restoration and Enhancement
-
-```python
-def restore_damaged_voice(audio_file, restoration_type="age_related"):
-    """Restore voice quality affected by aging or medical conditions"""
-    
-    restoration_presets = {
-        "age_related": {
-            "pitch_shift": 1.2,          # Restore higher pitch
-            "vocal_strength": 1.3,       # Increase vocal power
-            "reduce_tremor": True,       # Minimize voice shaking
-            "clarity_enhancement": True   # Improve articulation
-        },
-        "hoarseness": {
-            "roughness": -0.5,           # Reduce vocal roughness
-            "breathiness": -0.3,         # Reduce breathy quality
-            "smooth_texture": True,      # Smooth vocal texture
-            "noise_reduction": True      # Remove vocal noise
-        },
-        "weakness": {
-            "energy_level": 1.5,         # Boost vocal energy
-            "volume_normalization": True, # Consistent volume
-            "resonance_boost": True,     # Enhance vocal resonance
-            "clarity_enhancement": True   # Improve speech clarity
-        }
-    }
-    
-    settings = restoration_presets[restoration_type]
-    
-    with open(audio_file, "rb") as audio:
-        restored = client.voice_changer.transform(
-            audio=audio,
-            **settings,
-            preserve_identity=True,      # Keep speaker recognition
-            preserve_timing=True,        # Maintain natural rhythm
-            quality="premium"            # Highest quality processing
-        )
-    
-    return restored.audio_data
-```
-
-## Configuration Options
-
-### Quality vs. Latency Settings
-
-```python
-# Real-time applications (gaming, streaming)
-realtime_config = {
-    "latency": "ultra_low",     # <50ms processing
-    "quality": "standard",      # Lower quality for speed
-    "buffer_size": 512,         # Small buffer
-    "cpu_optimization": True    # Optimize for real-time
+# Usage - create multiple regional versions
+locale_voices = {
+    "US": "us_professional_voice_uuid",
+    "UK": "uk_professional_voice_uuid", 
+    "AU": "au_professional_voice_uuid"
 }
 
-# High-quality processing (content creation)
-production_config = {
-    "latency": "high",          # >500ms acceptable
-    "quality": "premium",       # Maximum quality
-    "buffer_size": 4096,        # Large buffer
-    "artifacts_reduction": True  # Remove processing artifacts
-}
-
-# Balanced settings (general use)
-balanced_config = {
-    "latency": "medium",        # ~200ms processing
-    "quality": "high",          # Good quality
-    "buffer_size": 2048,        # Medium buffer
-    "adaptive_quality": True    # Adjust based on input
-}
-```
-
-### Voice Transformation Parameters
-
-```python
-response = client.voice_changer.transform(
-    audio=audio_file,
-    
-    # Core transformation
-    transformation_type="custom",  # preset, custom, or morph
-    intensity=0.7,                 # Overall transformation strength
-    
-    # Pitch and frequency
-    pitch_shift=1.2,               # Fundamental frequency
-    pitch_variation=0.1,           # Natural pitch fluctuation
-    formant_shift=1.1,             # Vocal tract resonance
-    
-    # Voice quality
-    breathiness=0.2,               # Breathy voice quality
-    roughness=0.1,                 # Vocal roughness/rasp
-    tenseness=0.3,                 # Vocal tension
-    nasality=0.0,                  # Nasal quality
-    
-    # Speaking characteristics  
-    speaking_rate=1.0,             # Speech speed multiplier
-    pause_modification=1.0,        # Modify pause lengths
-    emphasis_style="natural",      # How to handle emphasis
-    
-    # Emotional and stylistic
-    emotion="confident",
-    emotion_intensity=0.6,
-    personality_traits=["warm", "professional"],
-    
-    # Technical settings
-    preserve_timing=True,          # Keep original timing
-    preserve_identity=False,       # Change voice identity
-    noise_reduction=True,          # Clean up processing artifacts
-    quality="high",                # standard, high, premium
-    output_format="mp3"            # mp3, wav, ogg
+versions = localize_content_voice(
+    "original_content.wav",
+    locale_voices,
+    "your_api_key"
 )
+
+print("Localized versions created:")
+for locale, info in versions.items():
+    print(f"  {locale}: {info['filename']} ({info['duration']:.1f}s)")
 ```
 
-## Pricing
+### Voice Anonymization
 
-Voice transformation pricing is based on audio duration:
+```python
+def anonymize_voice_recording(source_audio, api_key):
+    """Convert sensitive audio to an anonymous voice for privacy"""
+    
+    # Use a generic public voice for anonymization
+    anonymous_voice_uuid = "public_generic_voice_uuid"
+    
+    with open(source_audio, "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/voice/voice-convert",
+            headers={"Authorization": f"Bearer {api_key}"},
+            data={"voice_uuid": anonymous_voice_uuid},
+            files={"file": audio_file}
+        )
+    
+    job_id = response.json()["id"]
+    
+    # Wait for completion
+    while True:
+        status_response = requests.get(
+            f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        job_status = status_response.json()
+        if job_status["status"] == "COMPLETED":
+            break
+        time.sleep(3)
+    
+    # Download anonymized audio
+    audio_response = requests.get(job_status["output_url"])
+    anonymized_filename = f"anonymized_{job_id}.wav"
+    
+    with open(anonymized_filename, "wb") as f:
+        f.write(audio_response.content)
+    
+    return {
+        "anonymized_file": anonymized_filename,
+        "original_content_preserved": True,
+        "voice_anonymized": True,
+        "duration": job_status["converted_duration"]
+    }
+```
 
-### Processing Costs
-- **5 credits per minute** for standard transformations
-- **8 credits per minute** for premium quality
-- **12 credits per minute** for real-time streaming
+## Error Handling
 
-### Cost Examples
+<AccordionGroup>
+  <Accordion title="404 Not Found - Voice Not Available">
+    **Causes:** - Target voice UUID doesn't exist - Voice is not accessible to user - Voice is not completed or ready
+    **Solutions:** - Verify voice UUID is correct - Ensure voice is completed and has audio file available - Use public voices or your own custom voices
+  </Accordion>
 
-| Audio Length | Quality | Credits | USD Cost |
-|--------------|---------|---------|----------|
-| 30 seconds | Standard | 2.5 credits | $0.0025 |
-| 2 minutes | Standard | 10 credits | $0.01 |
-| 5 minutes | Premium | 40 credits | $0.04 |
-| 1 hour | Standard | 300 credits | $0.30 |
+  <Accordion title="400 Bad Request - Invalid Audio">
+    **Causes:** - Source audio file has no speech content - Unsupported audio format - Audio file corrupted
+    **Solutions:** - Ensure audio contains clear speech - Use supported formats (WAV, MP3, M4A) - Verify file integrity
+  </Accordion>
 
-### Real-time Streaming
+  <Accordion title="422 Processing Error - Conversion Failed">
+    **Causes:** - Source audio quality too poor - Incompatible voice characteristics - Processing timeout
+    **Solutions:** - Improve source audio quality - Try different target voice - Use shorter audio segments
+  </Accordion>
 
-For continuous streaming applications:
-- **Per-minute billing** based on actual processing time
-- **Bulk discounts** for heavy usage
-- **Enterprise plans** with flat-rate pricing available
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    **Causes:** - Not enough credits for conversion duration
+    **Solutions:** - Purchase additional credits - Check credit requirements for audio duration
+  </Accordion>
+</AccordionGroup>
 
 ## Best Practices
 
 ### Audio Quality Guidelines
 
-**✅ Recommended:**
-- High-quality source audio (44.1kHz or higher)
-- Clear speech with minimal background noise
-- Consistent volume levels
-- Single speaker recordings
-
-**❌ Avoid:**
-- Low-quality, compressed audio
-- Multiple overlapping speakers
-- Heavy background noise or music
-- Extremely quiet or loud recordings
-
-### Transformation Guidelines
+For optimal voice conversion results:
 
 ```python
-# Good: Gradual transformations for natural results
-natural_transform = {
-    "pitch_shift": 1.1,        # Subtle pitch change
-    "intensity": 0.6,          # Moderate intensity
-    "preserve_timing": True    # Keep natural rhythm
+# Audio requirements for best results
+audio_guidelines = {
+    "sample_rate": "16kHz or higher recommended",
+    "format": "WAV preferred, MP3/M4A acceptable",
+    "duration": "10 seconds to 10 minutes optimal",
+    "content": "Clear speech without background music",
+    "speaker": "Single speaker recommended",
+    "noise": "Minimal background noise"
 }
 
-# Avoid: Extreme transformations that sound unnatural
-extreme_transform = {
-    "pitch_shift": 2.5,        # Too extreme
-    "intensity": 1.0,          # Maximum intensity
-    "multiple_effects": True    # Too many effects
-}
+# Pre-processing recommendations
+preprocessing_tips = [
+    "Use noise reduction for noisy recordings",
+    "Normalize audio levels for consistent volume",
+    "Remove long silent periods to improve processing speed",
+    "Separate speakers if multiple voices present"
+]
 ```
 
-### Performance Optimization
+### Target Voice Selection
 
 ```python
-# Batch processing for multiple files
-files_to_process = ["audio1.mp3", "audio2.mp3", "audio3.mp3"]
-
-batch_job = client.voice_changer.batch_transform(
-    files=files_to_process,
-    target_voice="professional_male",
-    parallel_processing=True,    # Process multiple files simultaneously
-    priority="normal"            # normal, high, urgent
-)
-
-# Monitor batch progress
-status = client.voice_changer.get_batch_status(batch_job.id)
+def choose_optimal_target_voice(source_characteristics, available_voices):
+    """Choose the best target voice for conversion"""
+    
+    recommendations = []
+    
+    for voice in available_voices:
+        score = 0
+        
+        # Language match
+        if voice["language"] == source_characteristics["language"]:
+            score += 30
+        
+        # Gender match (if applicable)
+        if voice["gender"] == source_characteristics.get("gender"):
+            score += 20
+        
+        # Age range compatibility
+        if voice["age_range"] == source_characteristics.get("age_range"):
+            score += 15
+        
+        # Style appropriateness
+        if voice["style"] in source_characteristics.get("preferred_styles", []):
+            score += 25
+        
+        # Quality indicators
+        if voice.get("usage_stats", {}).get("avg_rating", 0) >= 4.5:
+            score += 10
+        
+        recommendations.append({
+            "voice": voice,
+            "compatibility_score": score,
+            "reasons": []
+        })
+    
+    # Sort by compatibility score
+    recommendations.sort(key=lambda x: x["compatibility_score"], reverse=True)
+    
+    return recommendations[:5]  # Top 5 recommendations
 ```
 
-## Error Handling
+## Pricing
 
-### Common Issues and Solutions
+Voice conversion pricing is based on audio duration:
 
-<AccordionGroup>
-  <Accordion title="Poor Transformation Quality">
-    **Causes:**
-    - Low-quality input audio
-    - Extreme transformation parameters
-    - Incompatible voice characteristics
-    
-    **Solutions:**
-    - Use higher quality source audio
-    - Reduce transformation intensity
-    - Choose compatible target voices
-    - Use gradual transformations
-  </Accordion>
-  
-  <Accordion title="High Latency in Real-time">
-    **Causes:**
-    - Large buffer sizes
-    - High-quality processing settings
-    - Network latency
-    
-    **Solutions:**
-    - Reduce buffer size
-    - Use "low" latency mode
-    - Optimize network connection
-    - Consider edge processing
-  </Accordion>
-  
-  <Accordion title="Unnatural Sounding Results">
-    **Causes:**
-    - Excessive parameter values
-    - Multiple simultaneous transformations
-    - Poor source audio quality
-    
-    **Solutions:**
-    - Use moderate parameter values
-    - Apply one transformation at a time
-    - Improve source audio quality
-    - Use preset transformations
-  </Accordion>
-</AccordionGroup>
+| Service | Cost | Description |
+|---------|------|-------------|
+| Voice Conversion | 990 credits/minute | Transform voice characteristics using OpenVoice v2 |
 
-### Error Handling Code
+### Cost Examples
 
-```python
-def robust_voice_transformation(audio_file, target_voice, max_retries=3):
-    """Transform voice with error handling and retry logic"""
-    
-    for attempt in range(max_retries):
-        try:
-            with open(audio_file, "rb") as audio:
-                response = client.voice_changer.transform(
-                    audio=audio,
-                    target_voice=target_voice,
-                    quality="high",
-                    preserve_timing=True
-                )
-                
-                return response.audio_data
-                
-        except AudioPodError as e:
-            if e.status_code == 400:
-                # Bad request - check parameters
-                print(f"Invalid parameters: {e.message}")
-                break
-            elif e.status_code == 429:
-                # Rate limit - wait and retry
-                wait_time = (2 ** attempt) * 30
-                print(f"Rate limited. Waiting {wait_time}s...")
-                time.sleep(wait_time)
-            elif e.status_code >= 500:
-                # Server error - retry
-                print(f"Server error (attempt {attempt + 1}): {e.message}")
-                time.sleep(30)
-            else:
-                raise e
-    
-    raise Exception("Voice transformation failed after retries")
-```
+| Duration | Credits | USD Cost |
+|----------|---------|----------|
+| 30 seconds | 495 | $0.066 |
+| 2 minutes | 1980 | $0.264 |
+| 5 minutes | 4950 | $0.66 |
+| 10 minutes | 9900 | $1.32 |
+
+### Cost Optimization Tips
+
+1. **Pre-process audio** to remove silence and optimize duration
+2. **Batch similar conversions** using the same target voice
+3. **Test with shorter clips** before converting long content
+4. **Use high-quality source audio** to avoid re-processing
 
 ## Next Steps
 
 <Columns cols={2}>
-  <Card title="Voice Cloning" icon="user-clone" href="/features/voice-cloning">
-    Create custom voices to use with voice changing.
+  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-cloning">
+    Create custom voice profiles to use as conversion targets.
   </Card>
-  <Card title="Speech Translation" icon="language" href="/features/speech-translation">
-    Combine voice changing with language translation.
+  <Card title="Voice Management" icon="users" href="/api-reference/voice-management">
+    Browse and manage available voice profiles for conversion.
   </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/voice-changer">
-    Detailed API documentation for voice changing.
+  <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
+    Extract text from converted audio for verification.
   </Card>
-  <Card title="Real-time Streaming" icon="broadcast-tower" href="/guides/real-time-audio">
-    Learn about real-time audio processing.
+  <Card title="Credits" icon="credit-card" href="/api-reference/credits">
+    Monitor credit usage for voice conversion operations.
   </Card>
 </Columns>
