@@ -1,15 +1,11 @@
 ---
-title: "AudioPod AI Documentation"
+title: "Developer Guide"
 description: "Build amazing audio-powered applications with AudioPod AI's comprehensive suite of Audio Processing APIs"
 ---
 
 ## Welcome to AudioPod AI
 
 Transform your applications with cutting-edge AI audio processing. AudioPod AI provides a complete suite of APIs for speech synthesis, audio processing, voice cloning, and content generation.
-
-<Card title="Quick Start Guide" icon="rocket" href="/quickstart" horizontal>
-  Get up and running with AudioPod AI in just a few minutes.
-</Card>
 
 ## Getting Started
 
@@ -39,12 +35,9 @@ Manage your AudioPod AI account, API keys, and billing.
   <Card title="API Key Management" icon="key" href="/account/api-keys">
     Generate, manage, and secure your API keys.
   </Card>
-  <Card title="Credits & Billing" icon="credit-card" href="/account/credits">
-    Understand credit usage, pricing, and billing management.
-  </Card>
 </Columns>
 
-## Speech Processing
+## Audio Processing capabilities
 
 Core speech and voice technologies for natural communication.
 
@@ -65,6 +58,13 @@ Core speech and voice technologies for natural communication.
   <Card title="Voice Changer" icon="magic-wand" href="/api-reference/voice-changer">
     Transform voices with real-time style transfer and emotion control.
   </Card>
+ <Card
+    title="Voices Management"
+    icon="settings"
+    href="/api-reference/voice-management"
+  >
+    Discover and manage available voices, create custom voices.
+  </Card>
   <Card
     title="Speech Translation"
     icon="language"
@@ -74,9 +74,9 @@ Core speech and voice technologies for natural communication.
   </Card>
 </Columns>
 
-## Audio Processing
+## Music Suite capabilities
 
-Advanced audio analysis and manipulation tools.
+Advanced music analysis and manipulation tools.
 
 <Columns cols={2}>
   <Card title="Stem Separation" icon="music" href="/api-reference/stem-splitter">
@@ -97,89 +97,12 @@ Advanced audio analysis and manipulation tools.
     Remove background noise while preserving voice quality.
   </Card>
   <Card
-    title="Media Extraction"
-    icon="download"
-    href="/api-reference/media-extraction"
-  >
-    Extract high-quality audio from YouTube and other platforms.
-  </Card>
-</Columns>
-
-## Content Generation
-
-AI-powered audio and music creation capabilities.
-
-<Columns cols={2}>
-  <Card
     title="Music Generation"
     icon="musical-note"
     href="/api-reference/music-generation"
   >
     Generate original music, instrumentals, and sound effects from text
     descriptions.
-  </Card>
-</Columns>
-
-## API Reference
-
-Complete API documentation with examples and code samples.
-
-<Columns cols={2}>
-  <Card
-    title="Authentication API"
-    icon="shield"
-    href="/api-reference/auth"
-  >
-    API authentication endpoints and security best practices.
-  </Card>
-  <Card
-    title="Voice Management API"
-    icon="settings"
-    href="/api-reference/voice-management"
-  >
-    Discover and manage available voices, create custom voices.
-  </Card>
-  <Card
-    title="Text-to-Speech API"
-    icon="microphone"
-    href="/api-reference/text-to-speech"
-  >
-    Complete TTS API reference with voice options and parameters.
-  </Card>
-  <Card
-    title="Voice Cloning API"
-    icon="user-clone"
-    href="/api-reference/voice-cloning"
-  >
-    Train and manage custom voice models programmatically.
-  </Card>
-  <Card
-    title="Speech-to-Text API"
-    icon="waveform"
-    href="/api-reference/speech-to-text"
-  >
-    Transcription API with speaker diarization and analysis.
-  </Card>
-  <Card
-    title="Music Generation API"
-    icon="musical-note"
-    href="/api-reference/music-generation"
-  >
-    Generate music and soundtracks from text descriptions.
-  </Card>
-  <Card
-    title="Account & Credits API"
-    icon="credit-card"
-    href="/api-reference/account"
-  >
-    Manage account information, credits, and billing programmatically.
-  </Card>
-  <Card
-    title="Interactive Playground"
-    icon="external-link"
-    href="https://api.audiopod.ai/api/v1/docs"
-  >
-    Test API endpoints directly in your browser with live examples.
   </Card>
 </Columns>
 
@@ -190,21 +113,7 @@ AudioPod AI supports **64+ languages** including English, Chinese, Hindi, Spanis
 ## Developer Resources
 
 <Columns cols={2}>
-  <Card
-    title="Discord Community"
-    icon="discord"
-    href="https://discord.gg/audiopod"
-  >
-    Join our developer community for support, tips, and collaboration.
-  </Card>
-  <Card
-    title="GitHub Examples"
-    icon="github"
-    href="https://github.com/audiopod-ai/examples"
-  >
-    Explore code samples and integration examples.
-  </Card>
-  <Card title="Status Page" icon="activity" href="https://status.audiopod.ai">
+  <Card title="API Health" icon="activity" href="https://api.audiopod.ai/health">
     Monitor API uptime and service status in real-time.
   </Card>
   <Card title="Support" icon="envelope" href="mailto:support@audiopod.ai">
