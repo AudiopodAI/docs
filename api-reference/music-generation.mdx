@@ -14,7 +14,6 @@ AudioPod AI's Music Generation API uses the advanced ACE-Step pipeline to transf
 - **Text-to-Rap**: Generate rap music with custom lyrics and beats
 - **Text-to-Samples**: Create audio loops and samples for music production
 - **Audio-to-Audio**: Transform existing audio using text prompts
-- **SongBloom**: Generate music with reference audio guidance
 - **Advanced Controls**: Fine-tune generation with guidance scales, steps, and seeds
 - **Multiple Formats**: Output in WAV, MP3, FLAC formats
 - **Royalty-Free**: All generated music is 100% royalty-free
@@ -361,59 +360,6 @@ Transform existing audio using text descriptions while preserving reference audi
 - **`ref_audio_strength`**: How much the reference audio influences the output (0.0-1.0)
 - **`audio_duration`**: Duration of the output audio (1-600 seconds)
 
-## SongBloom Generation
-
-### Generate Music with Reference Audio
-
-Create music using SongBloom with reference audio guidance for style and structure.
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/music/songbloom
-    Authorization: Bearer {api_key}
-    Content-Type: multipart/form-data
-    
-    lyrics: "[Verse 1]\nIn the morning light\nEverything feels right"
-    duration: 120.0
-    guidance_scale: 7.5
-    num_inference_steps: 50
-    seed: 12345
-    display_name: "Morning Song"
-    thumbnail_url: "https://example.com/thumbnail.jpg"
-    file: (reference audio file)
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    with open("reference_track.wav", "rb") as ref_audio:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/music/songbloom",
-            headers={"Authorization": f"Bearer {api_key}"},
-            data={
-                "lyrics": "[Verse 1]\\nIn the morning light\\nEverything feels right\\n[Chorus]\\nThis is our time to shine",
-                "duration": 120.0,             # -1 for auto duration
-                "guidance_scale": 7.5,         # 1.0-20.0
-                "num_inference_steps": 50,     # 10-100
-                "seed": 12345,                 # Optional for reproducibility
-                "display_name": "Morning Song"
-            },
-            files={"file": ref_audio}
-        )
-    
-    if response.status_code == 200:
-        job_data = response.json()
-        print(f"SongBloom job: {job_data['job']['id']}")
-    ```
-  </Tab>
-</Tabs>
-
-**Parameters:**
-- **`lyrics`** (required): Song lyrics with structure tags
-- **`duration`**: Audio duration (-1 for auto, 10-600 seconds)
-- **`guidance_scale`**: Guidance scale for generation (1.0-20.0)
-- **`num_inference_steps`**: Number of inference steps (10-100)
-- **`seed`**: Random seed for reproducibility
 
 ## Music Extension
 
@@ -972,11 +918,11 @@ For advanced users who want precise control over the generation process:
 <AccordionGroup>
   <Accordion title="400 Bad Request - Invalid Parameters">
     **Causes:** - Invalid audio duration (outside 1-600 seconds) - Invalid format specified - Missing required parameters
-    **Solutions:** - Check parameter ranges and formats - Ensure required fields are provided - Validate lyrics format for SongBloom
+    **Solutions:** - Check parameter ranges and formats - Ensure required fields are provided - Validate lyrics format
   </Accordion>
 
   <Accordion title="413 Payload Too Large">
-    **Causes:** - Audio file for audio2audio/SongBloom exceeds size limits - Very large reference files
+    **Causes:** - Audio file for audio2audio exceeds size limits - Very large reference files
     **Solutions:** - Compress reference audio files - Use supported formats (MP3, WAV, M4A) - Ensure files are under 100MB
   </Accordion>
 
@@ -1002,7 +948,7 @@ Music generation pricing based on actual credit costs:
 | Text-to-Rap | 1320 credits/minute | Rap music with beats |
 | Text-to-Samples | 176 credits/8 seconds | Audio loops and samples (1320/60*8) |
 | Audio-to-Audio | 1320 credits/minute | Audio transformation |
-| SongBloom | 1320 credits/minute | Reference-guided generation |
+
 
 ### Cost Examples
 
@@ -1012,7 +958,7 @@ Music generation pricing based on actual credit costs:
 | 1 minute | Instrumental | 1320 | $0.18 |
 | 8 seconds | Sample Loop | 176 | $0.02 |
 | 90 seconds | Audio-to-Audio | 1980 | $0.26 |
-| 3 minutes | SongBloom | 3960 | $0.53 |
+
 
 ### Cost Optimization Tips
 
