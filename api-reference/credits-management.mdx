@@ -5,7 +5,7 @@ description: "Manage account credits, track usage, and handle pay-as-you-go purc
 
 ## Overview
 
-The AudioPod AI Credits API allows you to monitor your credit balance, track usage history, and purchase additional credits through our pay-as-you-go system. Credits are used to access all AudioPod AI services including voice generation, transcription, and music creation.
+The AudioPod AI Credits API allows you to monitor your credit balance, track usage history, and purchase additional credits through our pay-as-you-go system. Credits are used to access all AudioPod AI services including Text to Speech, transcription, and music creation.
 
 ### Key Features
 
@@ -455,7 +455,7 @@ class AudioPodCreditManager:
 # Usage example
 credit_manager = AudioPodCreditManager("your_api_key")
 
-# Check if user can afford a 2-minute voice generation
+# Check if user can afford a 2-minute Text to Speech
 check = credit_manager.check_sufficient_credits("voice_cloning_generation", 120)
 if check['sufficient']:
     print("User has enough credits")
@@ -599,11 +599,5 @@ def process_bulk_efficiently(files, operation_type):
   </Card>
   <Card title="API Authentication" icon="key" href="/api-reference/authentication">
     Set up secure API access for credit management.
-  </Card>
-  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-cloning">
-    Start using your credits for custom voice creation.
-  </Card>
-  <Card title="Text-to-Speech" icon="microphone" href="/api-reference/text-to-speech">
-    Generate speech with your available credits.
   </Card>
 </Columns>

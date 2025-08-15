@@ -1,11 +1,11 @@
 ---
-title: "Voice Generation"
+title: "Text to Speech"
 description: "Generate natural-sounding speech from text using AudioPod AI's voice generation technology with support for custom voices."
 ---
 
 ## Overview
 
-AudioPod AI's Voice Generation service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Using state of the art Text to Speech Models, generate speech with any voice in 60+ supported languages.
+AudioPod AI's Text to Speech service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Using state of the art Text to Speech Models, generate speech with any voice in 60+ supported languages.
 
 ### Supported Voice Types
 
@@ -29,7 +29,7 @@ All endpoints require authentication using either:
 
 ## Generate Speech
 
-### Basic Voice Generation
+### Basic Text to Speech
 
 Generate speech from text using any voice in your collection.
 
@@ -496,7 +496,7 @@ def generate_speech_with_retry(text, voice_id, max_retries=3):
 
 ## Pricing
 
-Voice generation pricing is based on audio duration:
+Text to Speech pricing is based on audio duration:
 
 - **330 credits per minute** of generated audio
 - Pricing is calculated on the actual audio output duration
@@ -515,19 +515,13 @@ Voice generation pricing is based on audio duration:
 ## Next Steps
 
 <Columns cols={2}>
-  <Card title="Voice Cloning" icon="user-clone" href="/features/voice-cloning">
+  <Card title="Voice Management" icon="user-clone" href="/features/voice-management">
     Create custom voices from audio samples.
-  </Card>
-  <Card title="Speech-to-Text" icon="waveform" href="/features/speech-to-text">
-    Convert audio back to text with transcription.
-  </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/text-to-speech">
-    Detailed API documentation and parameters.
   </Card>
   <Card
     title="Voice Examples"
     icon="play"
-    href="https://www.audiopod.ai/voices"
+    href="https://www.audiopod.ai/features/voice-studio"
   >
     Listen to voice samples and find your perfect voice.
   </Card>

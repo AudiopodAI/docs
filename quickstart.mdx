@@ -58,7 +58,7 @@ Let's create your first AI-generated speech:
     import os
     import requests
 
-    # Generate speech using voice generation API
+    # Generate speech using Text to Speech API
     response = requests.post(
         "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
         headers={"Authorization": f"Bearer {os.getenv('AUDIOPOD_API_KEY')}"},
@@ -81,7 +81,7 @@ Let's create your first AI-generated speech:
     ```javascript
     const fetch = require('node-fetch');
 
-    // Generate speech using voice generation API
+    // Generate speech using Text to Speech API
     const formData = new FormData();
     formData.append('input_text', 'Hello world! This is my first AudioPod AI generated voice.');
     formData.append('audio_format', 'mp3');
@@ -118,7 +118,7 @@ Let's create your first AI-generated speech:
 
 AudioPod AI uses a credit-based billing system:
 
-- **Voice Generation**: 330 credits per minute
+- **Text to Speech**: 330 credits per minute
 - **Speech-to-Text**: 660 credits per minute
 - **Voice Cloning**: 330 credits per minute
 - **Music Generation**: 1320 credits per minute
