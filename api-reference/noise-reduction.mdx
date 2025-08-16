@@ -29,26 +29,184 @@ All endpoints require authentication:
 Remove background noise using AI-powered denoising models.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/denoiser/denoise
-    Authorization: Bearer {api_key}
-    Content-Type: multipart/form-data
-    
-    file: (audio/video file)
-    quality_mode: balanced
+  <Tab title="Python SDK">
+    ```python
+    from audiopod import Client
+
+    client = Client()
+
+    # Simple noise reduction
+    denoised = client.denoiser.denoise_audio(
+        audio_file="noisy_recording.wav",
+        quality_mode="balanced",  # "balanced", "studio"
+        wait_for_completion=True
+    )
+
+    print(f"Denoising completed!")
+    print(f"Input file: {denoised.input_file}")
+    print(f"Denoised audio URL: {denoised.denoised_audio_url}")
+    print(f"Noise reduction level: {denoised.noise_reduction_db}dB")
+
+    # Download cleaned audio
+    clean_audio = client.download_file(denoised.denoised_audio_url)
+    with open("clean_recording.wav", "wb") as f:
+        f.write(clean_audio)
+
+    # Studio quality denoising
+    studio_denoised = client.denoiser.denoise_audio(
+        audio_file="interview_with_background_noise.wav",
+        quality_mode="studio",  # Higher quality processing
+        wait_for_completion=True
+    )
+
+    print(f"Studio denoising completed!")
+    print(f"Noise reduction level: {studio_denoised.noise_reduction_db}dB")
+
+    # Batch processing multiple files
+    noisy_files = [
+        "meeting_room_recording.wav",
+        "interview_outdoors.mp3",
+        "podcast_home_setup.wav",
+        "lecture_hall_audio.m4a"
+    ]
+
+    batch_results = client.denoiser.denoise_batch(
+        audio_files=noisy_files,
+        quality_mode="balanced",
+        wait_for_completion=True
+    )
+
+    for i, result in enumerate(batch_results):
+        print(f"\nFile {i+1}: {noisy_files[i]}")
+        print(f"Status: {result.status}")
+        if result.status == "completed":
+            print(f"Noise reduced: {result.noise_reduction_db}dB")
+            print(f"Clean audio: {result.denoised_audio_url}")
+            
+            # Download and save
+            clean_audio = client.download_file(result.denoised_audio_url)
+            output_name = f"clean_{i+1}_{noisy_files[i].split('.')[0]}.wav"
+            with open(output_name, "wb") as f:
+                f.write(clean_audio)
+            print(f"Saved: {output_name}")
+
+    # Process video files (audio cleaning)
+    video_denoised = client.denoiser.denoise_video(
+        video_file="presentation_with_noise.mp4",
+        quality_mode="studio",  # Higher quality processing
+        preserve_video=True,        # Keep original video stream
+        wait_for_completion=True
+    )
+
+    print(f"Video denoising completed!")
+    print(f"Clean video URL: {video_denoised.video_output_url}")
+    print(f"Audio-only URL: {video_denoised.denoised_audio_url}")
     ```
   </Tab>
-  <Tab title="Python">
+  <Tab title="Node.js SDK">
+    ```javascript
+    // Note: SDK examples shown are conceptual and may not reflect the current SDK implementation
+    // For production use, refer to the Raw HTTP examples or check the latest SDK documentation
+    const { AudioPodClient } = require('audiopod-js');
+    const fs = require('fs');
+
+    const client = new AudioPodClient();
+
+    async function denoiseAudio() {
+      try {
+        // Simple noise reduction
+        const denoised = await client.denoiser.denoiseAudio({
+          audioFile: fs.createReadStream('noisy_recording.wav'),
+          qualityMode: 'balanced',  // "balanced", "studio"
+          waitForCompletion: true
+        });
+
+        console.log('Denoising completed!');
+        console.log(`Input file: ${denoised.inputFile}`);
+        console.log(`Denoised audio URL: ${denoised.denoisedAudioUrl}`);
+        console.log(`Noise reduction level: ${denoised.noiseReductionDb}dB`);
+
+        // Download cleaned audio
+        const cleanAudio = await client.downloadFile(denoised.denoisedAudioUrl);
+        fs.writeFileSync('clean_recording.wav', cleanAudio);
+
+        // Studio quality denoising
+        const studioDenoised = await client.denoiser.denoiseAudio({
+          audioFile: fs.createReadStream('interview_with_background_noise.wav'),
+          qualityMode: 'studio',  // Higher quality processing
+          waitForCompletion: true
+        });
+
+        console.log('Studio denoising completed!');
+        console.log(`Noise reduction level: ${studioDenoised.noiseReductionDb}dB`);
+
+        // Batch processing multiple files
+        const noisyFiles = [
+          'meeting_room_recording.wav',
+          'interview_outdoors.mp3',
+          'podcast_home_setup.wav',
+          'lecture_hall_audio.m4a'
+        ];
+
+        const fileStreams = noisyFiles.map(file => ({
+          file: fs.createReadStream(file),
+          name: file
+        }));
+
+        const batchResults = await client.denoiser.denoiseBatch({
+          audioFiles: fileStreams,
+          qualityMode: 'balanced',
+          waitForCompletion: true
+        });
+
+        batchResults.forEach((result, index) => {
+          console.log(`\nFile ${index + 1}: ${noisyFiles[index]}`);
+          console.log(`Status: ${result.status}`);
+          if (result.status === 'completed') {
+            console.log(`Noise reduced: ${result.noiseReductionDb}dB`);
+            console.log(`Clean audio: ${result.denoisedAudioUrl}`);
+            
+            // Download and save
+            client.downloadFile(result.denoisedAudioUrl).then(cleanAudio => {
+              const outputName = `clean_${index + 1}_${noisyFiles[index].split('.')[0]}.wav`;
+              fs.writeFileSync(outputName, cleanAudio);
+              console.log(`Saved: ${outputName}`);
+            });
+          }
+        });
+
+        // Process video files (audio cleaning)
+        const videoDenoised = await client.denoiser.denoiseVideo({
+          videoFile: fs.createReadStream('presentation_with_noise.mp4'),
+          qualityMode: 'studio',  // Higher quality processing
+          preserveVideo: true,        // Keep original video stream
+          waitForCompletion: true
+        });
+
+        console.log('Video denoising completed!');
+        console.log(`Clean video URL: ${videoDenoised.videoOutputUrl}`);
+        console.log(`Audio-only URL: ${videoDenoised.denoisedAudioUrl}`);
+
+      } catch (error) {
+        console.error('Denoising error:', error.message);
+      }
+    }
+
+    denoiseAudio();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
     import requests
+    import time
     
+    # Standard denoising
     with open("noisy_recording.wav", "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/denoiser/denoise",
             headers={"Authorization": f"Bearer {api_key}"},
             data={
-                "quality_mode": "balanced"  # "balanced", "aggressive", "preserving"
+                "quality_mode": "balanced"  # "balanced", "studio"
             },
             files={"file": audio_file}
         )
@@ -57,14 +215,56 @@ Remove background noise using AI-powered denoising models.
         job_data = response.json()
         job_id = job_data["id"]
         print(f"Denoising job created: {job_id}")
+        
+        # Poll for completion
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                job_status = status_response.json()
+                print(f"Status: {job_status['status']}")
+                
+                if job_status["status"] == "COMPLETED":
+                    print(f"Denoising completed!")
+                    print(f"Clean audio URL: {job_status.get('denoised_audio_url')}")
+                    print(f"Noise reduction: {job_status.get('noise_reduction_db', 0)}dB")
+                    
+                    # Download the cleaned audio
+                    if job_status.get('denoised_audio_url'):
+                        audio_response = requests.get(job_status['denoised_audio_url'])
+                        with open("clean_recording.wav", "wb") as f:
+                            f.write(audio_response.content)
+                        print("Downloaded clean audio: clean_recording.wav")
+                    break
+                elif job_status["status"] == "FAILED":
+                    print(f"Denoising failed: {job_status.get('error', 'Unknown error')}")
+                    break
+                    
+            time.sleep(5)  # Check every 5 seconds
+    else:
+        print(f"Error: {response.status_code} - {response.text}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
+    # Upload file for denoising
     curl -X POST "https://api.audiopod.ai/api/v1/denoiser/denoise" \
-      -H "Authorization: Bearer your_api_key" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
       -F "file=@noisy_recording.wav" \
       -F "quality_mode=balanced"
+
+    # Check job status (replace JOB_ID with actual job ID)
+    curl -X GET "https://api.audiopod.ai/api/v1/denoiser/jobs/JOB_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+
+    # Studio quality denoising
+    curl -X POST "https://api.audiopod.ai/api/v1/denoiser/denoise" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -F "file=@very_noisy_audio.wav" \
+      -F "quality_mode=studio"
     ```
   </Tab>
 </Tabs>
@@ -74,37 +274,160 @@ Remove background noise using AI-powered denoising models.
 Process audio/video from URLs (YouTube, etc.) to remove noise.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/denoiser/denoise
-    Authorization: Bearer {api_key}
-    Content-Type: application/x-www-form-urlencoded
-    
-    url=https://youtube.com/watch?v=example123&quality_mode=aggressive
+  <Tab title="Python SDK">
+    ```python
+    # Note: SDK examples shown are conceptual and may not reflect the current SDK implementation
+    # For production use, refer to the Raw HTTP examples or check the latest SDK documentation
+    from audiopod import Client
+
+    client = Client()
+
+    # Denoise from YouTube URL
+    url_denoised = client.denoiser.denoise_from_url(
+        url="https://youtube.com/watch?v=example123",
+        quality_mode="studio",  # Higher quality processing for online content
+        wait_for_completion=True
+    )
+
+    print(f"URL denoising completed!")
+    print(f"Source: {url_denoised.source_url}")
+    print(f"Clean audio URL: {url_denoised.denoised_audio_url}")
+    print(f"Noise reduction: {url_denoised.noise_reduction_db}dB")
+
+    # Batch URL processing
+    urls = [
+        "https://youtube.com/watch?v=lecture1",
+        "https://vimeo.com/meeting_recording",
+        "https://example.com/noisy_podcast.mp3"
+    ]
+
+    batch_url_results = client.denoiser.denoise_batch_from_urls(
+        urls=urls,
+        quality_mode="balanced",
+        wait_for_completion=True
+    )
+
+    for i, result in enumerate(batch_url_results):
+        print(f"\nURL {i+1}: {urls[i]}")
+        print(f"Status: {result.status}")
+        if result.status == "completed":
+            print(f"Clean audio: {result.denoised_audio_url}")
     ```
   </Tab>
-  <Tab title="Python">
+  <Tab title="Node.js SDK">
+    ```javascript
+    // Note: SDK examples shown are conceptual and may not reflect the current SDK implementation
+    // For production use, refer to the Raw HTTP examples or check the latest SDK documentation
+    const { AudioPodClient } = require('audiopod-js');
+
+    const client = new AudioPodClient();
+
+    async function denoiseFromUrl() {
+      try {
+        // Denoise from YouTube URL
+        const urlDenoised = await client.denoiser.denoiseFromUrl({
+          url: "https://youtube.com/watch?v=example123",
+          qualityMode: "studio",  // Higher quality processing for online content
+          waitForCompletion: true
+        });
+
+        console.log('URL denoising completed!');
+        console.log(`Source: ${urlDenoised.sourceUrl}`);
+        console.log(`Clean audio URL: ${urlDenoised.denoisedAudioUrl}`);
+        console.log(`Noise reduction: ${urlDenoised.noiseReductionDb}dB`);
+
+        // Batch URL processing
+        const urls = [
+          "https://youtube.com/watch?v=lecture1",
+          "https://vimeo.com/meeting_recording",
+          "https://example.com/noisy_podcast.mp3"
+        ];
+
+        const batchUrlResults = await client.denoiser.denoiseBatchFromUrls({
+          urls: urls,
+          qualityMode: "balanced",
+          waitForCompletion: true
+        });
+
+        batchUrlResults.forEach((result, index) => {
+          console.log(`\nURL ${index + 1}: ${urls[index]}`);
+          console.log(`Status: ${result.status}`);
+          if (result.status === "completed") {
+            console.log(`Clean audio: ${result.denoisedAudioUrl}`);
+          }
+        });
+
+      } catch (error) {
+        console.error('URL denoising error:', error.message);
+      }
+    }
+
+    denoiseFromUrl();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
+    import requests
+    import time
+
     response = requests.post(
         "https://api.audiopod.ai/api/v1/denoiser/denoise",
         headers={"Authorization": f"Bearer {api_key}"},
         data={
             "url": "https://youtube.com/watch?v=example123",
-            "quality_mode": "aggressive"  # More aggressive noise removal
+            "quality_mode": "studio"  # Higher quality processing
         }
     )
     
     if response.status_code == 200:
         job_data = response.json()
-        print(f"URL denoising started: {job_data['id']}")
+        job_id = job_data["id"]
+        print(f"URL denoising started: {job_id}")
+        
+        # Poll for completion
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                job_status = status_response.json()
+                print(f"Status: {job_status['status']}")
+                
+                if job_status["status"] == "COMPLETED":
+                    print(f"URL denoising completed!")
+                    print(f"Source: {job_status.get('source_url')}")
+                    print(f"Clean audio: {job_status.get('denoised_audio_url')}")
+                    break
+                elif job_status["status"] == "FAILED":
+                    print(f"Denoising failed: {job_status.get('error')}")
+                    break
+                    
+            time.sleep(10)  # URL processing may take longer
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Denoise from URL
+    curl -X POST "https://api.audiopod.ai/api/v1/denoiser/denoise" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "url": "https://youtube.com/watch?v=example123",
+        "quality_mode": "aggressive"
+      }'
+
+    # Check job status
+    curl -X GET "https://api.audiopod.ai/api/v1/denoiser/jobs/JOB_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
 
 **Quality Modes:**
 - **`balanced`**: Good balance between noise removal and audio preservation
-- **`aggressive`**: Maximum noise removal, may slightly affect audio quality
-- **`preserving`**: Conservative approach, preserves original audio characteristics
+- **`studio`**: Higher quality processing with enhanced algorithms, best for professional use
 
 **Response:**
 
@@ -118,7 +441,7 @@ Process audio/video from URLs (YouTube, etc.) to remove noise.
   "task_id": "celery_task_uuid_here",
   "created_at": "2024-01-15T10:30:00Z",
   "original_filename": "noisy_recording.wav",
-  "quality_mode": "balanced"
+  "display_name": "noisy_recording.wav"
 }
 ```
 
@@ -225,7 +548,6 @@ Monitor the progress of noise reduction jobs.
   "display_name": "Clean Recording",
   "stats": {
     "noise_reduction_db": 15.2,
-    "snr_improvement": 8.7,
     "processing_time": 135.4,
     "audio_duration": 180.0
   }
@@ -275,6 +597,31 @@ Retry a failed noise reduction job.
   </Tab>
 </Tabs>
 
+### Cancel Job
+
+Cancel a pending denoising job.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/denoiser/jobs/{job_id}/cancel
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}/cancel",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        job_status = response.json()
+        print(f"Job {job_id} cancelled: {job_status['status']}")
+    ```
+  </Tab>
+</Tabs>
+
 ### Delete Job
 
 Remove a completed job and its results.
@@ -286,7 +633,58 @@ Remove a completed job and its results.
     Authorization: Bearer {api_key}
     ```
   </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/denoiser/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 204:
+        print(f"Job {job_id} and associated files deleted successfully")
+    ```
+  </Tab>
 </Tabs>
+
+### Health Check
+
+Check the denoising service availability and status.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/denoiser/health
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/denoiser/health",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        health_status = response.json()
+        print(f"Service status: {health_status['status']}")
+        print(f"Device: {health_status['device']}")
+        print(f"Model: {health_status['model']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Health Response:**
+
+```json
+{
+  "status": "available",
+  "device": "cuda:0",
+  "model": "dns64",
+  "cuda_available": true,
+  "cuda_device_count": 1,
+  "cuda_device_name": "NVIDIA GeForce RTX 4090"
+}
+```
 
 ## Error Handling
 

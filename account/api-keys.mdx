@@ -11,7 +11,7 @@ API keys are the primary method for authenticating with AudioPod AI's APIs. This
 
 ### Your First API Key
 
-1. Log into the [AudioPod AI Dashboard](https://www.audiopod.ai/dashboard)
+1. Log into the [AudioPod AI account](https://www.audiopod.ai/auth/signin)
 2. Navigate to **API Keys** in the sidebar
 3. Click **Create New API Key**
 4. Provide a descriptive name for your key
@@ -241,7 +241,7 @@ Test your API key with a simple request:
 <Tabs>
   <Tab title="cURL">
     ```bash
-    curl -X GET "https://api.audiopod.ai/api/v1/account" \
+    curl -X GET "https://api.audiopod.ai/api/v1/auth/me" \
       -H "Authorization: Bearer your_api_key_here"
     ```
   </Tab>
@@ -251,7 +251,7 @@ Test your API key with a simple request:
 
     headers = {"Authorization": f"Bearer {api_key}"}
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/account",
+        "https://api.audiopod.ai/api/v1/auth/me",
         headers=headers
     )
 

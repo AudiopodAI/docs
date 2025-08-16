@@ -5,12 +5,15 @@ description: "Comprehensive authentication endpoints for JWT tokens, OAuth provi
 
 ## Overview
 
-AudioPod AI supports multiple authentication methods to accommodate different use cases:
+AudioPod AI supports multiple authentication methods with advanced security features:
 
-- **JWT Authentication**: For web applications with user sessions
-- **API Key Authentication**: For server-to-server integration and programmatic access
-- **OAuth Integration**: Google and GitHub single sign-on
-- **Session Management**: Token refresh and secure logout
+- **JWT Authentication**: Session-based authentication with device tracking
+- **API Key Authentication**: Server-to-server integration with scoped permissions
+- **OAuth Integration**: Google and GitHub single sign-on with account linking
+- **Session Management**: Multi-device session tracking and management
+- **Security Features**: CAPTCHA protection, rate limiting, and abuse prevention
+- **Phone Verification**: SMS-based phone number verification
+- **Device Management**: Trust and security management for user devices
 
 <Info>
   All authenticated endpoints require either a valid JWT token in the
@@ -73,11 +76,31 @@ Authenticate with email/password to receive JWT tokens.
     "is_active": true,
     "is_verified": true,
     "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z",
+    "image": null,
+    "phone_number": null,
+    "phone_verified": false,
+    "user_type": null,
+    "audio_usage": null,
     "credits": {
       "credits_balance": 1500,
       "payg_balance": 500,
-      "total_available_credits": 2000
-    }
+      "total_available_credits": 2000,
+      "credits_used_today": 0,
+      "daily_limit": 10000,
+      "last_reset_at": "2024-01-15T00:00:00Z"
+    },
+    "subscription": {
+      "plan_id": "price_free",
+      "plan_name": "Free",
+      "is_free_plan": true,
+      "status": "active",
+      "current_period_start": "2024-01-15T10:30:00Z",
+      "current_period_end": "2024-02-15T10:30:00Z",
+      "cancel_at": null
+    },
+    "is_eligible_for_first_time_discount": true,
+    "first_time_discount_active": true
   },
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -140,54 +163,155 @@ Invalidate current tokens and end the session.
 
 ### Google OAuth
 
-Authenticate using Google account.
+Authenticate or register using Google account. This endpoint handles both new user registration and existing user login.
 
 <Tabs>
-  <Tab title="GET">
+  <Tab title="POST">
     ```http
-    GET /api/v1/auth/oauth/google?redirect_uri=https://yourapp.com/callback
+    POST /api/v1/auth/oauth/google
+    Content-Type: application/json
+    
+    {
+      "profile": {
+        "email": "user@example.com",
+        "name": "John Doe",
+        "picture": "https://lh3.googleusercontent.com/a/..."
+      },
+      "account": {
+        "id_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6...",
+        "access_token": "ya29.a0AfH6SMC...",
+        "providerAccountId": "1234567890",
+        "type": "oauth",
+        "expires_at": 1640995200
+      },
+      "browser_fingerprint": "optional-fingerprint-string"
+    }
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Redirect user to Google OAuth URL
-    oauth_url = "https://api.audiopod.ai/api/v1/auth/oauth/google"
-    params = {
-        "redirect_uri": "https://yourapp.com/callback"
-    }
-    
-    # After Google callback, exchange code for tokens
-    callback_response = requests.post(
+    # After completing Google OAuth flow in your frontend
+    response = requests.post(
         "https://api.audiopod.ai/api/v1/auth/oauth/google",
         json={
-            "profile": google_profile_data,
-            "account": google_account_data
+            "profile": {
+                "email": "user@example.com",
+                "name": "John Doe",
+                "picture": "https://lh3.googleusercontent.com/a/..."
+            },
+            "account": {
+                "id_token": google_id_token,
+                "access_token": google_access_token,
+                "providerAccountId": google_user_id,
+                "type": "oauth",
+                "expires_at": token_expiry_timestamp
+            }
         }
     )
+    
+    if response.status_code == 200:
+        user_data = response.json()
+        access_token = user_data["access_token"]
+        print(f"OAuth login successful! User: {user_data['user']['email']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/auth/oauth/google" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "profile": {
+          "email": "user@example.com",
+          "name": "John Doe",
+          "picture": "https://lh3.googleusercontent.com/a/..."
+        },
+        "account": {
+          "id_token": "eyJhbGciOiJSUzI1NiIs...",
+          "providerAccountId": "1234567890",
+          "type": "oauth"
+        }
+      }'
     ```
   </Tab>
 </Tabs>
 
 ### GitHub OAuth
 
-Authenticate using GitHub account.
+Authenticate or register using GitHub account. Same response format as Google OAuth.
 
 <Tabs>
-  <Tab title="GET">
+  <Tab title="POST">
     ```http
-    GET /api/v1/auth/oauth/github?redirect_uri=https://yourapp.com/callback
+    POST /api/v1/auth/oauth/github
+    Content-Type: application/json
+    
+    {
+      "profile": {
+        "email": "user@example.com",
+        "name": "John Doe",
+        "picture": "https://avatars.githubusercontent.com/u/..."
+      },
+      "account": {
+        "access_token": "ghp_abcdef1234567890",
+        "providerAccountId": "987654321",
+        "type": "oauth"
+      }
+    }
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    # Similar to Google OAuth flow
-    oauth_url = "https://api.audiopod.ai/api/v1/auth/oauth/github"
-    params = {
-        "redirect_uri": "https://yourapp.com/callback"
-    }
+    # After completing GitHub OAuth flow
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/oauth/github",
+        json={
+            "profile": {
+                "email": "user@example.com",
+                "name": "John Doe",
+                "picture": github_avatar_url
+            },
+            "account": {
+                "access_token": github_access_token,
+                "providerAccountId": str(github_user_id),
+                "type": "oauth"
+            }
+        }
+    )
     ```
   </Tab>
 </Tabs>
+
+**OAuth Response (for both Google and GitHub):**
+
+Returns the same format as login - complete user object with tokens:
+
+```json
+{
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "user@example.com",
+    "full_name": "John Doe",
+    "image": "https://lh3.googleusercontent.com/a/...",
+    "is_active": true,
+    "is_verified": true,
+    "created_at": "2024-01-15T10:30:00Z",
+    "credits": {
+      "credits_balance": 5000,
+      "payg_balance": 0,
+      "total_available_credits": 5000
+    },
+    "subscription": {
+      "plan_name": "Free",
+      "is_free_plan": true,
+      "status": "active"
+    }
+  },
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "expires_in": 3600
+}
+```
 
 ## API Key Authentication
 
@@ -373,14 +497,32 @@ Complete registration with verification code from email.
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "email": "newuser@example.com",
     "full_name": "Jane Doe",
+    "image": null,
+    "phone_number": null,
+    "phone_verified": false,
     "is_active": true,
     "is_verified": true,
     "created_at": "2024-01-15T10:30:00Z",
+    "updated_at": "2024-01-15T10:30:00Z",
     "credits": {
       "credits_balance": 5000,
       "payg_balance": 0,
-      "total_available_credits": 5000
-    }
+      "total_available_credits": 5000,
+      "credits_used_today": 0,
+      "daily_limit": 10000,
+      "last_reset_at": "2024-01-15T00:00:00Z"
+    },
+    "subscription": {
+      "plan_id": "price_free",
+      "plan_name": "Free",
+      "is_free_plan": true,
+      "status": "active",
+      "current_period_start": "2024-01-15T10:30:00Z",
+      "current_period_end": "2024-02-15T10:30:00Z",
+      "cancel_at": null
+    },
+    "is_eligible_for_first_time_discount": true,
+    "first_time_discount_active": true
   },
   "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -424,11 +566,11 @@ Request and confirm password reset.
   </Tab>
 </Tabs>
 
-## Session Management
+## User Profile Management
 
 ### Get Current User
 
-Retrieve information about the authenticated user.
+Retrieve complete information about the authenticated user including credits, subscription, and security settings.
 
 <Tabs>
   <Tab title="GET">
@@ -445,12 +587,50 @@ Retrieve information about the authenticated user.
     )
     
     user_info = response.json()
-    print(f"User: {user_info['name']} ({user_info['email']})")
-    print(f"Plan: {user_info['subscription_plan']}")
-    print(f"Credits: {user_info['credits_remaining']}")
+    print(f"User: {user_info['full_name']} ({user_info['email']})")
+    print(f"Credits: {user_info['credits']['total_available_credits']}")
+    print(f"Subscription: {user_info['subscription']['plan_name']}")
+    print(f"Phone verified: {user_info['phone_verified']}")
     ```
   </Tab>
 </Tabs>
+
+**Response:**
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "user@example.com",
+  "full_name": "John Doe",
+  "image": "https://lh3.googleusercontent.com/a/...",
+  "phone_number": "+1234567890",
+  "phone_verified": true,
+  "user_type": "individual",
+  "audio_usage": "personal",
+  "is_active": true,
+  "is_verified": true,
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T11:00:00Z",
+  "credits": {
+    "credits_balance": 1500,
+    "payg_balance": 500,
+    "total_available_credits": 2000,
+    "credits_used_today": 150,
+    "daily_limit": 10000,
+    "last_reset_at": "2024-01-15T00:00:00Z"
+  },
+  "subscription": {
+    "plan_id": "price_pro_monthly",
+    "plan_name": "Pro",
+    "is_free_plan": false,
+    "status": "active",
+    "current_period_start": "2024-01-15T00:00:00Z",
+    "current_period_end": "2024-02-15T00:00:00Z",
+    "cancel_at": null
+  },
+  "is_eligible_for_first_time_discount": false,
+  "first_time_discount_active": false
+}
+```
 
 ### Update Profile
 
@@ -466,7 +646,9 @@ Update user profile information.
     {
       "full_name": "Updated Name",
       "user_type": "individual",
-      "audio_usage": "personal"
+      "audio_usage": "personal",
+      "phone_number": "+1234567890",
+      "country_code": "US"
     }
     ```
   </Tab>
@@ -478,18 +660,69 @@ Update user profile information.
         json={
             "full_name": "Updated Name",
             "user_type": "individual",
-            "audio_usage": "personal"
+            "audio_usage": "personal",
+            "phone_number": "+1234567890"
         }
     )
     ```
   </Tab>
 </Tabs>
 
-## Security Features
+<Warning>
+  Updating phone number will reset phone verification status. You'll need to verify the new number using the phone verification endpoints.
+</Warning>
 
-### Session Management
+## Session Management
 
-View and manage your active sessions.
+### Validate Current Session
+
+Check if the current session is valid and get detailed session information.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/auth/session/validate
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/session/validate",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    validation = response.json()
+    if validation["is_valid"]:
+        print(f"Session expires in: {validation['expires_in']} seconds")
+        print(f"Needs refresh: {validation['needs_refresh']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "is_valid": true,
+  "session_info": {
+    "session_id": "sess_abc123",
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "device_info": "Chrome on Windows",
+    "ip_address": "192.168.1.1",
+    "created_at": "2024-01-15T10:30:00Z",
+    "last_active": "2024-01-15T11:00:00Z",
+    "expires_at": "2024-01-15T16:30:00Z",
+    "is_current": true
+  },
+  "user": { /* Complete user object */ },
+  "expires_in": 18000,
+  "needs_refresh": false
+}
+```
+
+### List Active Sessions
+
+View and manage all your active sessions across devices.
 
 <Tabs>
   <Tab title="GET">
@@ -500,7 +733,6 @@ View and manage your active sessions.
   </Tab>
   <Tab title="Python">
     ```python
-    # Get active sessions
     response = requests.get(
         "https://api.audiopod.ai/api/v1/auth/sessions",
         headers={"Authorization": f"Bearer {access_token}"}
@@ -510,25 +742,532 @@ View and manage your active sessions.
     for session in sessions:
         print(f"Session: {session['session_id']}")
         print(f"Device: {session['device_info']}")
+        print(f"Location: {session['ip_address']}")
         print(f"Last Active: {session['last_active']}")
+        print(f"Current: {session['is_current']}")
+        print("---")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+[
+  {
+    "session_id": "sess_abc123",
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "device_info": "Chrome on Windows",
+    "ip_address": "192.168.1.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    "created_at": "2024-01-15T10:30:00Z",
+    "last_active": "2024-01-15T11:00:00Z",
+    "expires_at": "2024-01-15T16:30:00Z",
+    "is_current": true
+  },
+  {
+    "session_id": "sess_def456",
+    "user_id": "550e8400-e29b-41d4-a716-446655440000",
+    "device_info": "Safari on iPhone",
+    "ip_address": "10.0.0.1",
+    "created_at": "2024-01-14T09:15:00Z",
+    "last_active": "2024-01-14T22:45:00Z",
+    "expires_at": "2024-01-15T04:15:00Z",
+    "is_current": false
+  }
+]
+```
+
+### Revoke Sessions
+
+Revoke specific sessions or all other sessions for security.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/auth/sessions/revoke
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "session_id": "sess_def456",
+      "revoke_all_others": false
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    # Revoke a specific session
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/sessions/revoke",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "session_id": "sess_def456",
+            "revoke_all_others": False
+        }
+    )
+    
+    # Revoke all other sessions (keep current)
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/sessions/revoke",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={"revoke_all_others": True}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Enhanced Token Refresh
+
+Refresh access token with complete user data (alternative to basic refresh).
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/auth/refresh-enhanced
+    Content-Type: application/json
+    
+    {
+      "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/refresh-enhanced",
+        json={"refresh_token": refresh_token}
+    )
+    
+    if response.status_code == 200:
+        data = response.json()
+        # Returns complete user data like login endpoint
+        access_token = data["access_token"]
+        user = data["user"]
+        print(f"Token refreshed for: {user['email']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Check Token Health
+
+Check token validity and expiration status without full validation.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/auth/token-health
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/token-health",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    health = response.json()
+    print(f"Token valid: {health['valid']}")
+    print(f"Expires in: {health.get('expires_in_minutes', 0)} minutes")
+    print(f"Should refresh: {health.get('should_refresh', False)}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "valid": true,
+  "expired": false,
+  "expires_in_seconds": 1800,
+  "expires_in_minutes": 30,
+  "should_refresh": false,
+  "user_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+## Device Management
+
+### List User Devices
+
+Get all devices and browsers the user has logged in from.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/auth/devices?include_inactive=true
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/devices",
+        headers={"Authorization": f"Bearer {access_token}"},
+        params={"include_inactive": True}
+    )
+    
+    device_data = response.json()
+    print(f"Total devices: {device_data['total_count']}")
+    print(f"Active devices: {device_data['active_count']}")
+    print(f"Trusted devices: {device_data['trusted_count']}")
+    
+    for device in device_data['devices']:
+        status = "🟢 Active" if device['is_active'] else "🔴 Inactive"
+        current = " (Current)" if device['is_current_session'] else ""
+        print(f"{status}{current}: {device['display_name']}")
+        print(f"  Location: {device['location'] or device['ip_address']}")
+        print(f"  Last seen: {device['last_seen']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "devices": [
+    {
+      "id": "dev_abc123",
+      "device_fingerprint": "fp_xyz789",
+      "display_name": "Chrome on Windows",
+      "browser": "Chrome",
+      "os": "Windows",
+      "device_type": "desktop",
+      "ip_address": "192.168.1.1",
+      "location": "New York, NY, US",
+      "timezone": "America/New_York",
+      "first_seen": "2024-01-10T10:00:00Z",
+      "last_seen": "2024-01-15T11:00:00Z",
+      "last_login_method": "password",
+      "login_count": 15,
+      "is_active": true,
+      "is_current_session": true,
+      "is_trusted": true,
+      "is_blocked": false,
+      "current_session_id": "sess_abc123"
+    }
+  ],
+  "total_count": 3,
+  "active_count": 2,
+  "current_device": { /* Current device object */ },
+  "trusted_count": 2
+}
+```
+
+## Security Features
+
+### CAPTCHA Protection
+
+CAPTCHA challenges are automatically required based on IP reputation and activity patterns.
+
+#### Check if CAPTCHA is Required
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/auth/captcha/required
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/captcha/required"
+    )
+    
+    captcha_info = response.json()
+    if captcha_info["required"]:
+        print("CAPTCHA verification required")
+        # Generate CAPTCHA challenge
+    ```
+  </Tab>
+</Tabs>
+
+#### Generate CAPTCHA Challenge
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/auth/captcha/generate
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/captcha/generate"
+    )
+    
+    captcha = response.json()
+    print(f"Question: {captcha['question']}")
+    print(f"CAPTCHA ID: {captcha['captcha_id']}")
+    print(f"Expires in: {captcha['expires_in']} seconds")
+    
+    # User answers the question, then verify
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "captcha_id": "capt_abc123",
+  "question": "What is 7 + 15?",
+  "expires_in": 300
+}
+```
+
+#### Verify CAPTCHA Response
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/auth/captcha/verify
+    Content-Type: application/json
+    
+    {
+      "captcha_id": "capt_abc123",
+      "answer": "22"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/captcha/verify",
+        json={
+            "captcha_id": "capt_abc123",
+            "answer": "22"
+        }
+    )
+    
+    verification = response.json()
+    if verification["valid"]:
+        print("CAPTCHA verified successfully")
+    else:
+        print("Incorrect answer")
+    ```
+  </Tab>
+</Tabs>
+
+### Phone Verification
+
+#### Send Phone Verification Code
+
+Send SMS verification code to user's phone number.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/auth/send-phone-verification
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "phone_number": "+1234567890",
+      "country_code": "US"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/send-phone-verification",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "phone_number": "+1234567890",
+            "country_code": "US"
+        }
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Verification code sent. Expires in {result['expires_in_minutes']} minutes.")
+    ```
+  </Tab>
+</Tabs>
+
+#### Verify Phone Number
+
+Verify phone number with received OTP code.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/auth/verify-phone
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "phone_number": "+1234567890",
+      "otp_code": "123456"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/verify-phone",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "phone_number": "+1234567890",
+            "otp_code": "123456"
+        }
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Phone verified: {result['verified']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Password Management
+
+#### Change Password
+
+Change user password (requires current password).
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/auth/change-password
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "current_password": "current_password123",
+      "new_password": "new_secure_password456"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/change-password",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "current_password": "current_password123",
+            "new_password": "new_secure_password456"
+        }
+    )
+    
+    if response.status_code == 200:
+        print("Password updated. All other sessions logged out for security.")
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  Password changes automatically log out all other active sessions for security.
+</Warning>
+
+### OAuth Account Management
+
+#### Link OAuth Provider
+
+Link additional OAuth providers to your account.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/auth/account-providers
+    Authorization: Bearer {access_token}
+    Content-Type: application/json
+    
+    {
+      "provider": "google",
+      "provider_account_id": "1234567890",
+      "type": "oauth",
+      "access_token": "ya29.a0AfH6SMC...",
+      "id_token": "eyJhbGciOiJSUzI1NiIs..."
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/account-providers",
+        headers={"Authorization": f"Bearer {access_token}"},
+        json={
+            "provider": "google",
+            "provider_account_id": google_user_id,
+            "type": "oauth",
+            "access_token": google_access_token
+        }
+    )
+    ```
+  </Tab>
+</Tabs>
+
+#### List Linked Providers
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/auth/account-providers
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/account-providers",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+    
+    providers = response.json()
+    for provider in providers:
+        print(f"Linked: {provider['provider']} - {provider['provider_account_id']}")
+    ```
+  </Tab>
+</Tabs>
+
+#### Unlink Provider
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /api/v1/auth/account-providers/{provider}
+    Authorization: Bearer {access_token}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/auth/account-providers/google",
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
     ```
   </Tab>
 </Tabs>
 
 ### Rate Limiting
 
-Authentication endpoints have specific rate limits:
+Authentication endpoints have specific rate limits to prevent abuse:
 
-| Endpoint                       | Rate Limit  | Window   |
-| ------------------------------ | ----------- | -------- |
-| `/auth/token`                  | 5 requests  | 1 minute |
-| `/auth/register`               | 3 requests  | 1 hour   |
-| `/auth/password-reset-request` | 3 requests  | 1 hour   |
-| `/auth/refresh`                | 10 requests | 1 minute |
+| Endpoint | Rate Limit | Window | Notes |
+|----------|------------|--------|---------|
+| `/auth/initiate-registration` | 5 requests | 1 minute | Prevents spam registrations |
+| `/auth/verify-registration` | 10 requests | 1 minute | Prevents code brute force |
+| `/auth/forgot-password` | 3 requests | 1 hour | Prevents email flooding |
+| `/auth/reset-password` | 5 requests | 1 hour | Prevents token brute force |
+
+**Additional Security:**
+- CAPTCHA required after suspicious activity
+- Maximum 3 signups per device/IP combination
+- Email flood protection across all users
+- Automatic account flagging for review
+
+**Rate Limit Headers:**
+```
+X-RateLimit-Limit: 5
+X-RateLimit-Remaining: 4
+X-RateLimit-Reset: 1640995200
+Retry-After: 60
+```
 
 ## Error Handling
 
-### Common Error Responses
+### Authentication Error Responses
 
 <AccordionGroup>
   <Accordion title="401 Unauthorized - Invalid Credentials">
@@ -536,8 +1275,7 @@ Authentication endpoints have specific rate limits:
     {
       "error": {
         "code": "invalid_credentials",
-        "message": "Email or password is incorrect",
-        "suggestion": "Check your credentials or use password reset"
+        "message": "Incorrect email or password"
       }
     }
     ```
@@ -555,28 +1293,183 @@ Authentication endpoints have specific rate limits:
     ```
   </Accordion>
   
-  <Accordion title="403 Forbidden - Insufficient Permissions">
+  <Accordion title="401 Unauthorized - Invalid Token">
     ```json
     {
       "error": {
-        "code": "insufficient_permissions",
-        "message": "API key does not have required scope",
-        "details": {
-          "required_scopes": ["voice:write"],
-          "current_scopes": ["voice:read"]
-        }
+        "code": "invalid_token",
+        "message": "Invalid token format or signature"
       }
     }
     ```
   </Accordion>
   
-  <Accordion title="409 Conflict - User Already Exists">
+  <Accordion title="404 Not Found - User Not Found">
     ```json
     {
       "error": {
-        "code": "user_already_exists",
-        "message": "An account with this email already exists",
-        "suggestion": "Use login instead or try password reset"
+        "code": "user_not_found",
+        "message": "User not found"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Registration Error Responses
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - Email Already Registered">
+    ```json
+    {
+      "error": {
+        "code": "email_already_registered",
+        "message": "This email address is already registered."
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="400 Bad Request - Invalid Verification Code">
+    ```json
+    {
+      "error": {
+        "code": "invalid_verification_code",
+        "message": "Invalid email or verification code."
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="400 Bad Request - Verification Code Expired">
+    ```json
+    {
+      "error": {
+        "code": "verification_code_expired",
+        "message": "Verification code has expired. Please register again."
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="400 Bad Request - Too Many Signups">
+    ```json
+    {
+      "error": {
+        "code": "too_many_signups",
+        "message": "Signup limit reached for this device or network."
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### OAuth Error Responses
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - Unsupported Provider">
+    ```json
+    {
+      "error": {
+        "code": "provider_not_supported",
+        "message": "Unsupported provider: facebook"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="400 Bad Request - OAuth Verification Failed">
+    ```json
+    {
+      "error": {
+        "code": "oauth_verification_failed",
+        "message": "Invalid OAuth token data"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Security Error Responses
+
+<AccordionGroup>
+  <Accordion title="400 Bad Request - CAPTCHA Required">
+    ```json
+    {
+      "detail": "Security verification required. Please complete the CAPTCHA challenge.",
+      "headers": {
+        "X-Captcha-Required": "true"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="400 Bad Request - Invalid CAPTCHA">
+    ```json
+    {
+      "detail": "Invalid security verification. Please try again.",
+      "headers": {
+        "X-Captcha-Required": "true"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="400 Bad Request - Password Recently Used">
+    ```json
+    {
+      "error": {
+        "code": "password_recently_used",
+        "message": "Cannot reuse recent passwords"
+      }
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="400 Bad Request - Invalid Password">
+    ```json
+    {
+      "error": {
+        "code": "invalid_password",
+        "message": "Incorrect current password"
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Rate Limiting and System Errors
+
+<AccordionGroup>
+  <Accordion title="429 Rate Limited">
+    ```json
+    {
+      "error": {
+        "code": "rate_limit_exceeded",
+        "message": "Too many requests",
+        "retry_after": 60
+      }
+    }
+    ```
+    
+    **Headers:**
+    ```
+    X-RateLimit-Limit: 5
+    X-RateLimit-Remaining: 0
+    X-RateLimit-Reset: 1640995200
+    Retry-After: 60
+    ```
+  </Accordion>
+  
+  <Accordion title="500 Internal Server Error - System Error">
+    ```json
+    {
+      "error": {
+        "code": "system_error",
+        "message": "Failed to process request",
+        "details": {
+          "error": "Internal server error details"
+        }
       }
     }
     ```
@@ -596,19 +1489,19 @@ Authentication endpoints have specific rate limits:
     }
     ```
   </Accordion>
-  
-  <Accordion title="429 Rate Limited">
-    ```json
-    {
-      "error": {
-        "code": "rate_limit_exceeded",
-        "message": "Too many login attempts",
-        "retry_after": 60
-      }
-    }
-    ```
-  </Accordion>
 </AccordionGroup>
+
+### Error Response Headers
+
+Authentication endpoints may include additional headers:
+
+| Header | Description | Example |
+|--------|-------------|----------|
+| `X-Captcha-Required` | CAPTCHA verification needed | `"true"` |
+| `X-RateLimit-Limit` | Request limit per window | `5` |
+| `X-RateLimit-Remaining` | Remaining requests in window | `4` |
+| `X-RateLimit-Reset` | Window reset timestamp | `1640995200` |
+| `Retry-After` | Seconds to wait when rate limited | `60` |
 
 ## Scopes and Permissions
 

@@ -1,21 +1,21 @@
 ---
 title: "Speaker Extraction"
-description: "Automatically identify, separate, and extract individual speakers from audio recordings using advanced AI-powered speaker diarization technology."
+description: "Extract individual speakers from multi-speaker audio recordings into separate, clean audio files using advanced AI-powered speaker separation technology."
 ---
 
 ## Overview
 
-AudioPod AI's Speaker Extraction API uses advanced speaker diarization technology to automatically identify and separate multiple speakers in audio recordings. Extract individual speaker tracks, get detailed speaker analytics, and generate timeline data for multi-speaker content.
+AudioPod AI's Speaker Extraction API automatically separates multiple speakers in audio recordings into individual speaker-specific audio files. The service identifies who speaks when and creates clean, separate audio tracks for each speaker while preserving original audio quality.
 
 ### Key Features
 
-- **Speaker Diarization**: Automatically identify who speaks when
-- **Speaker Extraction**: Generate separate audio files for each speaker
-- **Timeline Generation**: Get detailed speaker timeline with timestamps
-- **Speaker Analytics**: Duration, confidence scores, and speaker statistics
-- **Multi-Format Support**: Process audio and video files
-- **URL Processing**: Extract speakers from YouTube and other platforms
-- **Configurable Detection**: Specify number of speakers or auto-detect
+- **Speaker Separation**: Generate separate audio files for each detected speaker
+- **Timeline Generation**: Get detailed RTTM files with speaker timestamps
+- **Speaker Analytics**: Duration and quality statistics for each speaker
+- **Multi-Format Support**: Process audio and video files (WAV, MP3, M4A, MP4, etc.)
+- **URL Processing**: Extract speakers from YouTube and other video platforms
+- **Smart Detection**: Automatic speaker detection or specify expected number
+- **Quality Preservation**: Maintains original audio quality in extracted files
 
 ## Authentication
 
@@ -23,79 +23,87 @@ All endpoints require authentication:
 - **API Key**: `Authorization: Bearer your_api_key`
 - **JWT Token**: `Authorization: Bearer your_jwt_token`
 
-## Speaker Diarization
+## Speaker Extraction
 
-### Identify Speakers in Audio
+### Extract from File Upload
 
-Analyze audio to identify who speaks when without extracting separate files.
+Upload an audio or video file to extract individual speaker tracks.
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /api/v1/speaker/diarize
+    POST /api/v1/speaker/extract
     Authorization: Bearer {api_key}
     Content-Type: multipart/form-data
     
-    file: (audio file)
-    num_speakers: 3
+    file: (audio/video file)
+    num_speakers: 4
     ```
   </Tab>
   <Tab title="Python">
     ```python
     import requests
     
-    with open("meeting_recording.wav", "rb") as audio_file:
+    with open("podcast_episode.mp3", "rb") as audio_file:
         response = requests.post(
-            "https://api.audiopod.ai/api/v1/speaker/diarize",
+            "https://api.audiopod.ai/api/v1/speaker/extract",
             headers={"Authorization": f"Bearer {api_key}"},
-            data={"num_speakers": 3},  # Optional: specify expected speakers
+            data={"num_speakers": 4},  # Optional: specify expected speakers
             files={"file": audio_file}
         )
     
     if response.status_code == 200:
-        job_data = response.json()
-        job_id = job_data["id"]
-        print(f"Diarization job created: {job_id}")
+        extraction_job = response.json()
+        job_id = extraction_job["id"]
+        print(f"Speaker extraction job created: {job_id}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/speaker/diarize" \
+    curl -X POST "https://api.audiopod.ai/api/v1/speaker/extract" \
       -H "Authorization: Bearer your_api_key" \
-      -F "file=@meeting_recording.wav" \
-      -F "num_speakers=3"
+      -F "file=@podcast_episode.mp3" \
+      -F "num_speakers=4"
     ```
   </Tab>
 </Tabs>
 
-### Diarize from URL
+### Extract from URL
 
-Analyze speakers in audio/video from URLs (YouTube, etc.).
+Extract speakers from audio/video URLs (YouTube, Vimeo, etc.).
 
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /api/v1/speaker/diarize
+    POST /api/v1/speaker/extract
     Authorization: Bearer {api_key}
     Content-Type: application/x-www-form-urlencoded
     
-    url=https://youtube.com/watch?v=example123&num_speakers=2
+    url=https://youtube.com/watch?v=example123&num_speakers=3
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/speaker/diarize",
+        "https://api.audiopod.ai/api/v1/speaker/extract",
         headers={"Authorization": f"Bearer {api_key}"},
         data={
             "url": "https://youtube.com/watch?v=example123",
-            "num_speakers": 2  # Optional
+            "num_speakers": 3  # Optional: specify expected speakers
         }
     )
     
     if response.status_code == 200:
         job_data = response.json()
-        print(f"URL diarization started: {job_data['id']}")
+        print(f"URL extraction started: {job_data['id']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/speaker/extract" \
+      -H "Authorization: Bearer your_api_key" \
+      -d "url=https://youtube.com/watch?v=example123" \
+      -d "num_speakers=3"
     ```
   </Tab>
 </Tabs>
@@ -105,56 +113,19 @@ Analyze speakers in audio/video from URLs (YouTube, etc.).
 ```json
 {
   "id": 123,
-  "job_type": "diarization",
-  "status": "PROCESSING",
-  "progress": 0,
+  "job_type": "extraction",
+  "status": "PENDING",
   "created_at": "2024-01-15T10:30:00Z",
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "task_id": "celery_task_uuid_here",
-  "filename": "meeting_recording.wav"
+  "task_id": "celery_task_uuid_here"
 }
 ```
-
-## Speaker Separation
-
-### Extract Individual Speaker Tracks
-
-Generate separate audio files for each identified speaker.
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/speaker/extract
-    Authorization: Bearer {api_key}
-    Content-Type: multipart/form-data
-    
-    file: (audio file)
-    num_speakers: 4
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    with open("podcast_episode.mp3", "rb") as audio_file:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/speaker/extract",
-            headers={"Authorization": f"Bearer {api_key}"},
-            data={"num_speakers": 4},  # Host + 3 guests
-            files={"file": audio_file}
-        )
-    
-    if response.status_code == 200:
-        extraction_job = response.json()
-        job_id = extraction_job["id"]
-        print(f"Speaker extraction job: {job_id}")
-    ```
-  </Tab>
-</Tabs>
 
 ## Job Management
 
 ### Get Job Status
 
-Monitor the progress of speaker processing jobs.
+Monitor the progress of speaker extraction jobs.
 
 <Tabs>
   <Tab title="GET">
@@ -173,65 +144,79 @@ Monitor the progress of speaker processing jobs.
     if response.status_code == 200:
         job_status = response.json()
         print(f"Status: {job_status['status']}")
-        print(f"Progress: {job_status['progress']}%")
         
         if job_status["status"] == "COMPLETED":
-            print("Processing complete!")
+            print("Extraction complete!")
             if job_status["result"]:
                 result = job_status["result"]
-                print(f"Found {result['num_speakers']} speakers")
+                print(f"Extracted {len(result['speakers'])} speakers")
+                for speaker in result['speakers']:
+                    print(f"- {speaker['label']}: {speaker.get('download_url', 'Processing...')}")
     ```
   </Tab>
 </Tabs>
 
-**Response (Completed Diarization):**
+**Response (Completed Extraction):**
 
 ```json
 {
   "id": 123,
-  "job_type": "diarization",
+  "job_type": "extraction",
   "status": "COMPLETED",
-  "progress": 100,
   "created_at": "2024-01-15T10:30:00Z",
   "completed_at": "2024-01-15T10:35:30Z",
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
-  "filename": "meeting_recording.wav",
+  "task_id": "celery_task_uuid_here",
   "result": {
-    "num_speakers": 3,
     "speakers": [
       {
-        "label": "SPEAKER_00",
-        "total_speaking_time": 245.7
+        "id": 0,
+        "label": "SPEAKER_0",
+        "audio_path": "processed/123/speaker_0.wav",
+        "download_url": "https://s3.amazonaws.com/...",
+        "audio_stats": {
+          "rms_db": -12.3,
+          "peak": 0.85
+        }
       },
       {
-        "label": "SPEAKER_01", 
-        "total_speaking_time": 189.3
-      },
-      {
-        "label": "SPEAKER_02",
-        "total_speaking_time": 156.8
+        "id": 1,
+        "label": "SPEAKER_1",
+        "audio_path": "processed/123/speaker_1.wav",
+        "download_url": "https://s3.amazonaws.com/...",
+        "audio_stats": {
+          "rms_db": -15.7,
+          "peak": 0.72
+        }
       }
     ],
-    "timeline": [
+    "files": [
       {
-        "start": 0.0,
-        "end": 12.5,
-        "speaker": "SPEAKER_00"
+        "type": "audio",
+        "speaker": "SPEAKER_0",
+        "path": "processed/123/speaker_0.wav",
+        "download_url": "https://s3.amazonaws.com/..."
       },
       {
-        "start": 12.5,
-        "end": 28.9,
-        "speaker": "SPEAKER_01"
+        "type": "audio",
+        "speaker": "SPEAKER_1",
+        "path": "processed/123/speaker_1.wav",
+        "download_url": "https://s3.amazonaws.com/..."
+      },
+      {
+        "type": "rttm",
+        "path": "processed/123/extraction.rttm",
+        "download_url": "https://s3.amazonaws.com/..."
       }
     ],
-    "rttm_path": "/results/job_123_speakers.rttm"
+    "rttm_path": "processed/123/extraction.rttm"
   }
 }
 ```
 
-### List Speaker Jobs
+### List Extraction Jobs
 
-Get all speaker processing jobs for the authenticated user.
+Get all speaker extraction jobs for the authenticated user.
 
 <Tabs>
   <Tab title="GET">
@@ -246,7 +231,7 @@ Get all speaker processing jobs for the authenticated user.
         "https://api.audiopod.ai/api/v1/speaker/jobs",
         headers={"Authorization": f"Bearer {api_key}"},
         params={
-            "job_type": "extraction",  # or "diarization"
+            "job_type": "extraction",
             "status": "COMPLETED",     # Optional filter
             "skip": 0,
             "limit": 50
@@ -255,15 +240,54 @@ Get all speaker processing jobs for the authenticated user.
     
     if response.status_code == 200:
         jobs_data = response.json()
+        print(f"Total jobs: {jobs_data['total']}")
+        print(f"Has more: {jobs_data['hasMore']}")
+        
         for job in jobs_data["items"]:
-            print(f"Job {job['id']}: {job['status']} - {job['filename']}")
+            print(f"Job {job['id']}: {job['status']} - {job.get('filename', 'N/A')}")
+            if job['status'] == 'COMPLETED' and job.get('outputFiles'):
+                print(f"  Output files: {len(job['outputFiles'])}")
     ```
   </Tab>
 </Tabs>
 
+**Response:**
+
+```json
+{
+  "items": [
+    {
+      "id": 123,
+      "job_type": "extraction",
+      "status": "COMPLETED",
+      "created_at": "2024-01-15T10:30:00Z",
+      "completed_at": "2024-01-15T10:35:30Z",
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "task_id": "celery_task_uuid_here",
+      "filename": "podcast_episode.mp3",
+      "display_name": "podcast_episode.mp3",
+      "outputFiles": [
+        {
+          "type": "audio",
+          "speaker": "SPEAKER_0",
+          "path": "processed/123/speaker_0.wav"
+        },
+        {
+          "type": "audio", 
+          "speaker": "SPEAKER_1",
+          "path": "processed/123/speaker_1.wav"
+        }
+      ]
+    }
+  ],
+  "hasMore": false,
+  "total": 1
+}
+```
+
 ### Retry Failed Job
 
-Retry a failed speaker processing job.
+Retry a failed speaker extraction job.
 
 <Tabs>
   <Tab title="POST">
@@ -281,14 +305,34 @@ Retry a failed speaker processing job.
     
     if response.status_code == 200:
         retried_job = response.json()
-        print(f"Job {retried_job['id']} retried successfully")
+        print(f"Extraction job {retried_job['id']} retried successfully")
+        print(f"New task ID: {retried_job['task_id']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/speaker/jobs/123/retry" \
+      -H "Authorization: Bearer your_api_key"
     ```
   </Tab>
 </Tabs>
 
+**Response:**
+
+```json
+{
+  "id": 123,
+  "job_type": "extraction",
+  "status": "PROCESSING",
+  "created_at": "2024-01-15T10:30:00Z",
+  "task_id": "new_celery_task_uuid_here",
+  "user_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
 ### Delete Job
 
-Remove a speaker processing job and its results.
+Remove a speaker extraction job and its associated files.
 
 <Tabs>
   <Tab title="DELETE">
@@ -305,54 +349,139 @@ Remove a speaker processing job and its results.
     )
     
     if response.status_code == 204:
-        print("Job deleted successfully")
+        print("Extraction job and files deleted successfully")
+    elif response.status_code == 404:
+        print("Job not found or access denied")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE "https://api.audiopod.ai/api/v1/speaker/jobs/123" \
+      -H "Authorization: Bearer your_api_key"
     ```
   </Tab>
 </Tabs>
 
+**Response:** `204 No Content` on successful deletion
+
+## Supported Formats
+
+**Audio Formats:**
+- WAV, MP3, M4A, AAC, FLAC, OGG, OPUS, WebM
+- WMA, Speex, and other common formats
+
+**Video Formats:**
+- MP4, AVI, MOV, MKV, WebM
+- Audio will be extracted automatically from video files
+
+**URL Sources:**
+- YouTube, Vimeo, and other video platforms
+- Direct audio/video file URLs
+
 ## Error Handling
 
 <AccordionGroup>
-  <Accordion title="400 Bad Request - Invalid Audio">
-    **Causes:** - Audio file has no speech content - File format not supported - Audio too short for analysis
-    **Solutions:** - Verify audio contains clear speech - Use supported formats (WAV, MP3, M4A) - Ensure minimum 30 seconds duration
-  </Accordion>
-
-  <Accordion title="422 Processing Error - Speaker Detection Failed">
-    **Causes:** - Audio quality too poor - Speakers not distinguishable - Background noise too high
-    **Solutions:** - Improve audio quality with noise reduction - Try automatic speaker detection - Use diarization before extraction
+  <Accordion title="400 Bad Request - Invalid Input">
+    ```json
+    {
+      "error_code": "INVALID_AUDIO_FORMAT",
+      "message": "Invalid file type. Must be audio or video file.",
+      "details": {
+        "content_type": "text/plain",
+        "extension": ".txt",
+        "supported_formats": ["audio/wav", "audio/mp3", "audio/m4a", "video/mp4"],
+        "supported_extensions": [".wav", ".mp3", ".m4a", ".mp4", ".avi", ".mov"]
+      }
+    }
+    ```
+    **Causes:** Invalid file format, missing file/URL, or both file and URL provided
+    
+    **Solutions:** Use supported audio/video formats, provide either file OR URL (not both)
   </Accordion>
 
   <Accordion title="402 Payment Required - Insufficient Credits">
-    **Causes:** - Not enough credits for processing duration
-    **Solutions:** - Purchase additional credits - Check credit requirements before processing
+    ```json
+    {
+      "detail": "Insufficient credits for processing. Required: 8250, Available: 1000"
+    }
+    ```
+    **Causes:** Not enough credits for the audio duration
+    
+    **Solutions:** Purchase additional credits or process shorter audio files
+  </Accordion>
+
+  <Accordion title="422 Processing Error - Extraction Failed">
+    ```json
+    {
+      "error_code": "PROCESSING_FAILED", 
+      "message": "Failed to extract speakers from audio",
+      "details": {
+        "reason": "Audio quality too poor or no distinguishable speakers found"
+      }
+    }
+    ```
+    **Causes:** Poor audio quality, no speech content, or indistinguishable speakers
+    
+    **Solutions:** Ensure clear speech content, try noise reduction first, or verify multiple speakers exist
+  </Accordion>
+
+  <Accordion title="404 Not Found - Job Not Found">
+    ```json
+    {
+      "detail": "Job not found or access denied"
+    }
+    ```
+    **Causes:** Invalid job ID or trying to access another user's job
+    
+    **Solutions:** Verify job ID and ensure you own the job
+  </Accordion>
+
+  <Accordion title="429 Too Many Requests - Rate Limit">
+    ```json
+    {
+      "detail": "Rate limit exceeded. Try again later."
+    }
+    ```
+    **Causes:** Exceeded 100 requests per minute limit
+    
+    **Solutions:** Wait before making additional requests or implement request throttling
   </Accordion>
 </AccordionGroup>
 
 ## Pricing
 
-Speaker processing costs are based on audio duration:
+Speaker extraction costs are based on audio duration:
 
 | Service | Cost | Description |
 |---------|------|-------------|
-| Speaker Diarization | 1650 credits/minute | Identify when each speaker talks |
-| Speaker Extraction | 1650 credits/minute | Generate separate audio files |
+| Speaker Extraction | 1650 credits/minute | Generate separate audio files for each speaker |
+
+*Note: Credits are charged per second of audio (27.5 credits/second)*
 
 ### Cost Examples
 
-| Duration | Service | Credits | USD Cost |
+| Duration | Service | Credits | USD Cost* |
 |----------|---------|---------|----------|
-| 10 minutes | Diarization | 16500 | $2.20 |
-| 30 minutes | Extraction | 49500 | $6.60 |
-| 1 hour | Both services | 198000 | $26.40 |
+| 5 minutes | Extraction | 8,250 | ~$1.10 |
+| 15 minutes | Extraction | 24,750 | ~$3.30 |
+| 30 minutes | Extraction | 49,500 | ~$6.60 |
+| 1 hour | Extraction | 99,000 | ~$13.20 |
+
+*USD cost estimates based on standard credit pricing. Actual costs may vary based on subscription plan.
+
+## Rate Limits
+
+- **100 requests per minute** per API key
+- Rate limits apply per endpoint
+- Exceeding limits returns `429 Too Many Requests`
 
 ## Next Steps
 
 <Columns cols={2}>
   <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
-    Use speaker information to improve transcription accuracy.
+    Transcribe individual speaker tracks with improved accuracy.
   </Card>
-  <Card title="AI Dubbing" icon="user-clone" href="/api-reference/ai-dubbing">
-    Speech to Speech translation for any audio/video content
+  <Card title="Noise Reduction" icon="volume-x" href="/api-reference/noise-reduction">
+    Clean up audio before speaker extraction for better results.
   </Card>
 </Columns>

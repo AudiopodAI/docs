@@ -1,25 +1,26 @@
 ---
 title: "Text to Speech"
-description: "Generate natural-sounding speech from text using AudioPod AI's voice generation technology with support for custom voices."
+description: "Generate natural-sounding speech from text using AudioPod AI's unified voice generation technology with support for custom and standard voices."
 ---
 
 ## Overview
 
-AudioPod AI's Text to Speech service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Using state of the art Text to Speech Models, generate speech with any voice in 60+ supported languages.
+AudioPod AI's Text to Speech service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Generate speech with any voice in 60+ supported languages using our advanced AI models.
 
 ### Supported Voice Types
 
-- **Standard Voices**: Pre-built professional voices 
+- **Standard Voices**: Pre-built professional voices with various characteristics
 - **Custom Voices**: Your own voice clones created via [Voice Management](/api-reference/voice-management)
-- **Unified API**: Same endpoint works for both voice types seamlessly
+- **Unified API**: Same endpoint works for both voice types seamlessly with automatic routing
 
 ### Key Features
 
 - **50+ Premium Voices**: Pre-built voices with unique characteristics
 - **Custom Voice Support**: Use your own voice clones and collections
 - **Variable Speed Control**: Adjust speech speed from 0.25x to 4.0x
-- **Multiple Formats**: MP3, WAV, OGG and provider-specific formats
-- **Real-time Generation**: Background job processing with status tracking
+- **Multiple Formats**: MP3, WAV, OGG audio formats
+- **Async Processing**: Background job processing with real-time status tracking
+- **Credit Management**: Automatic credit reservation and billing
 
 ## Authentication
 
@@ -31,27 +32,128 @@ All endpoints require authentication using either:
 
 ### Basic Text to Speech
 
-Generate speech from text using any voice in your collection.
+Generate speech from text using any voice (standard or custom) by voice UUID, ID, or name. All generation is processed asynchronously with job tracking.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/voice/voices/{voice_identifier}/generate
-    Authorization: Bearer {api_key}
-    Content-Type: multipart/form-data
+  <Tab title="Python SDK">
+    ```python
+    from audiopod import Client
+    import requests
+    import time
+
+    # Initialize client
+    client = Client()
+
+    # Generate speech using voice UUID
+    job = client.voice.generate_speech(
+        voice_id="550e8400-e29b-41d4-a716-446655440000",  # Voice UUID
+        text="Hello! This is AudioPod AI generating natural speech.",
+        audio_format="mp3",
+        language="en",
+        speed=1.0
+    )
+
+    print(f"Generation job created: {job.id}")
+    print(f"Status: {job.status}")
+
+    # Check job status until completion
+    while True:
+        status = client.voice.get_job_status(job.id)
+        print(f"Job status: {status.status}")
+        
+        if status.status == 'completed':
+            # Get output URL from job result
+            if status.result and 'output_url' in status.result:
+                audio_url = status.result['output_url']
+                print(f"Audio ready: {audio_url}")
+                
+                # Download the audio file
+                audio_response = requests.get(audio_url)
+                with open("generated_speech.mp3", "wb") as f:
+                    f.write(audio_response.content)
+                print("Audio saved as generated_speech.mp3")
+            break
+        elif status.status == 'failed':
+            print(f"Job failed: {status.error_message}")
+            break
+            
+        time.sleep(2)  # Wait 2 seconds before checking again
     
-    input_text=Hello! This is AudioPod AI generating natural speech.
-    audio_format=mp3
-    speed=1.0
-    language=en
+    # Alternative: Generate using voice name (for standard voices)
+    job = client.voice.generate_speech(
+        voice_id="aura",  # Voice name
+        text="Hello! This uses a standard voice by name.",
+        audio_format="mp3",
+        speed=1.0
+    )
     ```
   </Tab>
-  <Tab title="Python">
+  <Tab title="Node.js SDK">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+    const fs = require('fs');
+
+    // Initialize client
+    const client = new AudioPodClient();
+
+    async function generateSpeech() {
+      try {
+        // Generate speech using voice UUID
+        const job = await client.voice.generateSpeech(
+          '550e8400-e29b-41d4-a716-446655440000',  // Voice ID/UUID
+          'Hello! This is AudioPod AI generating natural speech.',  // Text
+          {
+            language: 'en',
+            audioFormat: 'mp3',
+            generationParams: {
+              speed: 1.0
+            }
+          }
+        );
+
+        console.log(`Generation job created: ${job.id}`);
+        console.log(`Status: ${job.status}`);
+
+        // Check job status until completion
+        while (true) {
+          const status = await client.voice.getJobStatus(job.id);
+          console.log(`Job status: ${status.status}`);
+          
+          if (status.status === 'completed') {
+            const audioUrl = status.output_url;
+            console.log(`Audio ready: ${audioUrl}`);
+            
+            // Download the audio file
+            const fetch = require('node-fetch');
+            const audioResponse = await fetch(audioUrl);
+            const buffer = await audioResponse.buffer();
+            fs.writeFileSync('generated_speech.mp3', buffer);
+            console.log('Audio saved as generated_speech.mp3');
+            break;
+          } else if (status.status === 'failed') {
+            console.log(`Job failed: ${status.error_message}`);
+            break;
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        }
+
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+
+    generateSpeech();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
     import requests
+    import time
 
+    # Create TTS job using voice UUID
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
+        "https://api.audiopod.ai/api/v1/voice/voices/550e8400-e29b-41d4-a716-446655440000/generate",
         headers={"Authorization": f"Bearer {api_key}"},
         data={
             "input_text": "Hello! This is AudioPod AI generating natural speech.",
@@ -63,180 +165,377 @@ Generate speech from text using any voice in your collection.
     
     if response.status_code == 200:
         job_data = response.json()
-        job_id = job_data["id"]
+        job_id = job_data["job_id"]
         print(f"Voice generation job created: {job_id}")
+        print(f"Credits reserved: {job_data.get('credits_reserved')}")
+        
+        # Poll job status until completion
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/voice/tts-jobs/{job_id}/status",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                status_data = status_response.json()
+                print(f"Job status: {status_data['status']}")
+                
+                if status_data['status'] == 'completed':
+                    audio_url = status_data['output_url']
+                    print(f"Audio ready: {audio_url}")
+                    
+                    # Download the audio file
+                    audio_response = requests.get(audio_url)
+                    with open("generated_speech.mp3", "wb") as f:
+                        f.write(audio_response.content)
+                    print("Audio saved as generated_speech.mp3")
+                    break
+                elif status_data['status'] == 'failed':
+                    print(f"Job failed: {status_data.get('error_message')}")
+                    break
+                    
+            time.sleep(2)  # Wait 2 seconds before checking again
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/aura/generate" \
-      -H "Authorization: Bearer your_api_key" \
-      -F "input_text=Hello! This is AudioPod AI generating natural speech." \
-      -F "audio_format=mp3" \
-      -F "speed=1.0" \
-      -F "language=en"
+    # Create TTS job using voice UUID
+    JOB_RESPONSE=$(curl -s -X POST "https://api.audiopod.ai/api/v1/voice/voices/550e8400-e29b-41d4-a716-446655440000/generate" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -d 'input_text=Hello! This is AudioPod AI generating natural speech.' \
+      -d 'audio_format=mp3' \
+      -d 'speed=1.0' \
+      -d 'language=en')
+
+    # Extract job ID
+    JOB_ID=$(echo $JOB_RESPONSE | jq -r '.job_id')
+    echo "Job created: $JOB_ID"
+
+    # Poll job status
+    while true; do
+      STATUS_RESPONSE=$(curl -s -X GET "https://api.audiopod.ai/api/v1/voice/tts-jobs/$JOB_ID/status" \
+        -H "Authorization: Bearer $AUDIOPOD_API_KEY")
+      
+      STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
+      echo "Job status: $STATUS"
+      
+      if [ "$STATUS" = "completed" ]; then
+        AUDIO_URL=$(echo $STATUS_RESPONSE | jq -r '.output_url')
+        echo "Audio ready: $AUDIO_URL"
+        
+        # Download the audio
+        curl -o generated_speech.mp3 "$AUDIO_URL"
+        echo "Audio saved as generated_speech.mp3"
+        break
+      elif [ "$STATUS" = "failed" ]; then
+        echo "Job failed"
+        break
+      fi
+      
+      sleep 2
+    done
     ```
   </Tab>
 </Tabs>
 
 **Parameters:**
-- `voice_identifier` (required): Voice name or UUID from your voice collection
-- `input_text` (required): Text to convert to speech  
+- `voice_id` (required): Voice UUID, ID, or name from your voice collection
+- `text` (required): Text to convert to speech (max 5000 characters)
 - `audio_format` (optional): Output format - mp3, wav, ogg (default: mp3)
 - `speed` (optional): Speech speed 0.25-4.0 (default: 1.0)
 - `language` (optional): Language code - auto-detected if not provided
-
-### Standard vs Custom Voice Examples
-
-#### Using Standard Pre-built Voice
-
-```python
-# Generate with a standard voice
-response = requests.post(
-    "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
-    headers={"Authorization": f"Bearer {api_key}"},
-    data={
-        "input_text": "Hello! This uses a standard pre-built voice.",
-        "audio_format": "mp3",
-        "speed": 1.0
-    }
-)
-```
-
-#### Using Custom Voice Clone
-
-```python
-# Generate with your custom voice (created via Voice Management)
-response = requests.post(
-    "https://api.audiopod.ai/api/v1/voice/voices/123/generate",  # Your custom voice ID
-    headers={"Authorization": f"Bearer {api_key}"},
-    data={
-        "input_text": "Hello! This uses my custom cloned voice.",
-        "audio_format": "mp3",
-        "speed": 1.0
-    }
-)
-```
-
-#### Using Custom Voice UUID
-
-```python
-# Generate with custom voice using UUID
-response = requests.post(
-    "https://api.audiopod.ai/api/v1/voice/voices/550e8400-e29b-41d4-a716-446655440000/generate",
-    headers={"Authorization": f"Bearer {api_key}"},
-    data={
-        "input_text": "Hello! This uses my custom voice via UUID.",
-        "audio_format": "mp3",
-        "speed": 1.0
-    }
-)
-```
 
 **Response:**
 
 ```json
 {
-  "id": 12345,
+  "job_id": 12345,
   "status": "pending",
-  "voice_id": "aura", 
-  "input_text": "Hello! This is AudioPod AI generating natural speech.",
-  "audio_format": "mp3",
-  "speed": 1.0,
-  "language": "en",
-  "created_at": "2024-01-15T10:30:00Z",
-  "estimated_completion": "2024-01-15T10:31:00Z",
-  "credits_reserved": 5
+  "message": "Voice generation job created successfully",
+  "voice_id": 123,
+  "estimated_duration": 30,
+  "credits_reserved": 25
 }
 ```
 
+### Voice Identification Examples
+
+<Tabs>
+  <Tab title="Python SDK">
+    ```python
+    from audiopod import Client
+
+    client = Client()
+
+    # Using standard pre-built voice by name
+    job1 = client.voice.generate_speech(
+        voice_identifier="aura",  # Standard voice name
+        input_text="Hello! This uses a standard pre-built voice.",
+        audio_format="mp3",
+        speed=1.0
+    )
+    print(f"Standard voice job: {job1.job_id}")
+
+    # Using custom voice clone (by integer ID)
+    job2 = client.voice.generate_speech(
+        voice_identifier=123,  # Your custom voice ID
+        input_text="Hello! This uses my custom cloned voice.",
+        audio_format="mp3",
+        speed=1.0
+    )
+    print(f"Custom voice job: {job2.job_id}")
+
+    # Using voice via UUID (works for both standard and custom voices)
+    job3 = client.voice.generate_speech(
+        voice_identifier="550e8400-e29b-41d4-a716-446655440000",  # Voice UUID
+        input_text="Hello! This uses voice identification via UUID.",
+        audio_format="mp3",
+        speed=1.0
+    )
+    print(f"UUID voice job: {job3.job_id}")
+
+    # List available voices
+    voices = client.voice.list_voices(include_public=True)
+    print("Available voices:")
+    for voice in voices:
+        print(f"- {voice.name} (UUID: {voice.uuid}): {voice.description}")
+    ```
+  </Tab>
+  <Tab title="Node.js SDK">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+    const client = new AudioPodClient();
+
+    async function demonstrateVoiceIdentification() {
+      try {
+        // Using standard pre-built voice by name
+        const job1 = await client.voice.generateSpeech({
+          voiceIdentifier: 'aura',  // Standard voice name
+          inputText: 'Hello! This uses a standard pre-built voice.',
+          audioFormat: 'mp3',
+          speed: 1.0
+        });
+        console.log(`Standard voice job: ${job1.jobId}`);
+
+        // Using custom voice clone (by integer ID)
+        const job2 = await client.voice.generateSpeech({
+          voiceIdentifier: 123,  // Your custom voice ID
+          inputText: 'Hello! This uses my custom cloned voice.',
+          audioFormat: 'mp3',
+          speed: 1.0
+        });
+        console.log(`Custom voice job: ${job2.jobId}`);
+
+        // Using voice via UUID (works for both standard and custom voices)
+        const job3 = await client.voice.generateSpeech({
+          voiceIdentifier: '550e8400-e29b-41d4-a716-446655440000',  // Voice UUID
+          inputText: 'Hello! This uses voice identification via UUID.',
+          audioFormat: 'mp3',
+          speed: 1.0
+        });
+        console.log(`UUID voice job: ${job3.jobId}`);
+
+        // List available voices
+        const voices = await client.voice.listVoices({ includePublic: true });
+        console.log('Available voices:');
+        voices.forEach(voice => {
+          console.log(`- ${voice.name} (UUID: ${voice.uuid}): ${voice.description}`);
+        });
+
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+
+    demonstrateVoiceIdentification();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
+    ```python
+    import requests
+
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    # Generate with a standard voice by name
+    response1 = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
+        headers=headers,
+        data={
+            "input_text": "Hello! This uses a standard pre-built voice.",
+            "audio_format": "mp3",
+            "speed": 1.0
+        }
+    )
+    print(f"Standard voice job: {response1.json()['job_id']}")
+
+    # Generate with your custom voice by ID
+    response2 = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/123/generate",  # Your custom voice ID
+        headers=headers,
+        data={
+            "input_text": "Hello! This uses my custom cloned voice.",
+            "audio_format": "mp3",
+            "speed": 1.0
+        }
+    )
+    print(f"Custom voice job: {response2.json()['job_id']}")
+
+    # Generate with voice using UUID
+    response3 = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/550e8400-e29b-41d4-a716-446655440000/generate",
+        headers=headers,
+        data={
+            "input_text": "Hello! This uses voice identification via UUID.",
+            "audio_format": "mp3",
+            "speed": 1.0
+        }
+    )
+    print(f"UUID voice job: {response3.json()['job_id']}")
+
+    # List available voices
+    voices_response = requests.get(
+        "https://api.audiopod.ai/api/v1/voice/voice-profiles?include_public=true",
+        headers=headers
+    )
+    voices = voices_response.json()
+    print("Available voices:")
+    for voice in voices:
+        print(f"- {voice['name']} (UUID: {voice['uuid']}): {voice['description']}")
+    ```
+  </Tab>
+</Tabs>
+
 ## Available Voices
 
-AudioPod AI offers a diverse collection of premium voices across different categories:
+AudioPod AI offers a diverse collection of voices including both standard pre-built voices and custom voice clones:
 
-### Popular Voices
+### Voice Types
 
-| Voice ID | Gender | Language | Style        | Description                                |
-| -------- | ------ | -------- | ------------ | ------------------------------------------ |
-| `aura`   | Female | Multi    | Bright       | Luminous voice with crystal-clear delivery |
-| `jester` | Male   | Multi    | Playful      | Upbeat voice with theatrical flair         |
-| `sage`   | Male   | Multi    | Wise         | Authoritative voice perfect for narration  |
-| `ava`    | Female | Multi    | Professional | Commanding voice for business content      |
-| `surge`  | Male   | Multi    | Energetic    | High-energy voice for exciting content     |
-| `willow` | Female | Multi    | Gentle       | Delicate, youthful voice with elegance     |
+- **Standard Voices**: Professional pre-built voices with unique characteristics
+- **Custom Voices**: Your own voice clones created from audio samples
+- **Public Voices**: Community-shared voices available to all users
 
-## Advanced Features
+### Popular Standard Voices
 
-### Streaming Audio
+| Voice Name | Gender | Languages | Style        | Description                                |
+| ---------- | ------ | --------- | ------------ | ------------------------------------------ |
+| `aura`     | Female | 60+       | Bright       | Luminous voice with crystal-clear delivery |
+| `jester`   | Male   | 60+       | Playful      | Upbeat voice with theatrical flair         |
+| `sage`     | Male   | 60+       | Wise         | Authoritative voice perfect for narration  |
+| `ava`      | Female | 60+       | Professional | Commanding voice for business content      |
+| `surge`    | Male   | 60+       | Energetic    | High-energy voice for exciting content     |
+| `willow`   | Female | 60+       | Gentle       | Delicate, youthful voice with elegance     |
 
-For real-time applications, use streaming mode:
+### Listing Available Voices
 
-```python
-def stream_audio_callback(chunk):
-    # Process audio chunk as it arrives
-    audio_player.play(chunk)
-
-response = client.text_to_speech.stream(
-    text="This text will be streamed as audio in real-time.",
-    voice_id="aura",
-    callback=stream_audio_callback
-)
-```
-
-### Pronunciation Control
-
-Control pronunciation of specific words:
+Use the voice profiles endpoint to discover all available voices:
 
 ```python
-text_with_phonemes = '''
-The company <phoneme alphabet="ipa" ph="ˌɔːdiˈoʊpɑd">AudioPod</phoneme>
-specializes in AI voice technology.
-'''
+# List all voices (including your custom voices)
+voices = client.voice.list_voices(include_public=True)
 
-response = client.text_to_speech.create(
-    text=text_with_phonemes,
-    voice_id="sage",
-    text_format="ssml"
-)
+# Filter by voice type
+standard_voices = [v for v in voices if v.voice_type == "standard"]
+custom_voices = [v for v in voices if v.voice_type == "custom"]
+
+print(f"Found {len(standard_voices)} standard voices")
+print(f"Found {len(custom_voices)} custom voices")
 ```
+
+## Job Status Tracking
+
+### Check Job Status
+
+Monitor your text-to-speech generation jobs with real-time status updates:
+
+```python
+# Check job status
+status = client.voice.get_job_status(job_id)
+
+print(f"Job {job_id} status: {status['status']}")
+print(f"Progress: {status.get('progress', 'N/A')}%")
+
+if status['status'] == 'completed':
+    print(f"Audio ready: {status['output_url']}")
+    print(f"Duration: {status.get('total_duration')} seconds")
+elif status['status'] == 'failed':
+    print(f"Error: {status.get('error_message')}")
+```
+
+### Job Status Response
+
+```json
+{
+  "id": 12345,
+  "job_type": "single",
+  "user_id": "user-uuid",
+  "status": "completed",
+  "progress": 100,
+  "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:30:45Z",
+  "completed_at": "2024-01-15T10:30:45Z",
+  "output_path": "generated/12345.mp3",
+  "output_url": "https://presigned-url-to-audio-file",
+  "input_text": "Hello! This is AudioPod AI generating natural speech.",
+  "target_language": "en",
+  "voice_info": {
+    "id": 123,
+    "name": "aura",
+    "display_name": "Aura"
+  },
+  "estimated_duration": 30,
+  "credits_reserved": 25
+}
+```
+
+### Status Values
+
+- `pending`: Job created and waiting for processing
+- `processing`: Currently generating audio
+- `completed`: Audio generation finished successfully
+- `failed`: Generation failed with error
 
 ## Configuration Options
 
-### Audio Quality Settings
+### Audio Format Options
 
-| Parameter       | Options                       | Description         | Credit Impact                            |
-| --------------- | ----------------------------- | ------------------- | ---------------------------------------- |
-| `quality`       | `standard`, `high`, `premium` | Audio quality level | Standard = 1x, High = 1.5x, Premium = 2x |
-| `sample_rate`   | `22050`, `44100`, `48000`     | Audio sample rate   | Higher rates = slightly more credits     |
-| `output_format` | `mp3`, `wav`, `ogg`, `aac`    | Audio file format   | No impact on credits                     |
+| Parameter       | Options              | Description           | Notes                           |
+| --------------- | -------------------- | --------------------- | ------------------------------- |
+| `audio_format`  | `mp3`, `wav`, `ogg`  | Audio file format     | MP3 recommended for most uses   |
+| `speed`         | `0.25` to `4.0`      | Speech speed          | 1.0 = normal speed              |
+| `language`      | Language codes       | Target language       | Auto-detected if not specified  |
 
-### Voice Customization
+### Basic Voice Customization
 
 ```python
-response = client.text_to_speech.create(
-    text="Customized voice output",
-    voice_id="aura",
-    # Voice customization
-    speed=1.1,           # 10% faster
-    pitch=0.9,           # Slightly lower pitch
-    volume=1.2,          # 20% louder
-    # Audio settings
-    quality="high",
-    sample_rate=44100,
-    output_format="wav"
+# Generate with custom settings
+job = client.voice.generate_speech(
+    voice_identifier="aura",
+    input_text="Customized voice output with speed control",
+    audio_format="wav",     # High quality WAV format
+    speed=1.1,             # 10% faster than normal
+    language="en"          # English language
 )
 ```
 
-### Emotion and Style Control
+### Language Detection
 
-For supported voices, control emotional expression:
+AudioPod AI automatically detects the language of your input text, but you can specify it explicitly for better results:
 
 ```python
-response = client.text_to_speech.create(
-    text="I'm excited to announce our new product!",
-    voice_id="surge",
-    emotion="excited",   # excited, sad, angry, calm, etc.
-    intensity=0.8        # 0.0 to 1.0
+# Automatic language detection
+job1 = client.voice.generate_speech(
+    voice_identifier="aura",
+    input_text="Hello, how are you today?"
+    # Language will be auto-detected as English
+)
+
+# Explicit language specification
+job2 = client.voice.generate_speech(
+    voice_identifier="aura", 
+    input_text="Bonjour, comment allez-vous?",
+    language="fr"  # Specify French
 )
 ```
 
@@ -244,70 +543,315 @@ response = client.text_to_speech.create(
 
 ### Language Codes
 
-AudioPod AI supports 64+ languages. Here are the most common:
+AudioPod AI supports 60+ languages with automatic detection and consistent quality across all supported languages:
 
-| Language             | Code    | Native Voices | TTS Quality |
-| -------------------- | ------- | ------------- | ----------- |
-| English (US)         | `en-US` | 15+           | Excellent   |
-| Spanish              | `es`    | 10+           | Excellent   |
-| French               | `fr`    | 8+            | Excellent   |
-| German               | `de`    | 6+            | Excellent   |
-| Chinese (Simplified) | `zh-CN` | 8+            | Excellent   |
-| Japanese             | `ja`    | 6+            | Excellent   |
-| Korean               | `ko`    | 4+            | Very Good   |
-| Portuguese           | `pt`    | 6+            | Very Good   |
-| Russian              | `ru`    | 4+            | Very Good   |
-| Arabic               | `ar`    | 4+            | Good        |
-| Hindi                | `hi`    | 4+            | Good        |
+| Language             | Code    | Description                    |
+| -------------------- | ------- | ------------------------------ |
+| English (US)         | `en-US` | American English               |
+| English (UK)         | `en-GB` | British English                |
+| Spanish              | `es`    | Spanish (Spain)                |
+| Spanish (Mexico)     | `es-MX` | Mexican Spanish                |
+| French               | `fr`    | French (France)                |
+| German               | `de`    | German                         |
+| Chinese (Simplified) | `zh-CN` | Simplified Chinese (Mandarin)  |
+| Chinese (Traditional)| `zh-TW` | Traditional Chinese            |
+| Japanese             | `ja`    | Japanese                       |
+| Korean               | `ko`    | Korean                         |
+| Portuguese           | `pt`    | Portuguese (Portugal)          |
+| Portuguese (Brazil)  | `pt-BR` | Brazilian Portuguese           |
+| Russian              | `ru`    | Russian                        |
+| Arabic               | `ar`    | Arabic                         |
+| Hindi                | `hi`    | Hindi                          |
+| Italian              | `it`    | Italian                        |
+| Dutch                | `nl`    | Dutch                          |
+| Polish               | `pl`    | Polish                         |
+| Turkish              | `tr`    | Turkish                        |
+| Swedish              | `sv`    | Swedish                        |
 
 ### Multi-Language Example
 
 ```python
-# Generate speech in multiple languages
+# Generate speech in multiple languages using the same voice
 languages = [
-    {"text": "Hello, welcome to AudioPod AI", "voice_id": "emma-us", "lang": "en-US"},
-    {"text": "Hola, bienvenido a AudioPod AI", "voice_id": "maria-es", "lang": "es"},
-    {"text": "Bonjour, bienvenue chez AudioPod AI", "voice_id": "amelie-fr", "lang": "fr"},
-    {"text": "Hallo, willkommen bei AudioPod AI", "voice_id": "greta-de", "lang": "de"}
+    {"text": "Hello, welcome to AudioPod AI", "lang": "en-US"},
+    {"text": "Hola, bienvenido a AudioPod AI", "lang": "es"},
+    {"text": "Bonjour, bienvenue chez AudioPod AI", "lang": "fr"},
+    {"text": "Hallo, willkommen bei AudioPod AI", "lang": "de"}
 ]
 
-for item in languages:
-    response = client.text_to_speech.create(
-        text=item["text"],
-        voice_id=item["voice_id"],
-        language=item["lang"]
-    )
+voice_uuid = "550e8400-e29b-41d4-a716-446655440000"  # Your multi-language voice
 
-    filename = f"welcome_{item['lang']}.mp3"
-    with open(filename, "wb") as f:
-        f.write(response.audio_data)
+for item in languages:
+    job = client.voice.generate_speech(
+        voice_identifier=voice_uuid,
+        input_text=item["text"],
+        language=item["lang"],
+        audio_format="mp3"
+    )
+    
+    # Wait for completion and download
+    while True:
+        status = client.voice.get_job_status(job.job_id)
+        if status['status'] == 'completed':
+            # Download audio
+            audio_response = requests.get(status['output_url'])
+            filename = f"welcome_{item['lang']}.mp3"
+            with open(filename, "wb") as f:
+                f.write(audio_response.content)
+            print(f"Generated {filename}")
+            break
+        elif status['status'] == 'failed':
+            print(f"Failed to generate {item['lang']}: {status.get('error_message')}")
+            break
+        time.sleep(2)
+```
+
+### Get Supported Languages for a Voice
+
+```python
+# Get supported languages for a specific voice
+supported_languages = client.voice.get_supported_languages(voice_identifier="aura")
+print(f"Voice supports {len(supported_languages)} languages:")
+for code, name in supported_languages.items():
+    print(f"- {code}: {name}")
 ```
 
 ## Use Cases & Examples
 
 ### Audiobook Narration
 
-```python
-def create_audiobook_chapter(chapter_text, narrator_voice="sage"):
-    # Split long text into manageable chunks
-    chunks = split_text_by_sentences(chapter_text, max_length=2000)
-    audio_segments = []
+<Tabs>
+  <Tab title="Python SDK">
+    ```python
+    from audiopod import Client
+    import re
 
-    for i, chunk in enumerate(chunks):
-        print(f"Processing chunk {i+1}/{len(chunks)}")
+    client = Client()
 
-        response = client.text_to_speech.create(
-            text=chunk,
-            voice_id=narrator_voice,
-            quality="premium",
-            speed=0.95  # Slightly slower for audiobooks
-        )
+    def split_text_by_sentences(text, max_length=2000):
+        """Split text into chunks by sentences, respecting max length"""
+        sentences = re.split(r'[.!?]+', text)
+        chunks = []
+        current_chunk = ""
+        
+        for sentence in sentences:
+            if len(current_chunk + sentence) > max_length:
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                current_chunk = sentence
+            else:
+                current_chunk += sentence + ". "
+        
+        if current_chunk:
+            chunks.append(current_chunk.strip())
+        
+        return chunks
 
-        audio_segments.append(response.audio_data)
+    def create_audiobook_chapter(chapter_text, narrator_voice="sage"):
+        """Create audiobook chapter with professional narration"""
+        # Split long text into manageable chunks
+        chunks = split_text_by_sentences(chapter_text, max_length=2000)
+        audio_urls = []
 
-    # Combine audio segments
-    return combine_audio_segments(audio_segments)
-```
+        for i, chunk in enumerate(chunks):
+            print(f"Processing chunk {i+1}/{len(chunks)}: {chunk[:50]}...")
+
+            result = client.voice.generate_speech(
+                voice_id=narrator_voice,
+                text=chunk,
+                audio_format="wav",  # High quality for audiobooks
+                speed=0.95,  # Slightly slower for audiobooks
+                wait_for_completion=True
+            )
+
+            audio_urls.append(result.output_url)
+            print(f"Generated audio for chunk {i+1}")
+
+        return audio_urls
+
+    # Example usage
+    chapter_text = """
+    Chapter 1: The Beginning
+    
+    It was the best of times, it was the worst of times. The era was filled with
+    contradictions that would shape the destiny of nations. In this tumultuous
+    period, heroes would rise and fall, love would conquer fear, and the very
+    fabric of society would be tested by forces beyond imagination.
+    
+    As dawn broke over the ancient city, our protagonist began a journey that
+    would change everything they thought they knew about the world.
+    """
+
+    audio_urls = create_audiobook_chapter(chapter_text, "sage")
+    print(f"Audiobook chapter complete! Generated {len(audio_urls)} audio segments.")
+    ```
+  </Tab>
+  <Tab title="Node.js SDK">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+    const client = new AudioPodClient();
+
+    function splitTextBySentences(text, maxLength = 2000) {
+      const sentences = text.split(/[.!?]+/);
+      const chunks = [];
+      let currentChunk = '';
+      
+      for (const sentence of sentences) {
+        if ((currentChunk + sentence).length > maxLength) {
+          if (currentChunk) {
+            chunks.push(currentChunk.trim());
+          }
+          currentChunk = sentence;
+        } else {
+          currentChunk += sentence + '. ';
+        }
+      }
+      
+      if (currentChunk) {
+        chunks.push(currentChunk.trim());
+      }
+      
+      return chunks;
+    }
+
+    async function createAudiobookChapter(chapterText, narratorVoice = 'sage') {
+      try {
+        // Split long text into manageable chunks
+        const chunks = splitTextBySentences(chapterText, 2000);
+        const audioUrls = [];
+
+        for (let i = 0; i < chunks.length; i++) {
+          const chunk = chunks[i];
+          console.log(`Processing chunk ${i+1}/${chunks.length}: ${chunk.substring(0, 50)}...`);
+
+          const result = await client.voice.generateSpeech({
+            voiceId: narratorVoice,
+            text: chunk,
+            audioFormat: 'wav',  // High quality for audiobooks
+            speed: 0.95,  // Slightly slower for audiobooks
+            waitForCompletion: true
+          });
+
+          audioUrls.push(result.outputUrl);
+          console.log(`Generated audio for chunk ${i+1}`);
+        }
+
+        return audioUrls;
+
+      } catch (error) {
+        console.error('Error creating audiobook:', error.message);
+        throw error;
+      }
+    }
+
+    // Example usage
+    const chapterText = `
+    Chapter 1: The Beginning
+    
+    It was the best of times, it was the worst of times. The era was filled with
+    contradictions that would shape the destiny of nations. In this tumultuous
+    period, heroes would rise and fall, love would conquer fear, and the very
+    fabric of society would be tested by forces beyond imagination.
+    
+    As dawn broke over the ancient city, our protagonist began a journey that
+    would change everything they thought they knew about the world.
+    `;
+
+    createAudiobookChapter(chapterText, 'sage')
+      .then(audioUrls => {
+        console.log(`Audiobook chapter complete! Generated ${audioUrls.length} audio segments.`);
+        audioUrls.forEach((url, index) => {
+          console.log(`Segment ${index + 1}: ${url}`);
+        });
+      })
+      .catch(error => {
+        console.error('Failed to create audiobook:', error);
+      });
+    ```
+  </Tab>
+  <Tab title="Batch Processing">
+    ```python
+    from audiopod import Client
+    import asyncio
+    import aiohttp
+    import json
+
+    client = Client()
+
+    async def create_audiobook_chapter_parallel(chapter_text, narrator_voice="sage"):
+        """Create audiobook with parallel processing for faster generation"""
+        chunks = split_text_by_sentences(chapter_text, max_length=2000)
+        
+        # Create all jobs first (parallel creation)
+        jobs = []
+        for chunk in chunks:
+            job = client.voice.generate_speech(
+                voice_id=narrator_voice,
+                text=chunk,
+                audio_format="wav",
+                speed=0.95,
+                wait_for_completion=False  # Don't wait, create jobs in parallel
+            )
+            jobs.append(job)
+        
+        print(f"Created {len(jobs)} generation jobs")
+        
+        # Wait for all jobs to complete
+        audio_urls = []
+        for i, job in enumerate(jobs):
+            print(f"Waiting for job {i+1}/{len(jobs)}")
+            
+            # Poll job status
+            while True:
+                status = client.voice.get_job_status(job.id)
+                if status.status == 'completed':
+                    audio_urls.append(status.output_url)
+                    break
+                elif status.status == 'failed':
+                    print(f"Job {job.id} failed: {status.error_message}")
+                    break
+                
+                await asyncio.sleep(2)
+        
+        return audio_urls
+
+    # Example with error handling and progress tracking
+    def create_audiobook_with_progress(chapter_text, narrator_voice="sage"):
+        """Create audiobook with detailed progress tracking"""
+        chunks = split_text_by_sentences(chapter_text, max_length=2000)
+        total_chunks = len(chunks)
+        completed_chunks = 0
+        audio_urls = []
+        
+        print(f"Starting audiobook generation: {total_chunks} chunks")
+        
+        for i, chunk in enumerate(chunks):
+            try:
+                print(f"[{i+1}/{total_chunks}] Processing: {chunk[:50]}...")
+                
+                result = client.voice.generate_speech(
+                    voice_id=narrator_voice,
+                    text=chunk,
+                    audio_format="wav",
+                    speed=0.95,
+                    wait_for_completion=True
+                )
+                
+                audio_urls.append(result.output_url)
+                completed_chunks += 1
+                
+                progress = (completed_chunks / total_chunks) * 100
+                print(f"[{i+1}/{total_chunks}] ✅ Complete ({progress:.1f}%)")
+                
+            except Exception as e:
+                print(f"[{i+1}/{total_chunks}] ❌ Failed: {e}")
+                # You could implement retry logic here
+                
+        print(f"Audiobook generation complete! {completed_chunks}/{total_chunks} chunks successful")
+        return audio_urls
+    ```
+  </Tab>
+</Tabs>
 
 ### Podcast Introduction
 
@@ -401,12 +945,21 @@ for prompt_name, text in ivr_prompts.items():
 ```python
 # Efficient: Single request for multiple sentences
 long_text = "First sentence. Second sentence. Third sentence."
-audio = client.text_to_speech.create(text=long_text, voice_id="aura")
+job = client.voice.generate_speech(
+    voice_identifier="aura",
+    input_text=long_text,
+    audio_format="mp3"
+)
 
 # Inefficient: Multiple requests for short texts
-# This uses more credits due to minimum charges
+# This creates multiple jobs and uses more credits due to per-job overhead
+sentences = ["First sentence.", "Second sentence.", "Third sentence."]
 for sentence in sentences:
-    audio = client.text_to_speech.create(text=sentence, voice_id="aura")
+    job = client.voice.generate_speech(
+        voice_identifier="aura", 
+        input_text=sentence,
+        audio_format="mp3"
+    )
 ```
 
 ### Caching Strategy
@@ -414,28 +967,43 @@ for sentence in sentences:
 ```python
 import hashlib
 import os
+import requests
+import time
 
-def get_cached_audio(text, voice_id, cache_dir="audio_cache"):
-    # Create cache key from text and voice
-    cache_key = hashlib.md5(f"{text}_{voice_id}".encode()).hexdigest()
+def get_cached_audio(text, voice_identifier, cache_dir="audio_cache"):
+    # Create cache key from text and voice identifier
+    cache_key = hashlib.md5(f"{text}_{voice_identifier}".encode()).hexdigest()
     cache_file = os.path.join(cache_dir, f"{cache_key}.mp3")
 
     if os.path.exists(cache_file):
         with open(cache_file, "rb") as f:
             return f.read()
 
-    # Generate new audio
-    response = client.text_to_speech.create(
-        text=text,
-        voice_id=voice_id
+    # Generate new audio using job-based API
+    job = client.voice.generate_speech(
+        voice_identifier=voice_identifier,
+        input_text=text,
+        audio_format="mp3"
     )
-
-    # Cache the result
-    os.makedirs(cache_dir, exist_ok=True)
-    with open(cache_file, "wb") as f:
-        f.write(response.audio_data)
-
-    return response.audio_data
+    
+    # Wait for completion
+    while True:
+        status = client.voice.get_job_status(job.job_id)
+        if status['status'] == 'completed':
+            # Download audio
+            audio_response = requests.get(status['output_url'])
+            audio_data = audio_response.content
+            
+            # Cache the result
+            os.makedirs(cache_dir, exist_ok=True)
+            with open(cache_file, "wb") as f:
+                f.write(audio_data)
+            
+            return audio_data
+        elif status['status'] == 'failed':
+            raise Exception(f"Audio generation failed: {status.get('error_message')}")
+        
+        time.sleep(2)
 ```
 
 ## Error Handling
@@ -449,10 +1017,15 @@ def get_cached_audio(text, voice_id, cache_dir="audio_cache"):
     Check text encoding (UTF-8) - Validate text is not empty
   </Accordion>
 
-  <Accordion title="400 Bad Request - Invalid Voice">
-    **Causes:** - Voice ID doesn't exist - Voice not available for selected
-    language **Solutions:** - Check available voices with `/voices` endpoint -
-    Use multi-language voices for multiple languages
+  <Accordion title="404 Not Found - Invalid Voice">
+    **Causes:** - Voice identifier doesn't exist - Voice not accessible by user
+    - Voice UUID format invalid **Solutions:** - Check available voices with voice profiles endpoint -
+    Verify voice UUID format - Ensure voice is public or owned by user
+  </Accordion>
+
+  <Accordion title="402 Payment Required - Insufficient Credits">
+    **Causes:** - Not enough credits for audio generation - Credit limit exceeded
+    **Solutions:** - Check credit balance - Purchase more credits - Wait for credit reset
   </Accordion>
 
   <Accordion title="429 Too Many Requests">
@@ -467,31 +1040,84 @@ def get_cached_audio(text, voice_id, cache_dir="audio_cache"):
 ```python
 import time
 import random
+import requests
+from requests.exceptions import HTTPError
 
-def generate_speech_with_retry(text, voice_id, max_retries=3):
+def generate_speech_with_retry(text, voice_identifier, max_retries=3):
     for attempt in range(max_retries):
         try:
-            response = client.text_to_speech.create(
-                text=text,
-                voice_id=voice_id
+            # Create generation job
+            job = client.voice.generate_speech(
+                voice_identifier=voice_identifier,
+                input_text=text,
+                audio_format="mp3"
             )
-            return response.audio_data
+            
+            # Monitor job with retry logic for status checks
+            while True:
+                try:
+                    status = client.voice.get_job_status(job.job_id)
+                    
+                    if status['status'] == 'completed':
+                        # Download and return audio
+                        audio_response = requests.get(status['output_url'])
+                        audio_response.raise_for_status()
+                        return audio_response.content
+                    elif status['status'] == 'failed':
+                        raise Exception(f"Job failed: {status.get('error_message')}")
+                    
+                    time.sleep(2)  # Wait before checking again
+                    
+                except HTTPError as e:
+                    if e.response.status_code == 429:
+                        # Rate limit on status check - wait longer
+                        time.sleep(5)
+                        continue
+                    else:
+                        raise
 
-        except Exception as e:
-            if e.status_code == 429:  # Rate limit
+        except HTTPError as e:
+            if e.response.status_code == 429:  # Rate limit
                 # Exponential backoff with jitter
                 delay = (2 ** attempt) + random.uniform(0, 1)
+                print(f"Rate limited, retrying in {delay:.1f}s (attempt {attempt + 1})")
                 time.sleep(delay)
                 continue
-            elif e.status_code == 400:
+            elif e.response.status_code == 400:
                 # Bad request - don't retry
+                print(f"Bad request: {e.response.text}")
+                raise e
+            elif e.response.status_code == 402:
+                # Insufficient credits - don't retry
+                print("Insufficient credits")
+                raise e
+            elif e.response.status_code == 404:
+                # Voice not found - don't retry
+                print(f"Voice not found: {voice_identifier}")
                 raise e
             else:
                 # Other errors - retry with delay
+                print(f"Error {e.response.status_code}, retrying...")
                 time.sleep(1)
                 continue
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            time.sleep(1)
+            continue
 
     raise Exception("Max retries exceeded")
+
+# Usage example
+try:
+    audio_data = generate_speech_with_retry(
+        text="Hello, this is a test with retry logic.",
+        voice_identifier="aura"
+    )
+    with open("output.mp3", "wb") as f:
+        f.write(audio_data)
+    print("Audio generated successfully with retry logic")
+except Exception as e:
+    print(f"Failed to generate audio: {e}")
 ```
 
 ## Pricing

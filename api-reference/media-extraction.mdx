@@ -25,6 +25,18 @@ AudioPod AI's Media Extraction API provides powerful tools for downloading and e
   - **API Key**: `Authorization: Bearer your_api_key`
   - **JWT Token**: `Authorization: Bearer your_jwt_token`
 
+## Rate Limits
+
+All endpoints are rate limited to prevent abuse:
+
+- **Public Video Info**: 60 requests/minute
+- **Public Download**: 10 requests/minute  
+- **Authenticated Video Info**: 30 requests/minute
+- **Authenticated Download**: 10 requests/minute
+- **Bulk Download**: 3 requests/minute
+- **Job Status**: 60 requests/minute
+- **Job Management**: 30 requests/minute
+
 ## Video Information
 
 ### Get Video Info (Public)
@@ -185,7 +197,7 @@ Download videos with public access limitations.
         "url": "https://youtube.com/watch?v=example123",
         "format": "mp3",        # mp4, mp3, wav only for public
         "quality": "128kbps",   # Limited quality options
-        "extract_audio": True   # For audio-only download
+        "audio_only": True      # For audio-only download
     }
     
     response = requests.post(
@@ -217,7 +229,7 @@ Download videos with full features and no restrictions.
       "url": "https://youtube.com/watch?v=example123",
       "format": "mp4",
       "quality": "1080p",
-      "extract_audio": false,
+      "audio_only": false,
       "include_thumbnail": true
     }
     ```
@@ -229,7 +241,7 @@ Download videos with full features and no restrictions.
         "url": "https://youtube.com/watch?v=example123",
         "format": "mp4",           # Any supported format
         "quality": "1080p",        # Any available quality
-        "extract_audio": False,    # Keep video, set True for audio-only
+        "audio_only": False,    # Keep video, set True for audio-only
         "include_thumbnail": True, # Download thumbnail
         "format_selector": "best", # "best", "worst", or specific format_id
         "output_filename": "my_video.mp4"  # Custom filename
@@ -254,7 +266,7 @@ Download videos with full features and no restrictions.
 - **`url`** (required): URL of the video to download
 - **`format`** (optional): Output format (mp4, mp3, wav, webm, mkv, etc.)
 - **`quality`** (optional): Quality setting (144p, 720p, 1080p, 4K for video; 128kbps, 320kbps for audio)
-- **`extract_audio`** (optional): Extract audio only (default: false)
+- **`audio_only`** (optional): Extract audio only (default: false)
 - **`include_thumbnail`** (optional): Download thumbnail image (default: false)
 - **`format_selector`** (optional): Format selection strategy ("best", "worst", or specific format_id)
 - **`output_filename`** (optional): Custom output filename
@@ -270,7 +282,7 @@ Download videos with full features and no restrictions.
     "url": "https://youtube.com/watch?v=example123",
     "format": "mp4",
     "quality": "1080p",
-    "extract_audio": false,
+    "audio_only": false,
     "include_thumbnail": true,
     "estimated_duration": 185.4,
     "created_at": "2024-01-15T10:30:00Z",
@@ -290,7 +302,7 @@ Download multiple videos in a single request.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /api/v1/video/bulk
+    POST /api/v1/video/bulk-download
     Authorization: Bearer {api_key}
     Content-Type: application/json
     
@@ -307,7 +319,7 @@ Download multiple videos in a single request.
           "quality": "720p"
         }
       ],
-      "extract_audio": true,
+      "audio_only": true,
       "include_thumbnails": false
     }
     ```
@@ -332,12 +344,12 @@ Download multiple videos in a single request.
                 "format": "wav"  # High quality audio
             }
         ],
-        "extract_audio": True,      # Apply to all downloads
-        "include_thumbnails": False # Apply to all downloads
+        "audio_only": True,         # Apply to all downloads  
+        "include_thumbnail": False  # Apply to all downloads
     }
     
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/video/bulk",
+        "https://api.audiopod.ai/api/v1/video/bulk-download",
         headers={"Authorization": f"Bearer {api_key}"},
         json=bulk_request
     )
@@ -400,7 +412,7 @@ Monitor the progress of download jobs.
   "url": "https://youtube.com/watch?v=example123",
   "format": "mp4",
   "quality": "1080p",
-  "extract_audio": false,
+  "audio_only": false,
   "include_thumbnail": true,
   "created_at": "2024-01-15T10:30:00Z",
   "completed_at": "2024-01-15T10:33:15Z",
@@ -533,6 +545,126 @@ Download the extracted media files.
   </Tab>
 </Tabs>
 
+## Job Management
+
+### Update Download Job
+
+Update job metadata such as custom title.
+
+<Tabs>
+  <Tab title="PUT">
+    ```http
+    PUT /api/v1/video/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "title": "My Custom Video Title"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    update_data = {
+        "title": "My Custom Video Title"
+    }
+    
+    response = requests.put(
+        f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json=update_data
+    )
+    
+    if response.status_code == 200:
+        updated_job = response.json()
+        print(f"Updated job title: {updated_job['title']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Delete Download Job
+
+Remove a download job and its associated files.
+
+<Tabs>
+  <Tab title="DELETE">
+    ```http
+    DELETE /api/v1/video/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(result["message"])  # "Job deleted successfully"
+    ```
+  </Tab>
+</Tabs>
+
+### Get User Statistics
+
+Get comprehensive download statistics for the authenticated user.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/video/stats
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/video/stats",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        stats = response.json()
+        print(f"Total downloads: {stats['total_downloads']}")
+        print(f"Total duration: {stats['total_duration']} seconds")
+        print(f"Credits used: {stats['total_credits_used']}")
+        print(f"By platform: {stats['downloads_by_platform']}")
+        print(f"By format: {stats['downloads_by_format']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "total_downloads": 45,
+  "total_duration": 12450.5,
+  "total_credits_used": 1245,
+  "downloads_by_platform": {
+    "youtube": 25,
+    "tiktok": 15,
+    "instagram": 5
+  },
+  "downloads_by_format": {
+    "mp3": 30,
+    "mp4": 15
+  },
+  "recent_downloads": [
+    {
+      "id": 123,
+      "title": "Recent Video",
+      "platform": "youtube",
+      "status": "COMPLETED",
+      "created_at": "2024-01-15T10:30:00Z"
+    }
+  ]
+}
+```
+
 ## Platform Support
 
 ### Supported Platforms
@@ -584,7 +716,7 @@ def extract_podcast_audio_from_videos(video_urls, api_key):
         # Request high-quality audio extraction
         download_request = {
             "url": url,
-            "extract_audio": True,
+            "audio_only": True,
             "format": "wav",        # High quality for editing
             "quality": "best",      # Best available audio quality
             "include_thumbnail": True  # For podcast artwork
@@ -744,7 +876,7 @@ def extract_social_media_content(social_urls, api_key):
             download_config = {
                 "format": "mp4",
                 "quality": "best",
-                "extract_audio": False,  # Keep video for visual analysis
+                "audio_only": False,  # Keep video for visual analysis
                 "include_thumbnail": True
             }
         elif platform == "instagram":
@@ -752,7 +884,7 @@ def extract_social_media_content(social_urls, api_key):
             download_config = {
                 "format": "mp4", 
                 "quality": "720p",
-                "extract_audio": True,   # Often interested in audio
+                "audio_only": True,   # Often interested in audio
                 "include_thumbnail": True
             }
         else:
@@ -760,7 +892,7 @@ def extract_social_media_content(social_urls, api_key):
             download_config = {
                 "format": "mp3",         # Audio for analysis
                 "quality": "320kbps",
-                "extract_audio": True,
+                "audio_only": True,
                 "include_thumbnail": True
             }
         
@@ -825,6 +957,92 @@ print(f"Extracting content from {len(social_content)} social media sources")
   </Accordion>
 </AccordionGroup>
 
+## Supported Formats
+
+### Get Public Supported Formats
+
+Get formats available for public downloads (no authentication required).
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/video/public/formats
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/video/public/formats"
+    )
+    
+    if response.status_code == 200:
+        formats = response.json()
+        print("Public formats available:")
+        print(f"Video: {formats['video_formats']}")
+        print(f"Audio: {formats['audio_formats']}")
+        print(f"Limitations: {formats['limitations']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "video_formats": ["mp4"],
+  "audio_formats": ["mp3", "wav"],
+  "quality_options": ["144p", "240p", "360p", "480p", "720p", "1080p", "1440p", "2160p", "best", "worst"],
+  "supported_platforms": ["youtube", "tiktok", "instagram", "vimeo", "spotify", "twitter", "facebook", "twitch", "dailymotion", "other"],
+  "limitations": {
+    "max_duration_minutes": 10,
+    "requires_authentication": false,
+    "credit_cost": 0
+  }
+}
+```
+
+### Get Full Supported Formats
+
+Get complete list of formats available for authenticated users.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/video/formats
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/video/formats",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        formats = response.json()
+        print("All formats available:")
+        print(f"Video: {formats['video_formats']}")
+        print(f"Audio: {formats['audio_formats']}")
+        print(f"Quality: {formats['quality_options']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "video_formats": ["mp4", "webm", "mkv", "flv", "avi", "mov"],
+  "audio_formats": ["mp3", "wav", "aac", "m4a", "ogg", "opus"],
+  "quality_options": ["144p", "240p", "360p", "480p", "720p", "1080p", "1440p", "2160p", "best", "worst"],
+  "supported_platforms": ["youtube", "tiktok", "instagram", "vimeo", "spotify", "twitter", "facebook", "twitch", "dailymotion", "other"],
+  "limitations": {
+    "max_duration_minutes": null,
+    "requires_authentication": true,
+    "credit_cost": "Variable based on duration"
+  }
+}
+```
+
 ## Best Practices
 
 ### Quality vs. File Size Optimization
@@ -835,25 +1053,25 @@ quality_recommendations = {
     "podcast_audio": {
         "format": "wav",
         "quality": "320kbps",
-        "extract_audio": True,
+        "audio_only": True,
         "reason": "High quality for editing and processing"
     },
     "social_media_analysis": {
         "format": "mp3", 
         "quality": "128kbps",
-        "extract_audio": True,
+        "audio_only": True,
         "reason": "Sufficient quality, smaller file size"
     },
     "educational_archive": {
         "format": "mp4",
         "quality": "720p",
-        "extract_audio": False,
+        "audio_only": False,
         "reason": "Good balance of quality and storage"
     },
     "professional_video": {
         "format": "mp4",
         "quality": "1080p",
-        "extract_audio": False,
+        "audio_only": False,
         "reason": "High quality for professional use"
     }
 }
@@ -873,7 +1091,7 @@ def optimize_batch_downloads(urls, api_key, max_concurrent=5):
             "url": url,
             "format": "mp3",
             "quality": "192kbps",
-            "extract_audio": True
+            "audio_only": True
         }
         
         response = requests.post(
@@ -934,7 +1152,7 @@ Media extraction pricing based on actual credit costs:
   <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
     Transcribe extracted audio content.
   </Card>
-  <Card title="Speaker Extraction" icon="users" href="/api-reference/speaker-extraction">
+  <Card title="Speaker Separation" icon="users" href="/api-reference/speaker-extraction">
     Separate speakers in extracted audio.
   </Card>
 </Columns>

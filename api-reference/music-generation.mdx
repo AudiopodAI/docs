@@ -1,11 +1,11 @@
 ---
 title: "Music Generation"
-description: "Create original music, instrumentals, rap, and samples from text descriptions using AudioPod AI's advanced ACE-Step pipeline."
+description: "Create original music, instrumentals, rap, and samples from text descriptions using AudioPod AI's advanced music generation pipeline."
 ---
 
 ## Overview
 
-AudioPod AI's Music Generation API uses the advanced ACE-Step pipeline to transform text descriptions into original musical compositions. Generate complete songs with lyrics, instrumental tracks, rap music, audio samples, and perform advanced audio transformations.
+AudioPod AI's Music Generation API uses the advanced Text to Music pipeline to transform text descriptions into original musical compositions. Generate complete songs with lyrics, instrumental tracks, rap music, audio samples, and perform advanced audio transformations.
 
 ### Key Features
 
@@ -31,28 +31,139 @@ All endpoints require authentication:
 Create complete musical compositions with vocals from text prompts and lyrics.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/music/text2music
-    Authorization: Bearer {api_key}
-    Content-Type: application/json
-    
-    {
-      "prompt": "Upbeat pop song with electronic beats and catchy melody",
-      "lyrics": "[Verse 1]\nWalking down the street\nFeeling so complete\n[Chorus]\nThis is my time to shine",
-      "audio_duration": 120.0,
-      "format": "wav",
-      "genre_preset": "Pop"
-    }
-    ```
-  </Tab>
   <Tab title="Python">
     ```python
+    from audiopod import Client
+
+    # Initialize client
+    client = Client()
+
+    # Generate music with lyrics (simple)
+    result = client.music.generate_music(
+        prompt="Upbeat pop song with electronic beats and catchy melody",
+        duration=120.0,
+        display_name="My Pop Song",
+        wait_for_completion=True
+    )
+
+    print(f"Music generated: {result.output_url}")
+
+    # Download the music
     import requests
+    audio_response = requests.get(result.output_url)
+    with open("my_pop_song.wav", "wb") as f:
+        f.write(audio_response.content)
     
+    print("Music saved as my_pop_song.wav")
+
+    # Advanced generation with custom parameters
+    advanced_result = client.music.generate_music(
+        prompt="Epic orchestral soundtrack with dramatic crescendos",
+        duration=180.0,
+        guidance_scale=12.0,
+        num_inference_steps=80,
+        seed=42,  # For reproducible results
+        display_name="Epic Soundtrack",
+        wait_for_completion=True
+    )
+
+    print(f"Advanced music generated: {advanced_result.output_url}")
+
+    # Generate music asynchronously and check status
+    async_job = client.music.generate_music(
+        prompt="Relaxing ambient electronic music",
+        duration=240.0,
+        wait_for_completion=False  # Don't wait
+    )
+
+    print(f"Async job created: {async_job.id}")
+
+    # Check job status
+    status = client.music.get_music_job(async_job.id)
+    print(f"Job status: {status.status}")
+    
+    # Like the generated track
+    if status.status == 'completed':
+        client.music.like_music_track(async_job.id)
+        print("Track liked!")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+    const fs = require('fs');
+
+    // Initialize client
+    const client = new AudioPodClient();
+
+    async function generateMusic() {
+      try {
+        // Generate music with lyrics (simple)
+        const result = await client.music.generateMusic({
+          prompt: 'Upbeat pop song with electronic beats and catchy melody',
+          duration: 120.0,
+          displayName: 'My Pop Song',
+          waitForCompletion: true
+        });
+
+        console.log(`Music generated: ${result.outputUrl}`);
+
+        // Download the music
+        const fetch = require('node-fetch');
+        const audioResponse = await fetch(result.outputUrl);
+        const buffer = await audioResponse.buffer();
+        fs.writeFileSync('my_pop_song.wav', buffer);
+        
+        console.log('Music saved as my_pop_song.wav');
+
+        // Advanced generation with custom parameters
+        const advancedResult = await client.music.generateMusic({
+          prompt: 'Epic orchestral soundtrack with dramatic crescendos',
+          duration: 180.0,
+          guidanceScale: 12.0,
+          numInferenceSteps: 80,
+          seed: 42,  // For reproducible results
+          displayName: 'Epic Soundtrack',
+          waitForCompletion: true
+        });
+
+        console.log(`Advanced music generated: ${advancedResult.outputUrl}`);
+
+        // Generate music asynchronously and check status
+        const asyncJob = await client.music.generateMusic({
+          prompt: 'Relaxing ambient electronic music',
+          duration: 240.0,
+          waitForCompletion: false
+        });
+
+        console.log(`Async job created: ${asyncJob.id}`);
+
+        // Check job status
+        const status = await client.music.getMusicJob(asyncJob.id);
+        console.log(`Job status: ${status.status}`);
+        
+        // Like the generated track
+        if (status.status === 'completed') {
+          await client.music.likeMusicTrack(asyncJob.id);
+          console.log('Track liked!');
+        }
+
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+
+    generateMusic();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
+    ```python
+    import requests
+    import time
+    
+    # Generate music
     music_request = {
         "prompt": "Upbeat pop song with electronic beats and catchy melody",
-        "lyrics": "[Verse 1]\\nWalking down the street\\nFeeling so complete\\n[Chorus]\\nThis is my time to shine",
         "audio_duration": 120.0,
         "format": "wav",
         "genre_preset": "Pop",
@@ -75,20 +186,90 @@ Create complete musical compositions with vocals from text prompts and lyrics.
         job_id = job_data["job"]["id"]
         print(f"Music generation job created: {job_id}")
         print(f"Status: {job_data['job']['status']}")
+        
+        # Poll job status until completion
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/status",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                status_data = status_response.json()
+                print(f"Job status: {status_data['status']}")
+                
+                if status_data['status'] == 'completed':
+                    music_url = status_data['output_url']
+                    print(f"Music ready: {music_url}")
+                    
+                    # Download the music file
+                    music_response = requests.get(music_url)
+                    with open("my_pop_song.wav", "wb") as f:
+                        f.write(music_response.content)
+                    print("Music saved as my_pop_song.wav")
+                    
+                    # Like the track
+                    like_response = requests.post(
+                        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/like",
+                        headers={"Authorization": f"Bearer {api_key}"}
+                    )
+                    if like_response.status_code == 200:
+                        print("Track liked!")
+                    break
+                    
+                elif status_data['status'] == 'failed':
+                    print(f"Job failed: {status_data.get('error_message')}")
+                    break
+                    
+            time.sleep(5)  # Wait 5 seconds before checking again
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/music/text2music" \
-      -H "Authorization: Bearer your_api_key" \
+    # Generate music
+    JOB_RESPONSE=$(curl -s -X POST "https://api.audiopod.ai/api/v1/music/text2music" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "prompt": "Upbeat pop song with electronic beats and catchy melody",
-        "lyrics": "[Verse 1]\\nWalking down the street\\nFeeling so complete\\n[Chorus]\\nThis is my time to shine",
         "audio_duration": 120.0,
         "format": "wav",
-        "genre_preset": "Pop"
-      }'
+        "genre_preset": "Pop",
+        "display_name": "My Pop Song"
+      }')
+
+    # Extract job ID
+    JOB_ID=$(echo $JOB_RESPONSE | jq -r '.job.id')
+    echo "Music generation job created: $JOB_ID"
+
+    # Poll job status
+    while true; do
+      STATUS_RESPONSE=$(curl -s -X GET "https://api.audiopod.ai/api/v1/music/jobs/$JOB_ID/status" \
+        -H "Authorization: Bearer $AUDIOPOD_API_KEY")
+      
+      STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
+      echo "Job status: $STATUS"
+      
+      if [ "$STATUS" = "completed" ]; then
+        MUSIC_URL=$(echo $STATUS_RESPONSE | jq -r '.output_url')
+        echo "Music ready: $MUSIC_URL"
+        
+        # Download the music
+        curl -o my_pop_song.wav "$MUSIC_URL"
+        echo "Music saved as my_pop_song.wav"
+        
+        # Like the track
+        curl -s -X POST "https://api.audiopod.ai/api/v1/music/jobs/$JOB_ID/like" \
+          -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+        echo "Track liked!"
+        break
+      elif [ "$STATUS" = "failed" ]; then
+        echo "Job failed"
+        break
+      fi
+      
+      sleep 5
+    done
     ```
   </Tab>
 </Tabs>
@@ -96,15 +277,28 @@ Create complete musical compositions with vocals from text prompts and lyrics.
 **Request Parameters:**
 - **`prompt`** (required): Text description of the desired music style and characteristics
 - **`lyrics`** (optional): Song lyrics with structure tags like [Verse], [Chorus], [Bridge]
-- **`audio_duration`** (optional): Duration in seconds (-1 for auto, 1-600 seconds). Default: 120.0
+- **`duration`** (optional): Duration in seconds (-1 for auto, 1-600 seconds). Default: 120.0
+  - Also accepts `audio_duration` for backward compatibility
+  - Use -1 for automatic duration based on lyrics length
 - **`format`** (optional): Output format (`wav`, `mp3`, `flac`). Default: `wav`
-- **`genre_preset`** (optional): Genre preset (`Pop`, `Rock`, `Jazz`, `Classical`, `Electronic`, `Hip_Hop`, `Country`, `Folk`, `Blues`, `Reggae`, `Latin`, `Custom`)
+- **`genre_preset`** (optional): Genre preset (`Modern Pop`, `Rock`, `Hip Hop`, `Jazz`, `Classical`, `Electronic`, `Country`, `Folk`, `Blues`, `Reggae`, `Latin`, `R&B`, `Metal`, `Custom`)
 - **`display_name`** (optional): Custom name for the generated track
 - **`thumbnail_url`** (optional): URL for track thumbnail image
 
 **Advanced Parameters:**
 - **`infer_step`** (optional): Number of inference steps (1-200). Default: 60
 - **`guidance_scale`** (optional): Classifier-free guidance scale (1.0-30.0). Default: 15.0
+- **`scheduler_type`** (optional): Scheduler type (`euler`, etc.). Default: `euler`
+- **`cfg_type`** (optional): CFG type (`apg`, etc.). Default: `apg`
+- **`omega_scale`** (optional): Omega scale (1-20). Default: 10
+- **`guidance_interval`** (optional): Guidance interval (0.0-1.0). Default: 0.5
+- **`guidance_interval_decay`** (optional): Guidance decay (0.0-1.0). Default: 0.0
+- **`min_guidance_scale`** (optional): Minimum guidance scale (1.0-10.0). Default: 3.0
+- **`guidance_scale_text`** (optional): Text guidance scale (0.0-10.0). Default: 0.0
+- **`guidance_scale_lyric`** (optional): Lyric guidance scale (0.0-10.0). Default: 0.0
+- **`use_erg_tag`** (optional): Use ERG for tags. Default: true
+- **`use_erg_lyric`** (optional): Use ERG for lyrics. Default: true
+- **`use_erg_diffusion`** (optional): Use ERG for diffusion. Default: true
 - **`manual_seeds`** (optional): Array of manual seeds for reproducibility
 
 **Response:**
@@ -113,23 +307,73 @@ Create complete musical compositions with vocals from text prompts and lyrics.
 {
   "job": {
     "id": 123,
-    "task": "TEXT2MUSIC",
-    "status": "PROCESSING",
+    "task": "text2music",
+    "status": "processing",
     "progress": null,
     "input_params": {
       "prompt": "Upbeat pop song with electronic beats and catchy melody",
       "lyrics": "[Verse 1]\\nWalking down the street\\nFeeling so complete\\n[Chorus]\\nThis is my time to shine",
-      "audio_duration": 120.0,
+      "duration": 120.0,
       "format": "wav",
-      "genre_preset": "Pop"
+      "genre_preset": "Modern Pop",
+      "display_name": "My Pop Song",
+      "infer_step": 60,
+      "guidance_scale": 15.0
     },
     "output_path": null,
     "output_url": null,
+    "output_paths": null,
+    "output_urls": null,
     "created_at": "2024-01-15T10:30:00Z",
-    "task_id": "celery_task_uuid_here",
-    "display_name": "My Pop Song"
+    "user_id": "user_123",
+    "display_name": "My Pop Song",
+    "thumbnail_url": null,
+    "audio_duration": 120.0,
+    "actual_seeds": null,
+    "timecosts": null
   },
   "message": "Text-to-music generation started"
+}
+```
+
+**Completed Job Response** (when status is "completed"):
+
+```json
+{
+  "id": 123,
+  "task": "text2music",
+  "status": "completed",
+  "progress": 100,
+  "input_params": {
+    "prompt": "Upbeat pop song with electronic beats",
+    "lyrics": "[Verse 1]\\nWalking down the street...",
+    "duration": 120.0,
+    "format": "wav"
+  },
+  "output_path": "/generated/music_123.wav",
+  "output_url": "https://api.audiopod.ai/download/music_123.wav",
+  "output_paths": {
+    "wav": "/generated/music_123.wav",
+    "mp3": "/generated/music_123.mp3",
+    "flac": "/generated/music_123.flac"
+  },
+  "output_urls": {
+    "wav": "https://api.audiopod.ai/download/music_123.wav",
+    "mp3": "https://api.audiopod.ai/download/music_123.mp3",
+    "flac": "https://api.audiopod.ai/download/music_123.flac"
+  },
+  "created_at": "2024-01-15T10:30:00Z",
+  "completed_at": "2024-01-15T10:35:30Z",
+  "audio_duration": 120.5,
+  "actual_seeds": [12345, 67890],
+  "timecosts": {
+    "preprocessing": 2.1,
+    "generation": 312.4,
+    "postprocessing": 5.8
+  },
+  "display_name": "My Pop Song",
+  "thumbnail_url": null,
+  "user_id": "user_123"
 }
 ```
 
@@ -182,20 +426,159 @@ Create instrumental music without vocals from text prompts.
 Create rap tracks with custom lyrics and beats.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/music/text2rap
-    Authorization: Bearer {api_key}
-    Content-Type: application/json
-    
-    {
-      "prompt": "Hard-hitting rap beat with heavy bass and trap drums",
-      "lyrics": "[Verse 1]\nStarted from the bottom now we here\nGrinding every day throughout the year",
-      "audio_duration": 150.0,
-    }
+  <Tab title="Python">
+    ```python
+    from audiopod import Client
+
+    client = Client()
+
+    # Generate rap music (simple)
+    rap_result = client.music.generate_rap(
+        lyrics="[Verse 1]\nStarted from the bottom now we here\nGrinding every day throughout the year\n[Chorus]\nThis is our time to shine\nLeaving all the doubt behind",
+        style="modern",
+        tempo=120,
+        display_name="My Rap Track",
+        wait_for_completion=True
+    )
+
+    print(f"Rap generated: {rap_result.output_url}")
+
+    # Advanced rap generation with custom parameters
+    advanced_rap = client.music.generate_rap(
+        lyrics="""
+        [Intro]
+        Yeah, AudioPod AI in the building
+        Let's go!
+
+        [Verse 1]
+        Started with a vision, now we making it real
+        Technology and music, that's the perfect deal
+        Artificial intelligence helping artists create
+        Breaking down the barriers, opening the gate
+
+        [Chorus]
+        We're the future of music generation
+        AudioPod AI across the nation
+        From text to beats, we make it all
+        Stand up tall, never gonna fall
+
+        [Verse 2]
+        Every single bar crafted with precision
+        Making music magic, that's our mission
+        No more empty studios, no more writer's block
+        AudioPod AI, we're solid as a rock
+
+        [Outro]
+        The revolution starts here, the future is now
+        AudioPod AI, taking the vow
+        """,
+        style="trap",
+        tempo=140,
+        display_name="AudioPod AI Anthem",
+        wait_for_completion=True
+    )
+
+    print(f"Advanced rap generated: {advanced_rap.output_url}")
+
+    # Generate multiple rap variations
+    rap_prompts = [
+        {"lyrics": "[Verse]\nOld school vibes with a modern twist", "style": "old_school", "tempo": 90},
+        {"lyrics": "[Verse]\nTrap beats hitting hard all night", "style": "trap", "tempo": 150},
+        {"lyrics": "[Verse]\nConscious rap with a message to spread", "style": "conscious", "tempo": 100}
+    ]
+
+    rap_tracks = []
+    for i, prompt in enumerate(rap_prompts):
+        track = client.music.generate_rap(
+            lyrics=prompt["lyrics"],
+            style=prompt["style"],
+            tempo=prompt["tempo"],
+            display_name=f"Rap Variation {i+1}",
+            wait_for_completion=True
+        )
+        rap_tracks.append(track)
+        print(f"Generated {prompt['style']} rap: {track.output_url}")
+
+    print(f"Generated {len(rap_tracks)} rap variations")
     ```
   </Tab>
-  <Tab title="Python">
+  <Tab title="Node.js"
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+    const client = new AudioPodClient();
+
+    async function generateRapMusic() {
+      try {
+        // Generate rap music (simple)
+        const rapResult = await client.music.generateRap({
+          lyrics: '[Verse 1]\\nStarted from the bottom now we here\\nGrinding every day throughout the year\\n[Chorus]\\nThis is our time to shine\\nLeaving all the doubt behind',
+          style: 'modern',
+          tempo: 120,
+          displayName: 'My Rap Track',
+          waitForCompletion: true
+        });
+
+        console.log(`Rap generated: ${rapResult.outputUrl}`);
+
+        // Advanced rap generation with custom parameters
+        const advancedRap = await client.music.generateRap({
+          lyrics: `
+          [Intro]
+          Yeah, AudioPod AI in the building
+          Let's go!
+
+          [Verse 1]
+          Started with a vision, now we making it real
+          Technology and music, that's the perfect deal
+          Artificial intelligence helping artists create
+          Breaking down the barriers, opening the gate
+
+          [Chorus]
+          We're the future of music generation
+          AudioPod AI across the nation
+          From text to beats, we make it all
+          Stand up tall, never gonna fall
+          `,
+          style: 'trap',
+          tempo: 140,
+          displayName: 'AudioPod AI Anthem',
+          waitForCompletion: true
+        });
+
+        console.log(`Advanced rap generated: ${advancedRap.outputUrl}`);
+
+        // Generate multiple rap variations
+        const rapPrompts = [
+          { lyrics: '[Verse]\\nOld school vibes with a modern twist', style: 'old_school', tempo: 90 },
+          { lyrics: '[Verse]\\nTrap beats hitting hard all night', style: 'trap', tempo: 150 },
+          { lyrics: '[Verse]\\nConscious rap with a message to spread', style: 'conscious', tempo: 100 }
+        ];
+
+        const rapTracks = [];
+        for (let i = 0; i < rapPrompts.length; i++) {
+          const prompt = rapPrompts[i];
+          const track = await client.music.generateRap({
+            lyrics: prompt.lyrics,
+            style: prompt.style,
+            tempo: prompt.tempo,
+            displayName: `Rap Variation ${i + 1}`,
+            waitForCompletion: true
+          });
+          rapTracks.push(track);
+          console.log(`Generated ${prompt.style} rap: ${track.outputUrl}`);
+        }
+
+        console.log(`Generated ${rapTracks.length} rap variations`);
+
+      } catch (error) {
+        console.error('Error generating rap:', error.message);
+      }
+    }
+
+    generateRapMusic();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
     rap_request = {
         "prompt": "Hard-hitting rap beat with heavy bass and trap drums",
@@ -614,37 +997,6 @@ Retrieve available genre presets for music generation.
   </Tab>
 </Tabs>
 
-### Get Sample Data
-
-Retrieve sample data for testing music generation.
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /api/v1/music/sample-data?lora_name_or_path=ACE-Step-v1
-    Authorization: Bearer {api_key}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/music/sample-data",
-        headers={"Authorization": f"Bearer {api_key}"},
-        params={"lora_name_or_path": "ACE-Step-v1"}  # Optional
-    )
-    
-    if response.status_code == 200:
-        sample_data = response.json()
-        print(f"Sample prompt: {sample_data['prompt']}")
-        print(f"Sample lyrics: {sample_data['lyrics']}")
-        print(f"Duration: {sample_data['audio_duration']}s")
-    ```
-  </Tab>
-</Tabs>
-
-**Parameters:**
-- **`lora_name_or_path`** (optional): LoRA model name for specific sample data
-
 ## Job Management
 
 ### Get Job Status
@@ -686,20 +1038,26 @@ Monitor the progress of music generation jobs.
 ```json
 {
   "id": 123,
-  "task": "TEXT2MUSIC",
-  "status": "COMPLETED",
+  "task": "text2music",
+  "status": "completed",
   "progress": 100,
   "input_params": {
     "prompt": "Upbeat pop song with electronic beats",
     "lyrics": "[Verse 1]\\nWalking down the street...",
-    "audio_duration": 120.0,
+    "duration": 120.0,
     "format": "wav"
   },
   "output_path": "/generated/music_123.wav",
   "output_url": "https://api.audiopod.ai/download/music_123.wav",
+  "output_paths": {
+    "wav": "/generated/music_123.wav",
+    "mp3": "/generated/music_123.mp3",
+    "flac": "/generated/music_123.flac"
+  },
   "output_urls": {
     "wav": "https://api.audiopod.ai/download/music_123.wav",
-    "mp3": "https://api.audiopod.ai/download/music_123.mp3"
+    "mp3": "https://api.audiopod.ai/download/music_123.mp3",
+    "flac": "https://api.audiopod.ai/download/music_123.flac"
   },
   "created_at": "2024-01-15T10:30:00Z",
   "completed_at": "2024-01-15T10:35:30Z",
@@ -710,18 +1068,20 @@ Monitor the progress of music generation jobs.
     "generation": 312.4,
     "postprocessing": 5.8
   },
-  "display_name": "My Pop Song"
+  "display_name": "My Pop Song",
+  "thumbnail_url": null,
+  "user_id": "user_123"
 }
 ```
 
 ### List Music Jobs
 
-Get all music generation jobs for the authenticated user.
+Get all music generation jobs for the authenticated user with enhanced filtering options.
 
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/music/jobs?task=TEXT2MUSIC&status=COMPLETED&limit=50
+    GET /api/v1/music/jobs?task=text2music&status=completed&song_type=song&liked=true&limit=50&skip=0
     Authorization: Bearer {api_key}
     ```
   </Tab>
@@ -731,15 +1091,17 @@ Get all music generation jobs for the authenticated user.
         "https://api.audiopod.ai/api/v1/music/jobs",
         headers={"Authorization": f"Bearer {api_key}"},
         params={
-            "task": "TEXT2MUSIC",      # Filter by task type
-            "status": "COMPLETED",     # Filter by status
-            "limit": 50,
-            "skip": 0
+            "task": "text2music",      # Filter by specific task
+            "status": "completed",     # Filter by status
+            "song_type": "song",       # Filter by category: song, rap, instrumental, samples
+            "liked": True,             # Filter liked tracks only
+            "limit": 50,               # Number of results
+            "skip": 0                  # Pagination offset
         }
     )
     
     if response.status_code == 200:
-        jobs = response.json()["items"]
+        jobs = response.json()
         for job in jobs:
             print(f"Job {job['id']}: {job['task']} - {job['status']}")
             if job.get("display_name"):
@@ -747,6 +1109,145 @@ Get all music generation jobs for the authenticated user.
     ```
   </Tab>
 </Tabs>
+
+**Query Parameters:**
+- **`skip`** (optional): Number of jobs to skip for pagination. Default: 0
+- **`limit`** (optional): Maximum number of jobs to return. Default: 50
+- **`task`** (optional): Filter by specific task type (`text2music`, `text2rap`, `prompt2instrumental`, etc.)
+- **`status`** (optional): Filter by job status (`pending`, `processing`, `completed`, `failed`)
+- **`song_type`** (optional): Filter by category:
+  - `song`: Full songs (text2music, lyric2vocals)
+  - `rap`: Rap tracks (text2rap)
+  - `instrumental`: Instrumental tracks (prompt2instrumental, text2samples)
+  - `samples`: Audio samples (text2samples)
+- **`liked`** (optional): Filter by user's liked status (`true` for liked only, `false` for non-liked)
+
+### Get Liked Tracks
+
+Get all tracks liked by the current user with filtering options.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/liked?song_type=rap&status=completed&limit=20
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/music/liked",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={
+            "song_type": "rap",        # Optional: filter by category
+            "status": "completed",     # Optional: filter by status
+            "limit": 20,               # Optional: results per page
+            "skip": 0                  # Optional: pagination offset
+        }
+    )
+    
+    if response.status_code == 200:
+        liked_tracks = response.json()
+        print(f"Found {len(liked_tracks)} liked tracks")
+        for track in liked_tracks:
+            print(f"- {track['display_name']} ({track['task']})")
+    ```
+  </Tab>
+</Tabs>
+
+### Get Filter Statistics
+
+Get statistics for building filter UI components.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/filters/stats
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/music/filters/stats",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        stats = response.json()
+        print(f"Total tracks: {stats['total_tracks']}")
+        print(f"Liked tracks: {stats['liked_count']}")
+        print("Song types distribution:")
+        for song_type, count in stats['song_types'].items():
+            print(f"  {song_type}: {count}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "total_tracks": 150,
+  "liked_count": 25,
+  "song_types": {
+    "songs": 80,
+    "rap": 30,
+    "instrumental": 25,
+    "remixes": 10,
+    "edits": 5
+  },
+  "available_filters": {
+    "song_types": ["songs", "rap", "instrumental", "remixes", "edits"],
+    "interactions": ["liked"],
+    "statuses": ["pending", "processing", "completed", "failed"]
+  }
+}
+```
+
+### Update Job Metadata
+
+Update display name and thumbnail for an existing music job.
+
+<Tabs>
+  <Tab title="PATCH">
+    ```http
+    PATCH /api/v1/music/jobs/{job_id}
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "display_name": "Updated Track Name",
+      "thumbnail_url": "https://example.com/new-thumbnail.jpg"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    update_data = {
+        "display_name": "Updated Track Name",
+        "thumbnail_url": "https://example.com/new-thumbnail.jpg"
+    }
+    
+    response = requests.patch(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        json=update_data
+    )
+    
+    if response.status_code == 200:
+        updated_job = response.json()
+        print(f"Updated job: {updated_job['display_name']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Request Body:**
+- **`display_name`** (optional): New display name for the track
+- **`thumbnail_url`** (optional): New thumbnail URL for the track
 
 ### Delete Music Job
 
@@ -771,6 +1272,8 @@ Get all music generation jobs for the authenticated user.
     ```
   </Tab>
 </Tabs>
+
+## Music Interactions & Sharing
 
 ### Like/Unlike Music Track
 
@@ -797,11 +1300,610 @@ Get all music generation jobs for the authenticated user.
         headers={"Authorization": f"Bearer {api_key}"}
     )
     
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Track {result['message']}")
+        print(f"Likes: {result['like_count']}, Dislikes: {result['dislike_count']}")
+    
     # Unlike a track
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/like",
         headers={"Authorization": f"Bearer {api_key}"}
     )
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Track liked successfully",
+  "interaction_type": "like",
+  "like_count": 15,
+  "dislike_count": 2,
+  "share_count": 8,
+  "comment_count": 5,
+  "user_has_liked": true,
+  "user_has_disliked": false
+}
+```
+
+### Dislike/Remove Dislike from Track
+
+<Tabs>
+  <Tab title="POST (Dislike)">
+    ```http
+    POST /api/v1/music/jobs/{job_id}/dislike
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="DELETE (Remove Dislike)">
+    ```http
+    DELETE /api/v1/music/jobs/{job_id}/dislike
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    
+    # Dislike a track
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/dislike",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Track {result['message']}")
+        print(f"User status: liked={result['user_has_liked']}, disliked={result['user_has_disliked']}")
+    
+    # Remove dislike from track
+    response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/dislike",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    ```
+  </Tab>
+</Tabs>
+
+### Share Music Track
+
+Generate a shareable URL for a music track, enabling public access.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/music/jobs/{job_id}/share
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "platform": "twitter",
+      "additional_data": {
+        "campaign": "music_release",
+        "source": "artist_dashboard"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    share_data = {
+        "platform": "twitter",  # Optional: platform identifier
+        "additional_data": {     # Optional: extra metadata
+            "campaign": "music_release",
+            "source": "artist_dashboard"
+        }
+    }
+    
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/share",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        json=share_data
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Share URL: {result['share_url']}")
+        print(f"Share count: {result['share_count']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Track shared successfully",
+  "share_count": 9,
+  "share_url": "https://audiopod.ai/shared/abc123def456",
+  "share_token": "abc123def456"
+}
+```
+
+### Get Track Statistics
+
+Get public statistics for a music track.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/jobs/{job_id}/stats
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/stats",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        stats = response.json()
+        print(f"Track Statistics:")
+        print(f"  Likes: {stats['like_count']} ({stats['like_percentage']}%)")
+        print(f"  Dislikes: {stats['dislike_count']} ({stats['dislike_percentage']}%)")
+        print(f"  Shares: {stats['share_count']}")
+        print(f"  Comments: {stats['comment_count']}")
+        print(f"  Total interactions: {stats['total_interactions']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "like_count": 42,
+  "dislike_count": 3,
+  "share_count": 15,
+  "comment_count": 8,
+  "total_interactions": 68,
+  "like_percentage": 93.3,
+  "dislike_percentage": 6.7
+}
+```
+
+### Get User Interaction Status
+
+Get the current user's interaction status with a specific track.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/jobs/{job_id}/interaction-status
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/interaction-status",
+        headers={"Authorization": f"Bearer {api_key}"}
+    )
+    
+    if response.status_code == 200:
+        status = response.json()
+        print(f"User interaction status:")
+        print(f"  Has liked: {status['user_has_liked']}")
+        print(f"  Has disliked: {status['user_has_disliked']}")
+        print(f"  Can interact: {status['can_interact']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "job_id": 123,
+  "user_has_liked": true,
+  "user_has_disliked": false,
+  "can_interact": true
+}
+```
+
+## Public Shared Tracks
+
+These endpoints allow public access to shared music tracks without authentication.
+
+### Get Shared Track
+
+Access a publicly shared track using its share token.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/shared/{share_token}
+    # No authentication required
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    share_token = "abc123def456"
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/music/shared/{share_token}"
+        # No authentication headers needed
+    )
+    
+    if response.status_code == 200:
+        track = response.json()["track"]
+        print(f"Shared Track: {track['display_name']}")
+        print(f"Created by: {track['user_email']}")
+        print(f"Duration: {track['audio_duration']}s")
+        print(f"Likes: {track['like_count']}, Comments: {track['comment_count']}")
+        
+        # Available formats
+        if track.get("output_urls"):
+            print("Available formats:")
+            for format_name, url in track["output_urls"].items():
+                print(f"  {format_name.upper()}: {url}")
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+```json
+{
+  "track": {
+    "id": 123,
+    "task": "text2music",
+    "status": "completed",
+    "display_name": "My Awesome Song",
+    "thumbnail_url": "https://example.com/thumb.jpg",
+    "output_url": "https://api.audiopod.ai/download/music_123.wav",
+    "output_urls": {
+      "wav": "https://api.audiopod.ai/download/music_123.wav",
+      "mp3": "https://api.audiopod.ai/download/music_123.mp3",
+      "flac": "https://api.audiopod.ai/download/music_123.flac"
+    },
+    "created_at": "2024-01-15T10:30:00Z",
+    "completed_at": "2024-01-15T10:35:30Z",
+    "audio_duration": 120.5,
+    "share_token": "abc123def456",
+    "share_url": "https://audiopod.ai/shared/abc123def456",
+    "is_shared": true,
+    "shared_at": "2024-01-15T11:00:00Z",
+    "user_email": "artist@example.com",
+    "like_count": 42,
+    "dislike_count": 3,
+    "share_count": 15,
+    "comment_count": 8,
+    "total_interactions": 68,
+    "like_percentage": 93.3,
+    "dislike_percentage": 6.7,
+    "prompt": "Upbeat pop song with electronic beats",
+    "lyrics": "[Verse 1]\\nWalking down the street..."
+  },
+  "can_download": true,
+  "can_comment": true,
+  "can_interact": true
+}
+```
+
+### Download Shared Track
+
+Download a shared track in a specific format.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/shared/{share_token}/download?format=mp3
+    # No authentication required
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    share_token = "abc123def456"
+    format_type = "mp3"  # wav, mp3, or flac
+    
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/music/shared/{share_token}/download",
+        params={"format": format_type}
+    )
+    
+    if response.status_code == 200:
+        download_info = response.json()
+        download_url = download_info["download_url"]
+        filename = download_info["filename"]
+        
+        # Download the file
+        audio_response = requests.get(download_url)
+        with open(filename, "wb") as f:
+            f.write(audio_response.content)
+        
+        print(f"Downloaded: {filename} ({download_info['format']} format)")
+    ```
+  </Tab>
+</Tabs>
+
+**Query Parameters:**
+- **`format`** (optional): Desired format (`wav`, `mp3`, `flac`). Default: `wav`
+
+**Response:**
+```json
+{
+  "download_url": "https://api.audiopod.ai/download/presigned/music_123.mp3",
+  "filename": "text2music-123.mp3",
+  "format": "mp3",
+  "expires_at": "2024-01-15T12:30:00Z"
+}
+```
+
+### Like Shared Track (Anonymous)
+
+Like a shared track without authentication (anonymous interaction).
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/music/shared/{share_token}/like
+    # No authentication required - uses IP for anonymous identification
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    share_token = "abc123def456"
+    
+    # Anonymous like (identified by IP address)
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/music/shared/{share_token}/like"
+        # No authentication headers - anonymous interaction
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Track {result['message']}")
+        print(f"New like count: {result['like_count']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Dislike Shared Track (Anonymous)
+
+Dislike a shared track without authentication.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/music/shared/{share_token}/dislike
+    # No authentication required
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    share_token = "abc123def456"
+    
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/music/shared/{share_token}/dislike"
+    )
+    
+    if response.status_code == 200:
+        result = response.json()
+        print(f"Track {result['message']}")
+        print(f"Dislikes: {result['dislike_count']}")
+    ```
+  </Tab>
+</Tabs>
+
+## Comments System
+
+### Add Comment to Shared Track
+
+Add a comment to a publicly shared track (supports both authenticated and anonymous users).
+
+<Tabs>
+  <Tab title="POST (Anonymous)">
+    ```http
+    POST /api/v1/music/shared/{share_token}/comments
+    Content-Type: application/json
+    # No authentication required for anonymous comments
+    
+    {
+      "content": "Amazing track! Love the beat.",
+      "author_name": "Music Lover"
+    }
+    ```
+  </Tab>
+  <Tab title="POST (Authenticated)">
+    ```http
+    POST /api/v1/music/shared/{share_token}/comments
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "content": "Great work on this composition!"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    share_token = "abc123def456"
+    
+    # Anonymous comment
+    comment_data = {
+        "content": "Amazing track! Love the beat.",
+        "author_name": "Music Lover"  # Required for anonymous users
+    }
+    
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/music/shared/{share_token}/comments",
+        headers={"Content-Type": "application/json"},
+        json=comment_data
+    )
+    
+    # Authenticated comment (author_name not needed - uses user's name)
+    authenticated_comment = {
+        "content": "Great work on this composition!"
+    }
+    
+    auth_response = requests.post(
+        f"https://api.audiopod.ai/api/v1/music/shared/{share_token}/comments",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        json=authenticated_comment
+    )
+    
+    if response.status_code == 200:
+        comment = response.json()
+        print(f"Comment added by {comment['author_name']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Request Body:**
+- **`content`** (required): Comment text content
+- **`author_name`** (required for anonymous): Display name for anonymous comments
+
+**Response:**
+```json
+{
+  "id": 456,
+  "content": "Amazing track! Love the beat.",
+  "author_name": "Music Lover",
+  "created_at": "2024-01-15T12:00:00Z",
+  "updated_at": "2024-01-15T12:00:00Z",
+  "is_edited": false,
+  "user_id": null
+}
+```
+
+### Get Comments for Shared Track
+
+Retrieve comments for a shared track with pagination.
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/shared/{share_token}/comments?skip=0&limit=20
+    # No authentication required
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    share_token = "abc123def456"
+    
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/music/shared/{share_token}/comments",
+        params={
+            "skip": 0,      # Pagination offset
+            "limit": 20     # Comments per page
+        }
+    )
+    
+    if response.status_code == 200:
+        comments_data = response.json()
+        comments = comments_data["comments"]
+        
+        print(f"Showing {len(comments)} of {comments_data['total_count']} comments")
+        for comment in comments:
+            print(f"{comment['author_name']}: {comment['content']}")
+            print(f"  Posted: {comment['created_at']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Query Parameters:**
+- **`skip`** (optional): Number of comments to skip. Default: 0
+- **`limit`** (optional): Maximum comments to return. Default: 50
+
+**Response:**
+```json
+{
+  "comments": [
+    {
+      "id": 456,
+      "content": "Amazing track! Love the beat.",
+      "author_name": "Music Lover",
+      "created_at": "2024-01-15T12:00:00Z",
+      "updated_at": "2024-01-15T12:00:00Z",
+      "is_edited": false,
+      "user_id": null
+    },
+    {
+      "id": 457,
+      "content": "Great composition!",
+      "author_name": "john@example.com",
+      "created_at": "2024-01-15T12:15:00Z",
+      "updated_at": "2024-01-15T12:15:00Z",
+      "is_edited": false,
+      "user_id": "user_789"
+    }
+  ],
+  "total_count": 8,
+  "has_more": false
+}
+```
+
+### Add Comment to Own Track (Authenticated)
+
+Add a comment to your own track (requires authentication).
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/music/jobs/{job_id}/comments
+    Authorization: Bearer {api_key}
+    Content-Type: application/json
+    
+    {
+      "content": "Thanks everyone for the feedback!"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    comment_data = {
+        "content": "Thanks everyone for the feedback!"
+    }
+    
+    response = requests.post(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/comments",
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        },
+        json=comment_data
+    )
+    
+    if response.status_code == 200:
+        comment = response.json()
+        print(f"Comment added: {comment['content']}")
+    ```
+  </Tab>
+</Tabs>
+
+### Get Comments for Own Track
+
+<Tabs>
+  <Tab title="GET">
+    ```http
+    GET /api/v1/music/jobs/{job_id}/comments?skip=0&limit=50
+    Authorization: Bearer {api_key}
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    job_id = 123
+    response = requests.get(
+        f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/comments",
+        headers={"Authorization": f"Bearer {api_key}"},
+        params={"skip": 0, "limit": 50}
+    )
+    
+    if response.status_code == 200:
+        comments_data = response.json()
+        print(f"Track has {comments_data['total_count']} comments")
     ```
   </Tab>
 </Tabs>
@@ -865,22 +1967,24 @@ Get all music generation jobs for the authenticated user.
 
 ## Genre Presets
 
-Available genre presets for quick configuration:
+Available genre presets for quick configuration (these replace the `prompt` parameter):
 
-| Preset | Description | Typical Characteristics |
-|--------|-------------|-------------------------|
-| `Pop` | Mainstream pop music | Catchy melodies, 4/4 time, 120-140 BPM |
-| `Rock` | Rock and alternative | Electric guitars, driving drums, 110-130 BPM |
-| `Jazz` | Jazz and fusion | Complex harmonies, improvisation, swing feel |
-| `Classical` | Orchestral and chamber | Traditional instruments, complex arrangements |
-| `Electronic` | Electronic and EDM | Synthesizers, electronic beats, 128-140 BPM |
-| `Hip_Hop` | Hip-hop and rap | Strong beats, bass, 70-140 BPM |
-| `Country` | Country and folk | Acoustic guitars, storytelling, 120-140 BPM |
-| `Folk` | Acoustic folk | Organic instruments, traditional melodies |
-| `Blues` | Blues and R&B | 12-bar blues, emotional expression |
-| `Reggae` | Reggae and ska | Offbeat rhythm, Caribbean influence |
-| `Latin` | Latin and world music | Latin rhythms, traditional instruments |
-| `Custom` | No preset applied | Full manual control of parameters |
+| Preset | Description | Generated Prompt |
+|--------|-------------|------------------|
+| `Modern Pop` | Contemporary pop music | pop, synth, drums, guitar, 120 bpm, upbeat, catchy, vibrant, female vocals, polished vocals |
+| `Rock` | Rock and alternative | rock, electric guitar, drums, bass, 130 bpm, energetic, rebellious, gritty, male vocals, raw vocals |
+| `Hip Hop` | Hip-hop and rap | hip hop, 808 bass, hi-hats, synth, 90 bpm, bold, urban, intense, male vocals, rhythmic vocals |
+| `Country` | Country and folk | country, acoustic guitar, steel guitar, fiddle, 100 bpm, heartfelt, rustic, warm, male vocals, twangy vocals |
+| `EDM` | Electronic dance music | edm, synth, bass, kick drum, 128 bpm, euphoric, pulsating, energetic, instrumental |
+| `Reggae` | Reggae and ska | reggae, guitar, bass, drums, 80 bpm, chill, soulful, positive, male vocals, smooth vocals |
+| `Classical` | Orchestral and chamber | classical, orchestral, strings, piano, 60 bpm, elegant, emotive, timeless, instrumental |
+| `Jazz` | Jazz and fusion | jazz, saxophone, piano, double bass, 110 bpm, smooth, improvisational, soulful, male vocals, crooning vocals |
+| `Metal` | Heavy metal | metal, electric guitar, double kick drum, bass, 160 bpm, aggressive, intense, heavy, male vocals, screamed vocals |
+| `R&B` | R&B and soul | r&b, synth, bass, drums, 85 bpm, sultry, groovy, romantic, female vocals, silky vocals |
+| `Folk` | Acoustic folk | folk, acoustic guitar, harmonica, 90 bpm, organic, traditional, storytelling |
+| `Blues` | Blues and R&B | blues, guitar, harmonica, 80 bpm, emotional, soulful, traditional |
+| `Latin` | Latin and world music | latin, guitar, percussion, 110 bpm, rhythmic, festive, cultural |
+| `Custom` | No preset applied | Use your own custom prompt |
 
 ## Advanced Parameters
 

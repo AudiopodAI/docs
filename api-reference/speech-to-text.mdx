@@ -31,32 +31,148 @@ All endpoints require authentication:
 Transcribe audio from YouTube or other video platforms.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/transcription/transcribe
-    Authorization: Bearer {api_key}
-    Content-Type: application/json
-    
-    {
-      "source_urls": [
-        "https://youtube.com/watch?v=example123",
+  <Tab title="Python SDK">
+    ```python
+    from audiopod import Client
+
+    client = Client()
+
+    # Simple YouTube transcription
+    transcription = client.transcription.transcribe_from_url(
+        url="https://youtube.com/watch?v=example123",
+        wait_for_completion=True  # Wait for result
+    )
+
+    print(f"Transcription completed!")
+    print(f"Duration: {transcription.duration}s")
+    print(f"Language: {transcription.language}")
+    print(f"Full text: {transcription.text}")
+
+    # Advanced transcription with speaker diarization
+    advanced_transcription = client.transcription.transcribe_from_url(
+        url="https://youtube.com/watch?v=example123",
+        language="en",  # Optional: auto-detect if not specified
+        model_type="whisperx",  # whisperx, whisper_timestamped, faster_whisper
+        enable_speaker_diarization=True,
+        min_speakers=2,
+        max_speakers=5,
+        enable_word_timestamps=True,
+        enable_confidence_scores=True,
+        chunk_duration=1800,  # 30 minutes per chunk
+        wait_for_completion=True
+    )
+
+    # Access speaker-separated text
+    for segment in advanced_transcription.segments:
+        speaker = segment.get('speaker', 'Unknown')
+        text = segment['text']
+        start_time = segment['start']
+        end_time = segment['end']
+        confidence = segment.get('confidence', 0.0)
+        
+        print(f"[{start_time:.2f}s - {end_time:.2f}s] {speaker}: {text} (confidence: {confidence:.2f})")
+
+    # Batch processing multiple URLs
+    urls = [
+        "https://youtube.com/watch?v=video1",
+        "https://youtube.com/watch?v=video2",
         "https://vimeo.com/123456789"
-      ],
-      "language": "en",
-      "model_type": "whisperx",
-      "enable_speaker_diarization": true,
-      "min_speakers": 2,
-      "max_speakers": 5,
-      "enable_word_timestamps": true,
-      "enable_confidence_scores": true,
-      "chunk_duration": 1800
-    }
+    ]
+
+    batch_results = client.transcription.transcribe_batch_from_urls(
+        urls=urls,
+        enable_speaker_diarization=True,
+        model_type="whisperx",
+        wait_for_completion=True
+    )
+
+    for i, result in enumerate(batch_results):
+        print(f"\nVideo {i+1}: {urls[i]}")
+        print(f"Status: {result.status}")
+        if result.status == "completed":
+            print(f"Text preview: {result.text[:100]}...")
     ```
   </Tab>
-  <Tab title="Python">
+  <Tab title="Node.js SDK">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+
+    const client = new AudioPodClient();
+
+    async function transcribeYouTubeVideo() {
+      try {
+        // Simple transcription
+        const transcription = await client.transcription.transcribeFromUrl({
+          url: "https://youtube.com/watch?v=example123",
+          waitForCompletion: true
+        });
+
+        console.log(`Transcription completed!`);
+        console.log(`Duration: ${transcription.duration}s`);
+        console.log(`Language: ${transcription.language}`);
+        console.log(`Full text: ${transcription.text}`);
+
+        // Advanced transcription with speaker diarization
+        const advancedTranscription = await client.transcription.transcribeFromUrl({
+          url: "https://youtube.com/watch?v=example123",
+          language: "en",
+          modelType: "whisperx",
+          enableSpeakerDiarization: true,
+          minSpeakers: 2,
+          maxSpeakers: 5,
+          enableWordTimestamps: true,
+          enableConfidenceScores: true,
+          chunkDuration: 1800,
+          waitForCompletion: true
+        });
+
+        // Process speaker-separated segments
+        advancedTranscription.segments.forEach(segment => {
+          const speaker = segment.speaker || 'Unknown';
+          const text = segment.text;
+          const startTime = segment.start;
+          const endTime = segment.end;
+          const confidence = segment.confidence || 0.0;
+          
+          console.log(`[${startTime.toFixed(2)}s - ${endTime.toFixed(2)}s] ${speaker}: ${text} (confidence: ${confidence.toFixed(2)})`);
+        });
+
+        // Batch processing
+        const urls = [
+          "https://youtube.com/watch?v=video1",
+          "https://youtube.com/watch?v=video2",
+          "https://vimeo.com/123456789"
+        ];
+
+        const batchResults = await client.transcription.transcribeBatchFromUrls({
+          urls: urls,
+          enableSpeakerDiarization: true,
+          modelType: "whisperx",
+          waitForCompletion: true
+        });
+
+        batchResults.forEach((result, index) => {
+          console.log(`\nVideo ${index + 1}: ${urls[index]}`);
+          console.log(`Status: ${result.status}`);
+          if (result.status === "completed") {
+            console.log(`Text preview: ${result.text.substring(0, 100)}...`);
+          }
+        });
+
+      } catch (error) {
+        console.error('Transcription error:', error.message);
+      }
+    }
+
+    transcribeYouTubeVideo();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
     import requests
+    import time
     
+    # Start transcription job
     response = requests.post(
         "https://api.audiopod.ai/api/v1/transcription/transcribe",
         headers={"Authorization": f"Bearer {api_key}"},
@@ -80,20 +196,67 @@ Transcribe audio from YouTube or other video platforms.
         job_data = response.json()
         job_id = job_data["job_id"]
         print(f"Transcription job created: {job_id}")
+        
+        # Poll for completion
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/transcription/status/{job_id}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                status_data = status_response.json()
+                print(f"Status: {status_data['status']}")
+                
+                if status_data['status'] == 'completed':
+                    # Get final result
+                    result_response = requests.get(
+                        f"https://api.audiopod.ai/api/v1/transcription/result/{job_id}",
+                        headers={"Authorization": f"Bearer {api_key}"}
+                    )
+                    
+                    if result_response.status_code == 200:
+                        result = result_response.json()
+                        print(f"Transcription text: {result['transcription']}")
+                        
+                        # Print speaker segments if diarization was enabled
+                        if 'segments' in result:
+                            for segment in result['segments']:
+                                speaker = segment.get('speaker', 'Unknown')
+                                text = segment['text']
+                                start = segment['start']
+                                end = segment['end']
+                                print(f"[{start:.2f}s - {end:.2f}s] {speaker}: {text}")
+                    break
+                elif status_data['status'] == 'failed':
+                    print(f"Transcription failed: {status_data.get('error', 'Unknown error')}")
+                    break
+                    
+            time.sleep(10)  # Wait 10 seconds before checking again
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
+    # Start transcription job
     curl -X POST "https://api.audiopod.ai/api/v1/transcription/transcribe" \
-      -H "Authorization: Bearer your_api_key" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "source_urls": ["https://youtube.com/watch?v=example123"],
         "language": "en",
         "model_type": "whisperx",
         "enable_speaker_diarization": true,
-        "enable_word_timestamps": true
+        "enable_word_timestamps": true,
+        "enable_confidence_scores": true
       }'
+
+    # Check job status (replace JOB_ID with actual job ID)
+    curl -X GET "https://api.audiopod.ai/api/v1/transcription/status/JOB_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+
+    # Get transcription result when completed
+    curl -X GET "https://api.audiopod.ai/api/v1/transcription/result/JOB_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
@@ -121,25 +284,242 @@ Transcribe audio from YouTube or other video platforms.
 Transcribe from uploaded audio or video files.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/transcription/transcribe-upload
-    Authorization: Bearer {api_key}
-    Content-Type: multipart/form-data
-    
-    files: (audio/video files)
-    language: en
-    model_type: whisperx
-    enable_speaker_diarization: true
-    min_speakers: 1
-    max_speakers: 10
-    enable_word_timestamps: true
-    enable_confidence_scores: true
-    chunk_duration: 1800
+  <Tab title="Python SDK">
+    ```python
+    from audiopod import Client
+    import os
+
+    client = Client()
+
+    # Single file transcription
+    transcription = client.transcription.transcribe_from_file(
+        audio_file="meeting_recording.mp3",
+        language="en",
+        model_type="whisperx",
+        enable_speaker_diarization=True,
+        min_speakers=2,
+        max_speakers=8,
+        enable_word_timestamps=True,
+        enable_confidence_scores=True,
+        wait_for_completion=True
+    )
+
+    print(f"Transcription completed!")
+    print(f"File: {transcription.source_file}")
+    print(f"Duration: {transcription.duration}s")
+    print(f"Language: {transcription.language}")
+    print(f"Full text: {transcription.text}")
+
+    # Access detailed segments with speakers
+    for segment in transcription.segments:
+        speaker = segment.get('speaker', 'Unknown')
+        text = segment['text']
+        start_time = segment['start']
+        end_time = segment['end']
+        confidence = segment.get('confidence', 0.0)
+        
+        print(f"[{start_time:.2f}s - {end_time:.2f}s] {speaker}: {text}")
+
+    # Batch file transcription
+    audio_files = [
+        "meeting_recording.mp3",
+        "interview.wav", 
+        "presentation.mp4",
+        "podcast_episode.m4a"
+    ]
+
+    batch_results = client.transcription.transcribe_batch_from_files(
+        audio_files=audio_files,
+        enable_speaker_diarization=True,
+        model_type="whisperx",
+        enable_word_timestamps=True,
+        chunk_duration=1800,  # 30 minutes per chunk
+        wait_for_completion=True
+    )
+
+    # Process results
+    for i, result in enumerate(batch_results):
+        print(f"\nFile {i+1}: {audio_files[i]}")
+        print(f"Status: {result.status}")
+        if result.status == "completed":
+            print(f"Duration: {result.duration}s")
+            print(f"Language: {result.language}")
+            print(f"Text preview: {result.text[:100]}...")
+            
+            # Save transcription to file
+            output_file = f"transcript_{i+1}.txt"
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(result.text)
+            print(f"Saved to: {output_file}")
+
+    # Advanced file processing with custom settings
+    def process_interview_file(file_path):
+        """Process interview with optimized settings"""
+        
+        transcription = client.transcription.transcribe_from_file(
+            audio_file=file_path,
+            model_type="whisperx",  # Best for accuracy
+            enable_speaker_diarization=True,
+            min_speakers=2,  # Interviewer + interviewee
+            max_speakers=4,  # Allow for additional participants
+            enable_word_timestamps=True,
+            enable_confidence_scores=True,
+            language="auto",  # Auto-detect language
+            wait_for_completion=True
+        )
+        
+        # Generate formatted transcript
+        formatted_output = []
+        current_speaker = None
+        
+        for segment in transcription.segments:
+            speaker = segment.get('speaker', 'Unknown')
+            text = segment['text'].strip()
+            
+            if speaker != current_speaker:
+                formatted_output.append(f"\n{speaker}:")
+                current_speaker = speaker
+                
+            formatted_output.append(f" {text}")
+        
+        return ''.join(formatted_output)
+
+    # Process interview
+    interview_transcript = process_interview_file("important_interview.wav")
+    print("\nFormatted Interview Transcript:")
+    print(interview_transcript)
     ```
   </Tab>
-  <Tab title="Python">
+  <Tab title="Node.js SDK">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+    const fs = require('fs');
+    const path = require('path');
+
+    const client = new AudioPodClient();
+
+    async function transcribeAudioFiles() {
+      try {
+        // Single file transcription
+        const transcription = await client.transcription.transcribeFromFile({
+          audioFile: fs.createReadStream('meeting_recording.mp3'),
+          language: "en",
+          modelType: "whisperx",
+          enableSpeakerDiarization: true,
+          minSpeakers: 2,
+          maxSpeakers: 8,
+          enableWordTimestamps: true,
+          enableConfidenceScores: true,
+          waitForCompletion: true
+        });
+
+        console.log(`Transcription completed!`);
+        console.log(`File: ${transcription.sourceFile}`);
+        console.log(`Duration: ${transcription.duration}s`);
+        console.log(`Language: ${transcription.language}`);
+        console.log(`Full text: ${transcription.text}`);
+
+        // Process segments with speakers
+        transcription.segments.forEach(segment => {
+          const speaker = segment.speaker || 'Unknown';
+          const text = segment.text;
+          const startTime = segment.start;
+          const endTime = segment.end;
+          const confidence = segment.confidence || 0.0;
+          
+          console.log(`[${startTime.toFixed(2)}s - ${endTime.toFixed(2)}s] ${speaker}: ${text}`);
+        });
+
+        // Batch processing
+        const audioFiles = [
+          'meeting_recording.mp3',
+          'interview.wav', 
+          'presentation.mp4',
+          'podcast_episode.m4a'
+        ];
+
+        const fileStreams = audioFiles.map(file => ({
+          file: fs.createReadStream(file),
+          name: path.basename(file)
+        }));
+
+        const batchResults = await client.transcription.transcribeBatchFromFiles({
+          audioFiles: fileStreams,
+          enableSpeakerDiarization: true,
+          modelType: "whisperx",
+          enableWordTimestamps: true,
+          chunkDuration: 1800,
+          waitForCompletion: true
+        });
+
+        // Process batch results
+        batchResults.forEach((result, index) => {
+          console.log(`\nFile ${index + 1}: ${audioFiles[index]}`);
+          console.log(`Status: ${result.status}`);
+          if (result.status === "completed") {
+            console.log(`Duration: ${result.duration}s`);
+            console.log(`Language: ${result.language}`);
+            console.log(`Text preview: ${result.text.substring(0, 100)}...`);
+            
+            // Save transcription to file
+            const outputFile = `transcript_${index + 1}.txt`;
+            fs.writeFileSync(outputFile, result.text, 'utf8');
+            console.log(`Saved to: ${outputFile}`);
+          }
+        });
+
+        // Advanced processing function for interviews
+        async function processInterviewFile(filePath) {
+          const transcription = await client.transcription.transcribeFromFile({
+            audioFile: fs.createReadStream(filePath),
+            modelType: "whisperx",
+            enableSpeakerDiarization: true,
+            minSpeakers: 2,
+            maxSpeakers: 4,
+            enableWordTimestamps: true,
+            enableConfidenceScores: true,
+            language: "auto",
+            waitForCompletion: true
+          });
+          
+          // Format transcript with speaker labels
+          const formattedOutput = [];
+          let currentSpeaker = null;
+          
+          transcription.segments.forEach(segment => {
+            const speaker = segment.speaker || 'Unknown';
+            const text = segment.text.trim();
+            
+            if (speaker !== currentSpeaker) {
+              formattedOutput.push(`\n${speaker}:`);
+              currentSpeaker = speaker;
+            }
+            
+            formattedOutput.push(` ${text}`);
+          });
+          
+          return formattedOutput.join('');
+        }
+
+        // Process an interview
+        const interviewTranscript = await processInterviewFile('important_interview.wav');
+        console.log('\nFormatted Interview Transcript:');
+        console.log(interviewTranscript);
+
+      } catch (error) {
+        console.error('Transcription error:', error.message);
+      }
+    }
+
+    transcribeAudioFiles();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
+    import requests
+    import os
+
+    # Prepare files for upload
     files_to_transcribe = [
         "meeting_recording.mp3",
         "interview.wav",
@@ -148,8 +528,10 @@ Transcribe from uploaded audio or video files.
     
     files = []
     for file_path in files_to_transcribe:
-        files.append(('files', open(file_path, 'rb')))
+        if os.path.exists(file_path):
+            files.append(('files', open(file_path, 'rb')))
     
+    # Upload and transcribe
     response = requests.post(
         "https://api.audiopod.ai/api/v1/transcription/transcribe-upload",
         headers={"Authorization": f"Bearer {api_key}"},
@@ -166,13 +548,73 @@ Transcribe from uploaded audio or video files.
         files=files
     )
     
-    # Close files
+    # Close file handles
     for _, file_obj in files:
         file_obj.close()
     
     if response.status_code == 200:
         job_data = response.json()
-        print(f"Upload transcription job: {job_data['job_id']}")
+        job_id = job_data['job_id']
+        print(f"Upload transcription job: {job_id}")
+        
+        # Poll for completion
+        import time
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                status_data = status_response.json()
+                print(f"Status: {status_data['status']}")
+                
+                if status_data['status'] == 'COMPLETED':
+                    # Get transcription result
+                    result_response = requests.get(
+                        f"https://api.audiopod.ai/api/v1/transcription/transcript/{job_id}",
+                        headers={"Authorization": f"Bearer {api_key}"}
+                    )
+                    
+                    if result_response.status_code == 200:
+                        transcript_data = result_response.json()
+                        print(f"Transcription completed!")
+                        print(f"Full text: {transcript_data['transcript']}")
+                        
+                        # Save to file
+                        with open(f"transcript_{job_id}.txt", 'w', encoding='utf-8') as f:
+                            f.write(transcript_data['transcript'])
+                        print(f"Saved to transcript_{job_id}.txt")
+                    break
+                elif status_data['status'] == 'FAILED':
+                    print(f"Transcription failed: {status_data.get('error', 'Unknown error')}")
+                    break
+                    
+            time.sleep(15)  # Check every 15 seconds
+    else:
+        print(f"Upload failed: {response.status_code}")
+        print(response.text)
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Upload files for transcription
+    curl -X POST "https://api.audiopod.ai/api/v1/transcription/transcribe-upload" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -F "files=@meeting_recording.mp3" \
+      -F "files=@interview.wav" \
+      -F "language=en" \
+      -F "model_type=whisperx" \
+      -F "enable_speaker_diarization=true" \
+      -F "enable_word_timestamps=true"
+
+    # Check job status (replace JOB_ID with actual job ID)
+    curl -X GET "https://api.audiopod.ai/api/v1/transcription/jobs/JOB_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+
+    # Get completed transcription
+    curl -X GET "https://api.audiopod.ai/api/v1/transcription/transcript/JOB_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
@@ -327,18 +769,19 @@ Download transcripts in various formats including JSON, TXT, PDF, SRT, VTT, DOCX
       "text": "Welcome to our podcast about artificial intelligence.",
       "confidence": 0.95,
       "speaker_id": 0,
+      "speaker_label": "SPEAKER_00",
       "words": [
         {
           "word": "Welcome",
           "start": 0.0,
           "end": 0.8,
-          "confidence": 0.98
+          "probability": 0.98
         },
         {
           "word": "to",
           "start": 0.8,
           "end": 1.0,
-          "confidence": 0.99
+          "probability": 0.99
         }
       ]
     },
@@ -349,6 +792,7 @@ Download transcripts in various formats including JSON, TXT, PDF, SRT, VTT, DOCX
       "text": "Thank you for having me on the show.",
       "confidence": 0.89,
       "speaker_id": 1,
+      "speaker_label": "SPEAKER_01",
       "words": [...]
     }
   ],

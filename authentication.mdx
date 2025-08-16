@@ -16,14 +16,14 @@ First, sign up for an AudioPod AI account:
 <Card
   title="Sign Up for AudioPod AI"
   icon="user-plus"
-  href="https://www.audiopod.ai/signup"
+  href="https://www.audiopod.ai/auth/signup"
 >
   Create your free account and get $5 in credits
 </Card>
 
 ### 2. Generate API Key
 
-1. Log into the [AudioPod AI Dashboard](https://www.audiopod.ai/dashboard)
+1. Log into the [AudioPod AI account](https://www.audiopod.ai/auth/signin)
 2. Navigate to **API Keys** in the sidebar
 3. Click **Create New API Key**
 4. Give your key a descriptive name (e.g., "Production App", "Development")
@@ -42,10 +42,70 @@ Include your API key in the `Authorization` header of every request:
 Authorization: Bearer your_api_key_here
 ```
 
-### Example Requests
+### SDK Authentication (Recommended)
+
+The easiest way to authenticate is using our official SDKs:
 
 <Tabs>
-  <Tab title="Python">
+  <Tab title="Python SDK">
+    ```python
+    import os
+    from audiopod import Client
+
+    # Method 1: Environment variable (recommended)
+    os.environ['AUDIOPOD_API_KEY'] = 'your_api_key_here'
+    client = Client()  # Automatically uses AUDIOPOD_API_KEY
+
+    # Method 2: Direct initialization
+    client = Client(api_key='your_api_key_here')
+
+    # Method 3: Using configuration
+    client = Client(
+        api_key=os.getenv('AUDIOPOD_API_KEY'),
+        base_url='https://api.audiopod.ai',  # Optional: custom base URL
+        timeout=30,  # Optional: request timeout
+        max_retries=3  # Optional: retry attempts
+    )
+
+    # Test authentication
+    try:
+        user_info = client.get_user_info()
+        print(f"Authenticated as: {user_info['email']}")
+    except Exception as e:
+        print(f"Authentication failed: {e}")
+    ```
+  </Tab>
+  <Tab title="Node.js SDK">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+
+    // Method 1: Environment variable (recommended)
+    process.env.AUDIOPOD_API_KEY = 'your_api_key_here';
+    const client = new AudioPodClient(); // Automatically uses AUDIOPOD_API_KEY
+
+    // Method 2: Direct initialization
+    const client = new AudioPodClient({
+      apiKey: 'your_api_key_here'
+    });
+
+    // Method 3: Using configuration
+    const client = new AudioPodClient({
+      apiKey: process.env.AUDIOPOD_API_KEY,
+      baseUrl: 'https://api.audiopod.ai', // Optional: custom base URL
+      timeout: 30000, // Optional: request timeout in ms
+      maxRetries: 3 // Optional: retry attempts
+    });
+
+    // Test authentication
+    try {
+      const userInfo = await client.getUserInfo();
+      console.log(`Authenticated as: ${userInfo.email}`);
+    } catch (error) {
+      console.error(`Authentication failed: ${error.message}`);
+    }
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
     import requests
     import os
@@ -54,47 +114,146 @@ Authorization: Bearer your_api_key_here
     api_key = os.getenv("AUDIOPOD_API_KEY")
 
     headers = {
-        "Authorization": f"Bearer {api_key}"
+        "Authorization": f"Bearer {api_key}",
+        "User-Agent": "MyApp/1.0"  # Optional but recommended
     }
 
-    # Make a request
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/voice/voices/aura/generate",
-        headers=headers,
-        data={
-            "input_text": "Hello, world!",
-            "audio_format": "mp3"
-        }
+    # Test authentication with user info endpoint
+    response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/me",
+        headers=headers
     )
-    ```
 
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const fetch = require('node-fetch');
-    const FormData = require('form-data');
-    
-    const apiKey = process.env.AUDIOPOD_API_KEY;
-    
-    const formData = new FormData();
-    formData.append('input_text', 'Hello, world!');
-    formData.append('audio_format', 'mp3');
-    
-    const response = await fetch('https://api.audiopod.ai/api/v1/voice/voices/aura/generate', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: formData
-    });
+    if response.status_code == 200:
+        user_info = response.json()
+        print(f"Authenticated as: {user_info['email']}")
+    else:
+        print(f"Authentication failed: {response.status_code}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
+    # Test authentication
+    curl -X GET "https://api.audiopod.ai/api/v1/auth/me" \
+      -H "Authorization: Bearer your_api_key_here" \
+      -H "User-Agent: MyApp/1.0"
+
+    # Example API request
     curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/aura/generate" \
       -H "Authorization: Bearer your_api_key_here" \
-      -F "input_text=Hello, world!" \
-      -F "audio_format=mp3"
+      -H "Content-Type: application/json" \
+      -d '{
+        "input_text": "Hello, world!",
+        "audio_format": "mp3",
+        "language": "en"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+### Environment Setup
+
+Set up your environment for secure API key management:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # requirements.txt
+    audiopod-client>=1.0.0
+    python-dotenv>=0.19.0
+
+    # .env file (never commit this!)
+    AUDIOPOD_API_KEY=ak_live_your_actual_key_here
+
+    # main.py
+    import os
+    from dotenv import load_dotenv
+    from audiopod import Client
+
+    # Load environment variables
+    load_dotenv()
+
+    # Verify API key is loaded
+    api_key = os.getenv('AUDIOPOD_API_KEY')
+    if not api_key:
+        raise ValueError("AUDIOPOD_API_KEY environment variable not set")
+
+    # Initialize client
+    client = Client()
+
+    # Use the client
+    credits = client.credits.get_credit_balance()
+    print(f"Available credits: {credits.balance}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    // package.json
+    {
+      "dependencies": {
+        "audiopod-js": "^1.0.0",
+        "dotenv": "^16.0.0"
+      }
+    }
+
+    // .env file (never commit this!)
+    AUDIOPOD_API_KEY=ak_live_your_actual_key_here
+
+    // main.js
+    require('dotenv').config();
+    const { AudioPodClient } = require('audiopod-js');
+
+    // Verify API key is loaded
+    const apiKey = process.env.AUDIOPOD_API_KEY;
+    if (!apiKey) {
+      throw new Error('AUDIOPOD_API_KEY environment variable not set');
+    }
+
+    // Initialize client
+    const client = new AudioPodClient();
+
+    // Use the client
+    async function main() {
+      try {
+        const credits = await client.credits.getCreditBalance();
+        console.log(`Available credits: ${credits.balance}`);
+      } catch (error) {
+        console.error('Error:', error.message);
+      }
+    }
+
+    main();
+    ```
+  </Tab>
+  <Tab title="Docker">
+    ```dockerfile
+    # Dockerfile
+    FROM node:18-alpine
+    WORKDIR /app
+    COPY package*.json ./
+    RUN npm install
+    COPY . .
+
+    # Environment variable will be set at runtime
+    ENV AUDIOPOD_API_KEY=""
+
+    CMD ["node", "main.js"]
+    ```
+
+    ```bash
+    # Run container with API key
+    docker run -e AUDIOPOD_API_KEY=your_key_here your-app
+
+    # Or use Docker Compose
+    # docker-compose.yml
+    version: '3.8'
+    services:
+      app:
+        build: .
+        environment:
+          - AUDIOPOD_API_KEY=${AUDIOPOD_API_KEY}
+        env_file:
+          - .env
     ```
   </Tab>
 </Tabs>
@@ -110,6 +269,143 @@ You can create multiple API keys for different purposes:
 - **Staging**: For your staging/testing environment
 - **Mobile App**: Separate key for mobile applications
 
+### Programmatic API Key Management
+
+You can manage API keys programmatically using the Auth API:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    import requests
+    import os
+
+    # Use your existing API key to manage other keys
+    headers = {
+        "Authorization": f"Bearer {os.getenv('AUDIOPOD_API_KEY')}"
+    }
+
+    # Create a new API key
+    create_response = requests.post(
+        "https://api.audiopod.ai/api/v1/auth/api-keys",
+        headers=headers,
+        json={
+            "name": "Production API Key",
+            "description": "Key for production environment"
+        }
+    )
+
+    if create_response.status_code == 201:
+        new_key = create_response.json()
+        print(f"Created API key: {new_key['key']}")
+        print(f"Key ID: {new_key['id']}")
+    
+    # List all API keys
+    list_response = requests.get(
+        "https://api.audiopod.ai/api/v1/auth/api-keys",
+        headers=headers,
+        params={"status": "active"}
+    )
+
+    if list_response.status_code == 200:
+        keys = list_response.json()
+        for key in keys:
+            print(f"Key: {key['name']} (ID: {key['id']}) - Status: {key['status']}")
+
+    # Revoke an API key
+    key_id = "key_id_to_revoke"
+    revoke_response = requests.delete(
+        f"https://api.audiopod.ai/api/v1/auth/api-keys/{key_id}",
+        headers=headers
+    )
+
+    if revoke_response.status_code == 200:
+        print(f"API key {key_id} revoked successfully")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const axios = require('axios');
+
+    const apiKey = process.env.AUDIOPOD_API_KEY;
+    const headers = {
+      'Authorization': `Bearer ${apiKey}`
+    };
+
+    async function manageApiKeys() {
+      try {
+        // Create a new API key
+        const createResponse = await axios.post(
+          'https://api.audiopod.ai/api/v1/auth/api-keys',
+          {
+            name: 'Production API Key',
+            description: 'Key for production environment'
+          },
+          { headers }
+        );
+
+        if (createResponse.status === 201) {
+          const newKey = createResponse.data;
+          console.log(`Created API key: ${newKey.key}`);
+          console.log(`Key ID: ${newKey.id}`);
+        }
+
+        // List all API keys
+        const listResponse = await axios.get(
+          'https://api.audiopod.ai/api/v1/auth/api-keys',
+          { 
+            headers,
+            params: { status: 'active' }
+          }
+        );
+
+        if (listResponse.status === 200) {
+          const keys = listResponse.data;
+          keys.forEach(key => {
+            console.log(`Key: ${key.name} (ID: ${key.id}) - Status: ${key.status}`);
+          });
+        }
+
+        // Revoke an API key
+        const keyIdToRevoke = 'key_id_to_revoke';
+        const revokeResponse = await axios.delete(
+          `https://api.audiopod.ai/api/v1/auth/api-keys/${keyIdToRevoke}`,
+          { headers }
+        );
+
+        if (revokeResponse.status === 200) {
+          console.log(`API key ${keyIdToRevoke} revoked successfully`);
+        }
+
+      } catch (error) {
+        console.error('Error managing API keys:', error.response?.data || error.message);
+      }
+    }
+
+    manageApiKeys();
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create a new API key
+    curl -X POST "https://api.audiopod.ai/api/v1/auth/api-keys" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "Production API Key",
+        "description": "Key for production environment"
+      }'
+
+    # List all active API keys
+    curl -X GET "https://api.audiopod.ai/api/v1/auth/api-keys?status=active" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+
+    # Revoke an API key
+    curl -X DELETE "https://api.audiopod.ai/api/v1/auth/api-keys/KEY_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
 ### Key Permissions
 
 Currently, all API keys have full access to your account. We recommend:
@@ -118,9 +414,9 @@ Currently, all API keys have full access to your account. We recommend:
 2. Rotating keys regularly
 3. Revoking unused keys immediately
 
-### Revoking API Keys
+### Dashboard Management
 
-To revoke an API key:
+You can also manage API keys through the dashboard:
 
 1. Go to the [API Keys page](https://www.audiopod.ai/dashboard/api-keys)
 2. Find the key you want to revoke
@@ -244,99 +540,266 @@ X-RateLimit-Reset: 1640995200
 ### Handling Errors in Code
 
 <Tabs>
-  <Tab title="Python">
+  <Tab title="Python SDK">
     ```python
-    import requests
-    from requests.exceptions import HTTPError
+    from audiopod import Client
+    from audiopod.exceptions import (
+        AuthenticationError, 
+        RateLimitError, 
+        APIError, 
+        InsufficientCreditsError
+    )
+    import time
 
-    def make_audiopod_request(endpoint, data):
-        headers = {
-            "Authorization": f"Bearer {api_key}"
-        }
+    client = Client()
 
-        try:
-            response = requests.post(
-                f"https://api.audiopod.ai/api/v1/{endpoint}",
-                headers=headers,
-                data=data
-            )
-            response.raise_for_status()
-            return response.json()
-
-        except HTTPError as e:
-            if e.response.status_code == 401:
-                print("Authentication failed. Check your API key.")
-            elif e.response.status_code == 429:
-                print("Rate limit exceeded. Please wait and try again.")
-            else:
-                print(f"Request failed: {e.response.text}")
-            raise
-    ```
-
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    async function makeAudioPodRequest(endpoint, data) {
-      const formData = new FormData();
-      Object.keys(data).forEach(key => {
-        formData.append(key, data[key]);
-      });
-      
-      const response = await fetch(`https://api.audiopod.ai/api/v1/${endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: formData
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
+    def safe_api_call_with_retry(func, *args, **kwargs):
+        """Helper function to handle API calls with retry logic"""
+        max_retries = 3
+        retry_delay = 1  # seconds
         
-        switch (response.status) {
-          case 401:
-            throw new Error('Authentication failed. Check your API key.');
-          case 429:
-            throw new Error('Rate limit exceeded. Please wait and try again.');
-          default:
-            throw new Error(`Request failed: ${error.message}`);
+        for attempt in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+                
+            except AuthenticationError as e:
+                print(f"Authentication error: {e}")
+                # Don't retry authentication errors
+                raise
+                
+            except RateLimitError as e:
+                print(f"Rate limit exceeded: {e}")
+                if attempt < max_retries - 1:
+                    retry_after = getattr(e, 'retry_after', retry_delay)
+                    print(f"Waiting {retry_after} seconds before retry...")
+                    time.sleep(retry_after)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    raise
+                    
+            except InsufficientCreditsError as e:
+                print(f"Insufficient credits: {e}")
+                print(f"Credits needed: {e.credits_needed}")
+                print(f"Credits available: {e.credits_available}")
+                # Don't retry credit errors
+                raise
+                
+            except APIError as e:
+                print(f"API error: {e}")
+                if e.status_code >= 500:  # Server errors - retry
+                    if attempt < max_retries - 1:
+                        print(f"Server error, retrying in {retry_delay} seconds...")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2
+                    else:
+                        raise
+                else:  # Client errors - don't retry
+                    raise
+                    
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                raise
+
+    # Example usage
+    try:
+        # Generate speech with error handling
+        result = safe_api_call_with_retry(
+            client.voice.generate_speech,
+            voice_id="aura",
+            text="Hello, world!",
+            wait_for_completion=True
+        )
+        print(f"Success: {result.output_url}")
+        
+    except Exception as e:
+        print(f"Failed after all retries: {e}")
+    ```
+  </Tab>
+  <Tab title="Node.js SDK">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+    const client = new AudioPodClient();
+
+    async function safeApiCallWithRetry(func, ...args) {
+      const maxRetries = 3;
+      let retryDelay = 1000; // 1 second
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          return await func.apply(client, args);
+          
+        } catch (error) {
+          console.error(`Attempt ${attempt + 1} failed:`, error.message);
+
+          // Check error type
+          if (error.name === 'AuthenticationError') {
+            console.error('Authentication failed. Check your API key.');
+            throw error; // Don't retry auth errors
+
+          } else if (error.name === 'RateLimitError') {
+            console.log(`Rate limit exceeded: ${error.message}`);
+            if (attempt < maxRetries - 1) {
+              const waitTime = error.retryAfter || retryDelay;
+              console.log(`Waiting ${waitTime}ms before retry...`);
+              await new Promise(resolve => setTimeout(resolve, waitTime));
+              retryDelay *= 2; // Exponential backoff
+            } else {
+              throw error;
+            }
+
+          } else if (error.name === 'InsufficientCreditsError') {
+            console.error(`Insufficient credits: ${error.message}`);
+            console.error(`Credits needed: ${error.creditsNeeded}`);
+            console.error(`Credits available: ${error.creditsAvailable}`);
+            throw error; // Don't retry credit errors
+
+          } else if (error.status >= 500) {
+            // Server errors - retry
+            if (attempt < maxRetries - 1) {
+              console.log(`Server error, retrying in ${retryDelay}ms...`);
+              await new Promise(resolve => setTimeout(resolve, retryDelay));
+              retryDelay *= 2;
+            } else {
+              throw error;
+            }
+
+          } else {
+            // Client errors - don't retry
+            throw error;
+          }
         }
       }
-      
-      return response.json();
     }
+
+    // Example usage
+    async function generateSpeechSafely() {
+      try {
+        const result = await safeApiCallWithRetry(
+          client.voice.generateSpeech,
+          {
+            voiceId: 'aura',
+            text: 'Hello, world!',
+            waitForCompletion: true
+          }
+        );
+        console.log(`Success: ${result.outputUrl}`);
+        
+      } catch (error) {
+        console.error(`Failed after all retries: ${error.message}`);
+      }
+    }
+
+    generateSpeechSafely();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
+    ```python
+    import requests
+    import time
+    from requests.exceptions import HTTPError
+
+    def make_audiopod_request_with_retry(endpoint, data=None, json_data=None, method='POST'):
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "MyApp/1.0"
+        }
+        
+        max_retries = 3
+        retry_delay = 1  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                if method == 'GET':
+                    response = requests.get(
+                        f"https://api.audiopod.ai/api/v1/{endpoint}",
+                        headers=headers,
+                        params=data
+                    )
+                else:
+                    if json_data:
+                        headers["Content-Type"] = "application/json"
+                        response = requests.post(
+                            f"https://api.audiopod.ai/api/v1/{endpoint}",
+                            headers=headers,
+                            json=json_data
+                        )
+                    else:
+                        response = requests.post(
+                            f"https://api.audiopod.ai/api/v1/{endpoint}",
+                            headers=headers,
+                            data=data
+                        )
+                
+                response.raise_for_status()
+                return response.json()
+
+            except HTTPError as e:
+                status_code = e.response.status_code
+                error_data = {}
+                
+                try:
+                    error_data = e.response.json()
+                except:
+                    pass
+
+                if status_code == 401:
+                    print("Authentication failed. Check your API key.")
+                    raise  # Don't retry auth errors
+                    
+                elif status_code == 403:
+                    print("Access forbidden. Check your subscription plan.")
+                    raise  # Don't retry permission errors
+                    
+                elif status_code == 429:
+                    print("Rate limit exceeded.")
+                    if attempt < max_retries - 1:
+                        # Check for Retry-After header
+                        retry_after = e.response.headers.get('Retry-After')
+                        if retry_after:
+                            wait_time = int(retry_after)
+                        else:
+                            wait_time = retry_delay
+                        
+                        print(f"Waiting {wait_time} seconds before retry...")
+                        time.sleep(wait_time)
+                        retry_delay *= 2
+                    else:
+                        raise
+                        
+                elif status_code >= 500:
+                    # Server errors - retry
+                    if attempt < max_retries - 1:
+                        print(f"Server error {status_code}, retrying in {retry_delay} seconds...")
+                        time.sleep(retry_delay)
+                        retry_delay *= 2
+                    else:
+                        print(f"Request failed after {max_retries} attempts: {e.response.text}")
+                        raise
+                else:
+                    # Client errors - don't retry
+                    print(f"Client error {status_code}: {e.response.text}")
+                    raise
+
+    # Example usage
+    try:
+        # Test authentication
+        user_info = make_audiopod_request_with_retry("auth/me", method='GET')
+        print(f"Authenticated as: {user_info['email']}")
+        
+        # Generate speech
+        tts_data = {
+            "input_text": "Hello, world!",
+            "audio_format": "mp3",
+            "language": "en"
+        }
+        result = make_audiopod_request_with_retry("voice/voices/aura/generate", json_data=tts_data)
+        print(f"Speech generation job created: {result['id']}")
+        
+    except Exception as e:
+        print(f"Request failed: {e}")
     ```
   </Tab>
 </Tabs>
-
-## Webhooks (Advanced)
-
-For long-running operations, AudioPod AI supports webhooks to notify your application when processing is complete.
-
-### Setting Up Webhooks
-
-1. Go to [Webhook Settings](https://www.audiopod.ai/dashboard/webhooks)
-2. Add your endpoint URL
-3. Select the events you want to receive
-4. Save your webhook configuration
-
-### Webhook Security
-
-Verify webhook authenticity using the signature header:
-
-```python
-import hmac
-import hashlib
-
-def verify_webhook(payload, signature, secret):
-    expected_signature = hmac.new(
-        secret.encode(),
-        payload.encode(),
-        hashlib.sha256
-    ).hexdigest()
-
-    return hmac.compare_digest(signature, expected_signature)
-```
 
 ## Next Steps
 

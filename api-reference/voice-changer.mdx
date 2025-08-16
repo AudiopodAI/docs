@@ -72,40 +72,8 @@ Transform the voice characteristics in a source audio file to match a target voi
   </Tab>
 </Tabs>
 
-### Convert from URL
-
-Convert audio from online sources (YouTube, etc.) to match a target voice.
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/voice/voice-convert
-    Authorization: Bearer {api_key}
-    Content-Type: application/x-www-form-urlencoded
-    
-    url=https://youtube.com/watch?v=example123&voice_uuid=550e8400-e29b-41d4-a716-446655440000
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/voice/voice-convert",
-        headers={"Authorization": f"Bearer {api_key}"},
-        data={
-            "url": "https://youtube.com/watch?v=example123",
-            "voice_uuid": "550e8400-e29b-41d4-a716-446655440000"
-        }
-    )
-    
-    if response.status_code == 200:
-        conversion_job = response.json()
-        print(f"URL voice conversion started: {conversion_job['id']}")
-    ```
-  </Tab>
-</Tabs>
-
 **Parameters:**
-- **`file`** or **`url`** (required): Source audio file or URL containing speech to convert
+- **`file`** (required): Source audio file containing speech to convert
 - **`voice_uuid`** (required): UUID of the target voice profile to match
 
 **Voice UUID Sources:**
@@ -140,28 +108,26 @@ Monitor the progress of voice conversion jobs.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/voice/conversions/{job_id}
+    GET /api/v1/voice/convert/{conversion_id}/status
     Authorization: Bearer {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    job_id = 123
+    conversion_id = 123
     response = requests.get(
-        f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+        f"https://api.audiopod.ai/api/v1/voice/convert/{conversion_id}/status",
         headers={"Authorization": f"Bearer {api_key}"}
     )
     
     if response.status_code == 200:
-        job_status = response.json()
-        print(f"Status: {job_status['status']}")
-        print(f"Progress: {job_status['progress']}%")
+        conversion_status = response.json()
+        print(f"Status: {conversion_status['status']}")
         
-        if job_status["status"] == "COMPLETED":
+        if conversion_status["status"] == "COMPLETED":
             print("Voice conversion complete!")
-            print(f"Output URL: {job_status['output_url']}")
-            print(f"Original duration: {job_status['original_duration']}s")
-            print(f"Converted duration: {job_status['converted_duration']}s")
+            print(f"Output path: {conversion_status.get('output_path')}")
+            print(f"Original filename: {conversion_status.get('original_filename')}")
     ```
   </Tab>
 </Tabs>
@@ -172,24 +138,19 @@ Monitor the progress of voice conversion jobs.
 {
   "id": 123,
   "status": "COMPLETED",
-  "progress": 100,
-  "source_type": "FILE",
-  "original_filename": "source_speech.wav",
-  "target_voice_uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "target_voice_name": "Professional Speaker Voice",
-  "conversion_method": "openvoice_v2",
   "created_at": "2024-01-15T10:30:00Z",
+  "updated_at": "2024-01-15T10:33:45Z",
   "completed_at": "2024-01-15T10:33:45Z",
-  "output_path": "/converted/voice_conversion_123.wav",
-  "output_url": "https://api.audiopod.ai/download/voice_conversion_123.wav",
-  "original_duration": 45.2,
-  "converted_duration": 45.2,
-  "conversion_quality": "high",
-  "processing_stats": {
-    "preprocessing_time": 2.1,
-    "conversion_time": 28.4,
-    "postprocessing_time": 3.2,
-    "total_time": 33.7
+  "output_path": "outputs/converted/uuid/voice_converted.wav",
+  "error_message": null,
+  "task_id": "celery_task_uuid_here",
+  "source_path": "temp/uploads/uuid/source_speech.wav",
+  "original_filename": "source_speech.wav",
+  "conversion_metadata": {
+    "voice_uuid": "550e8400-e29b-41d4-a716-446655440000",
+    "voice_id": 456,
+    "voice_file_path": "voices/456/uuid/voice.wav",
+    "duration": 45.2
   }
 }
 ```
@@ -201,29 +162,28 @@ Get all voice conversion jobs for the authenticated user.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/voice/conversions?status=COMPLETED&limit=50
+    GET /api/v1/voice/convert/jobs?status=COMPLETED&limit=10
     Authorization: Bearer {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/voice/conversions",
+        "https://api.audiopod.ai/api/v1/voice/convert/jobs",
         headers={"Authorization": f"Bearer {api_key}"},
         params={
             "status": "COMPLETED",      # Filter by status
-            "target_voice": "voice_uuid",  # Filter by target voice
-            "limit": 50,
+            "limit": 10,
             "skip": 0
         }
     )
     
     if response.status_code == 200:
-        jobs_data = response.json()
-        for job in jobs_data["items"]:
-            print(f"Job {job['id']}: {job['status']} - {job['original_filename']}")
-            print(f"  Target: {job['target_voice_name']}")
-            print(f"  Duration: {job.get('original_duration', 'N/A')}s")
+        jobs = response.json()
+        for job in jobs:
+            print(f"Job {job['id']}: {job['status']} - {job.get('original_filename', 'N/A')}")
+            voice_uuid = job.get('conversion_metadata', {}).get('voice_uuid', 'N/A')
+            print(f"  Target voice UUID: {voice_uuid}")
     ```
   </Tab>
 </Tabs>
@@ -233,48 +193,43 @@ Get all voice conversion jobs for the authenticated user.
 <Tabs>
   <Tab title="Python">
     ```python
-    def download_converted_audio(job_id, api_key):
+    def download_converted_audio(conversion_id, api_key):
         """Download converted audio from completed job"""
         
-        # Get job details
+        # Get conversion details
         response = requests.get(
-            f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+            f"https://api.audiopod.ai/api/v1/voice/convert/{conversion_id}/status",
             headers={"Authorization": f"Bearer {api_key}"}
         )
         
         if response.status_code != 200:
-            return {"error": "Job not found"}
+            return {"error": "Conversion not found"}
         
-        job = response.json()
+        conversion = response.json()
         
-        if job["status"] != "COMPLETED":
-            return {"error": f"Job not completed. Status: {job['status']}"}
+        if conversion["status"] != "COMPLETED":
+            return {"error": f"Conversion not completed. Status: {conversion['status']}"}
         
-        if not job.get("output_url"):
-            return {"error": "No download URL available"}
+        if not conversion.get("output_path"):
+            return {"error": "No output file available"}
         
-        # Download converted audio
-        audio_response = requests.get(job["output_url"])
-        if audio_response.status_code == 200:
-            filename = f"converted_{job['target_voice_name'].replace(' ', '_')}_{job_id}.wav"
-            with open(filename, "wb") as f:
-                f.write(audio_response.content)
-            
-            return {
-                "success": True,
-                "filename": filename,
-                "original_duration": job.get("original_duration"),
-                "converted_duration": job.get("converted_duration"),
-                "target_voice": job["target_voice_name"]
-            }
-        else:
-            return {"error": "Failed to download audio"}
+        # Note: The output_path is the S3 key. You would need to use your S3 service
+        # or a separate download endpoint to get the actual file.
+        
+        return {
+            "success": True,
+            "output_path": conversion["output_path"],
+            "original_filename": conversion.get("original_filename"),
+            "target_voice_uuid": conversion.get("conversion_metadata", {}).get("voice_uuid"),
+            "status": "File ready for download"
+        }
     
     # Usage
     result = download_converted_audio(123, "your_api_key")
     if result.get("success"):
-        print(f"Downloaded: {result['filename']}")
-        print(f"Target voice: {result['target_voice']}")
+        print(f"Conversion completed: {result['output_path']}")
+        print(f"Original file: {result['original_filename']}")
+        print(f"Target voice UUID: {result['target_voice_uuid']}")
     ```
   </Tab>
 </Tabs>
@@ -285,33 +240,29 @@ Get all voice conversion jobs for the authenticated user.
 
 Before converting, you can browse available voice profiles to use as targets.
 
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Get available voices for conversion
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/voice/voices",
-        headers={"Authorization": f"Bearer {api_key}"},
-        params={
-            "category": "professional",  # Filter by category
-            "language": "en",           # Filter by language
-            "limit": 20
-        }
-    )
-    
-    if response.status_code == 200:
-        voices_data = response.json()
-        print("Available voices for conversion:")
-        for voice in voices_data["voices"]:
-            if voice["is_custom"] or voice.get("is_public"):
-                print(f"- {voice['name']} (UUID: {voice['voice_id']})")
-                print(f"  Category: {voice['category']}")
-                print(f"  Language: {voice['language']}")
-                print(f"  Type: {'Custom' if voice['is_custom'] else 'Public'}")
-                print()
-    ```
-  </Tab>
-</Tabs>
+```python
+# Get available voices for conversion
+response = requests.get(
+    "https://api.audiopod.ai/api/v1/voice/voices",
+    headers={"Authorization": f"Bearer {api_key}"},
+    params={
+        "category": "professional",  # Filter by category
+        "language": "en",           # Filter by language
+        "limit": 20
+    }
+)
+
+if response.status_code == 200:
+    voices_data = response.json()
+    print("Available voices for conversion:")
+    for voice in voices_data["voices"]:
+        if voice["is_custom"] or voice.get("is_public"):
+            print(f"- {voice['name']} (UUID: {voice['voice_id']})")
+            print(f"  Category: {voice['category']}")
+            print(f"  Language: {voice['language']}")
+            print(f"  Type: {'Custom' if voice['is_custom'] else 'Public'}")
+            print()
+```
 
 ## Use Cases & Examples
 
@@ -615,10 +566,10 @@ Voice conversion pricing is based on audio duration:
 
 | Duration | Credits | USD Cost |
 |----------|---------|----------|
-| 30 seconds | 495 | $0.066 |
-| 2 minutes | 1980 | $0.264 |
-| 5 minutes | 4950 | $0.66 |
-| 10 minutes | 9900 | $1.32 |
+| 30 seconds | 495 | $0.0659 |
+| 2 minutes | 1980 | $0.2634 |
+| 5 minutes | 4950 | $0.6584 |
+| 10 minutes | 9900 | $1.3167 |
 
 ### Cost Optimization Tips
 

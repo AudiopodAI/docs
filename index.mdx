@@ -7,6 +7,15 @@ description: "Build amazing audio-powered applications with AudioPod AI's compre
 
 Transform your applications with cutting-edge AI audio processing. AudioPod AI provides a complete suite of APIs for speech synthesis, audio processing, voice cloning, and content generation.
 
+### ⚡ Ready-to-Use SDKs
+
+Get started instantly with our comprehensive SDKs:
+- **Python SDK**: `pip install audiopod`
+- **Node.js SDK**: `npm install audiopod-js`  
+- **REST API**: Direct HTTP access with comprehensive cURL examples
+
+Each endpoint includes complete code examples for Python, Node.js, and cURL to get you building immediately.
+
 ## Getting Started
 
 Essential resources to begin building with AudioPod AI.
@@ -37,9 +46,9 @@ Manage your AudioPod AI account, API keys, and billing.
   </Card>
 </Columns>
 
-## Audio Processing capabilities
+## 🎯 Core Audio Processing APIs
 
-Core speech and voice technologies for natural communication.
+Build powerful voice-enabled applications with our comprehensive audio processing suite.
 
 <Columns cols={2}>
   <Card
@@ -47,68 +56,188 @@ Core speech and voice technologies for natural communication.
     icon="microphone"
     href="/api-reference/text-to-speech"
   >
-    Generate natural-sounding voices in 64+ languages with studio-grade quality.
+    **Generate natural-sounding voices in 64+ languages** with studio-grade quality. Support for SSML, custom voices, and real-time streaming.
+    
+    ```python
+    speech = client.text_to_speech.create(
+        text="Hello world!",
+        voice_id="aura"
+    )
+    ```
   </Card>
   <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
-    Convert audio to accurate text transcriptions with speaker diarization.
+    **Convert audio to accurate text transcriptions** with speaker diarization, word-level timestamps, and 90%+ accuracy across 50+ languages.
+    
+    ```python
+    transcription = client.transcription.transcribe_from_file(
+        audio_file="meeting.wav",
+        enable_speaker_diarization=True
+    )
+    ```
   </Card>
   <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-management">
-    Create custom voices with just 10 seconds of audio input.
+    **Create custom voices with just 10 seconds of audio**. Build personalized voice experiences and maintain brand consistency.
+    
+    ```python
+    voice = client.voice.create_custom_voice(
+        name="My Voice",
+        audio_file="sample.wav"
+    )
+    ```
   </Card>
   <Card title="Voice Changer" icon="magic-wand" href="/api-reference/voice-changer">
-    Transform voices with real-time style transfer and emotion control.
+    **Transform voices with AI-powered style transfer**. Change gender, age, accent, and emotional tone while preserving speech content.
+    
+    ```python
+    changed = client.voice.change_voice(
+        audio_file="original.wav",
+        target_voice="female_professional"
+    )
+    ```
   </Card>
  <Card
     title="Voices Management"
     icon="settings"
     href="/api-reference/voice-management"
   >
-    Discover and manage available voices, create custom voices.
+    **Discover and manage 150+ pre-built voices**. Create, customize, and organize your voice library with advanced filtering and search.
   </Card>
   <Card
     title="Speech Translation"
     icon="language"
     href="/api-reference/ai-dubbing"
   >
-    Translate speech while preserving voice characteristics and timing.
+    **Translate speech while preserving voice characteristics**. Support for 21+ languages with voice cloning and lip-sync timing preservation.
+    
+    ```python
+    translation = client.translation.translate_audio(
+        audio_file="english.wav",
+        target_language="es"
+    )
+    ```
   </Card>
 </Columns>
 
-## Music Suite capabilities
+## 🎵 Advanced Audio Processing Suite
 
-Advanced music analysis and manipulation tools.
+Professional-grade tools for music production, audio enhancement, and content creation.
 
 <Columns cols={2}>
-  <Card title="Stem Separation" icon="music" href="/api-reference/stem-splitter">
-    Isolate instruments, vocals, and audio components from mixed tracks.
+  <Card title="Stem Splitter" icon="music" href="/api-reference/stem-splitter">
+    **Isolate instruments, vocals, and audio components** from mixed tracks using state-of-the-art AI models. Perfect for remixing and karaoke creation.
+    
+    ```python
+    stems = client.stem_extraction.extract_all_stems(
+        audio_file="song.mp3",
+        model="demucs_htdemucs"
+    )
+    ```
   </Card>
   <Card
-    title="Speaker Extraction"
+    title="Speaker Separation"
     icon="users"
     href="/api-reference/speaker-separation"
   >
-    Automatically identify and separate multiple speakers from recordings.
+    **Automatically identify and separate multiple speakers** from recordings. Essential for podcast editing and meeting transcription.
+    
+    ```python
+    speakers = client.speaker.extract_speakers(
+        audio_file="meeting.wav",
+        max_speakers=5
+    )
+    ```
   </Card>
   <Card
     title="Noise Reduction"
     icon="volume-x"
     href="/api-reference/noise-reduction"
   >
-    Remove background noise while preserving voice quality.
+    **Remove background noise while preserving voice quality** using advanced AI denoising. Multiple quality modes for different use cases.
+    
+    ```python
+    clean = client.denoiser.denoise_audio(
+        audio_file="noisy.wav",
+        quality_mode="balanced"
+    )
+    ```
   </Card>
   <Card
     title="Music Generation"
     icon="musical-note"
     href="/api-reference/music-generation"
   >
-    Generate original music, instrumentals, and sound effects from text
-    descriptions.
+    **Generate original music, instrumentals, and sound effects** from text descriptions. Create custom soundtracks and background music.
+    
+    ```python
+    music = client.music.generate(
+        prompt="Upbeat electronic dance music",
+        duration=60
+    )
+    ```
   </Card>
 </Columns>
 
-## Supported Languages
+## 🌍 Supported Languages
 
 AudioPod AI supports **64+ languages** including English, Chinese, Hindi, Spanish, French, Arabic, Japanese, German, Korean, and many more. Most features work across all supported languages with high accuracy.
+
+[View complete language list →](https://www.audiopod.ai/languages)
+
+## 📚 Complete Code Examples
+
+Every API endpoint in our documentation includes comprehensive examples for:
+
+- **Python SDK**: Full SDK integration with error handling and best practices
+- **Node.js SDK**: TypeScript-ready with async/await patterns  
+- **Raw HTTP**: Direct REST API calls with polling and result handling
+- **cURL**: Ready-to-run command-line examples
+
+### Quick SDK Setup
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Install and setup
+    pip install audiopod
+    
+    from audiopod import Client
+    client = Client()  # Uses AUDIOPOD_API_KEY env var
+    
+    # Generate speech
+    speech = client.text_to_speech.create(
+        text="Hello, world!",
+        voice_id="aura"
+    )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    // Install and setup
+    npm install audiopod-js
+    
+    const { AudioPodClient } = require('audiopod-js');
+    const client = new AudioPodClient(); // Uses AUDIOPOD_API_KEY env var
+    
+    // Generate speech
+    const speech = await client.textToSpeech.create({
+      text: "Hello, world!",
+      voiceId: "aura"
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Set your API key
+    export AUDIOPOD_API_KEY="your_api_key_here"
+    
+    # Generate speech
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/aura/generate" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -F "input_text=Hello, world!" \
+      -F "audio_format=mp3"
+    ```
+  </Tab>
+</Tabs>
 
 ## Developer Resources
 

@@ -86,9 +86,28 @@ Get detailed information about the authenticated user account.
     "total_available_credits": 2250,
     "last_reset_at": "2024-01-01T00:00:00Z",
     "total_credits_used": 3250,
+    "total_payg_credits_purchased": 750,
     "next_reset_date": "2024-02-01T00:00:00Z",
-    "credits_per_month": 2000
-  }
+    "credits_per_month": 2000,
+    "credit_multipliers": {
+      "default": 5.5,
+      "speech_translation": 55,
+      "translation": 27.5,
+      "voice_cloning": 5.5,
+      "voice_conversion": 16.5
+    }
+  },
+  "subscription": {
+    "plan_id": "price_1RG2s1CxLzg0ytJK5K3V7hz6",
+    "plan_name": "Starter",
+    "is_free_plan": false,
+    "status": "active",
+    "current_period_start": "2024-01-15T10:30:00Z",
+    "current_period_end": "2024-02-15T10:30:00Z",
+    "cancel_at": null
+  },
+  "is_eligible_for_first_time_discount": false,
+  "first_time_discount_active": false
 }
 ```
 
@@ -292,11 +311,9 @@ Update account password with current password verification.
 </Tabs>
 
 **Password Requirements:**
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
+- Minimum 6 characters
+- At least one letter (uppercase or lowercase)
 - At least one number
-- At least one special character
 
 ## OAuth Provider Management
 

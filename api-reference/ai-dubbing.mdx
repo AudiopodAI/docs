@@ -5,11 +5,11 @@ description: "Translate speech from audio and video files into multiple language
 
 ## Overview
 
-AudioPod AI's Speech Translation API provides end-to-end speech-to-speech translation that preserves the original speaker's voice characteristics. Transform spoken content from audio and video files into over 90+ languages while maintaining speaker identity, timing, and natural pronunciation.
+AudioPod AI's Speech Translation API provides end-to-end speech-to-speech translation that preserves the original speaker's voice characteristics. Transform spoken content from audio and video files into 21 languages while maintaining speaker identity, timing, and natural pronunciation.
 
 ### Key Features
 
-- **21+ Languages**: Translate between major world languages
+- **21 Languages**: Translate between major world languages
 - **Voice Cloning**: Preserve original speaker voice characteristics  
 - **Speaker Separation**: Maintain distinct speakers in multi-speaker content
 - **Video Support**: Translate video files with audio replacement
@@ -27,21 +27,104 @@ All endpoints require authentication:
 ### Create Speech Translation Job
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/translation/translate/speech
-    Authorization: Bearer {api_key}
-    Content-Type: multipart/form-data
-    
-    file: (audio/video file)
-    target_language: es
-    source_language: en
-    ```
-  </Tab>
   <Tab title="Python">
     ```python
-    import requests
+    from audiopod import Client
+
+    client = Client()
+
+    # Translate speech from file
+    translation = client.translation.translate_audio(
+        audio_file="english_speech.wav",
+        target_language="es",  # Spanish
+        source_language="en",  # Optional: auto-detect if not provided
+        wait_for_completion=True
+    )
+
+    print(f"Translation completed!")
+    print(f"Original language: {translation.source_language}")
+    print(f"Target language: {translation.target_language}")
+    print(f"Translated audio URL: {translation.translated_audio_url}")
     
+    # Translate video file (supports both audio and video input)
+    video_translation = client.translation.translate_audio(
+        audio_file="presentation.mp4",  # Video files are supported
+        target_language="fr",  # French
+        source_language="en",
+        wait_for_completion=True
+    )
+
+    print(f"Video translation completed!")
+    print(f"Translated video URL: {video_translation.video_output_url}")
+    print(f"Audio-only URL: {video_translation.translated_audio_url}")
+
+    # Note: Batch processing supports multiple files to one target language
+    # For multiple target languages, submit separate jobs for each language
+
+    # Translate from URL (YouTube, etc.)
+    url_translation = client.translation.translate_audio(
+        url="https://youtube.com/watch?v=example123",
+        target_language="ja",  # Japanese
+        source_language="en",
+        wait_for_completion=True
+    )
+
+    print(f"URL translation completed!")
+    print(f"Translated audio: {url_translation.translated_audio_url}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-sdk');
+    const fs = require('fs');
+
+    const client = new AudioPodClient();
+
+    async function translateSpeech() {
+      try {
+        // Translate speech from file
+        const translation = await client.translation.translateAudio({
+          audioFile: fs.createReadStream('english_speech.wav'),
+          targetLanguage: 'es',  // Spanish
+          sourceLanguage: 'en',  // Optional: auto-detect if not provided
+          waitForCompletion: true
+        });
+
+        console.log('Translation completed!');
+        console.log(`Translated audio URL: ${translation.audioOutputUrl}`);
+        
+        // Translate video file (supports both audio and video input)  
+        const videoTranslation = await client.translation.translateAudio({
+          audioFile: fs.createReadStream('presentation.mp4'),  // Video files supported
+          targetLanguage: 'fr',  // French
+          sourceLanguage: 'en',
+          waitForCompletion: true
+        });
+
+        console.log('Video translation completed!');
+        console.log(`Translated video URL: ${videoTranslation.videoOutputUrl}`);
+        console.log(`Audio-only URL: ${videoTranslation.audioOutputUrl}`);
+
+        // Note: Batch processing supports multiple files to one target language
+        // For multiple target languages, submit separate jobs for each language
+
+        // Note: URL-based translation not available in Node.js SDK
+        // Use file upload method instead
+
+      } catch (error) {
+        console.error('Translation error:', error.message);
+      }
+    }
+
+    translateSpeech();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
+    ```python
+    import requests
+    import time
+
+    # File upload translation
     with open("english_speech.wav", "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/translation/translate/speech",
@@ -57,6 +140,36 @@ All endpoints require authentication:
         job_data = response.json()
         job_id = job_data["id"]
         print(f"Speech translation job created: {job_id}")
+        
+        # Poll for completion
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/translation/translations/{job_id}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                job_status = status_response.json()
+                print(f"Status: {job_status['status']}")
+                
+                if job_status["status"] == "COMPLETED":
+                    print(f"Translation completed!")
+                    print(f"Translated Audio URL: {job_status.get('translated_audio_url')}")
+                    print(f"Original transcript: {job_status.get('transcript')}")
+                    print(f"Translated text: {job_status.get('translated_text')}")
+                    
+                    # Download the translated audio
+                    if job_status.get('translated_audio_url'):
+                        audio_response = requests.get(job_status['translated_audio_url'])
+                        with open("spanish_translation.wav", "wb") as f:
+                            f.write(audio_response.content)
+                        print("Downloaded translated audio: spanish_translation.wav")
+                    break
+                elif job_status["status"] == "FAILED":
+                    print(f"Translation failed: {job_status.get('error', 'Unknown error')}")
+                    break
+                    
+            time.sleep(10)  # Wait 10 seconds before checking again
     else:
         print(f"Error: {response.status_code} - {response.json()}")
     ```
@@ -64,29 +177,81 @@ All endpoints require authentication:
   <Tab title="URL Upload">
     ```python
     import requests
+    import time
     
+    # Translate from URL (YouTube, video platforms, direct media URLs)
     response = requests.post(
         "https://api.audiopod.ai/api/v1/translation/translate/speech",
         headers={"Authorization": f"Bearer {api_key}"},
         data={
             "target_language": "es",
             "source_language": "en",
-            "url": "https://example.com/audio.mp3"  # Direct media URL
+            "url": "https://youtube.com/watch?v=example123"  # YouTube URL or direct media URL
         }
     )
     
     if response.status_code == 200:
         job_data = response.json()
-        print(f"Job ID: {job_data['id']}")
+        job_id = job_data["id"]
+        print(f"URL translation job created: {job_id}")
+        
+        # Poll for completion
+        while True:
+            status_response = requests.get(
+                f"https://api.audiopod.ai/api/v1/translation/translations/{job_id}",
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
+            
+            if status_response.status_code == 200:
+                job_status = status_response.json()
+                print(f"Status: {job_status['status']}")
+                
+                if job_status["status"] == "COMPLETED":
+                    print(f"URL translation completed!")
+                    print(f"Source URL: {job_status.get('source_url')}")
+                    print(f"Translated Audio: {job_status.get('translated_audio_url')}")
+                    if job_status.get('video_output_url'):
+                        print(f"Translated Video: {job_status.get('video_output_url')}")
+                    break
+                elif job_status["status"] == "FAILED":
+                    print(f"Translation failed: {job_status.get('error', 'Unknown error')}")
+                    break
+                    
+            time.sleep(15)  # Wait 15 seconds for URL processing
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Upload file for translation
+    curl -X POST "https://api.audiopod.ai/api/v1/translation/translate/speech" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -F "file=@english_speech.wav" \
+      -F "target_language=es" \
+      -F "source_language=en"
+
+    # Translate from URL
+    curl -X POST "https://api.audiopod.ai/api/v1/translation/translate/speech" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "url": "https://youtube.com/watch?v=example123",
+        "target_language": "es",
+        "source_language": "en"
+      }'
+
+    # Check translation status (replace JOB_ID with actual job ID)
+    curl -X GET "https://api.audiopod.ai/api/v1/translation/translations/JOB_ID" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
 
 **Supported Languages** (Use ISO 639-1 codes):
 - **`en`**: English, **`es`**: Spanish, **`fr`**: French, **`de`**: German
-- **`it`**: Italian, **`pt`**: Portuguese, **`ru`**: Russian, **`ja`**: Japanese
-- **`ko`**: Korean, **`zh`**: Chinese, **`ar`**: Arabic, **`hi`**: Hindi
-- And 90+ more languages...
+- **`it`**: Italian, **`pt`**: Portuguese, **`pl`**: Polish, **`tr`**: Turkish  
+- **`ru`**: Russian, **`nl`**: Dutch, **`cs`**: Czech, **`ar`**: Arabic
+- **`zh-cn`**: Chinese (Simplified), **`ja`**: Japanese, **`hu`**: Hungarian, **`ko`**: Korean
+- **`hi`**: Hindi, **`ka`**: Kannada, **`te`**: Telugu, **`ml`**: Malayalam, **`ta`**: Tamil
 
 **Request Parameters:**
 - **`file`**: Audio or video file (required if no URL)

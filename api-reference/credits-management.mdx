@@ -17,9 +17,21 @@ The AudioPod AI Credits API allows you to monitor your credit balance, track usa
 
 ## Authentication
 
-All endpoints require authentication:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
+The Credits API supports two authentication methods:
+
+### JWT Token Authentication (Recommended)
+- **Header**: `Authorization: Bearer your_jwt_token`
+- **Obtain via**: `/api/v1/auth/token` endpoint with email/password
+- **Best for**: Web applications, temporary access
+
+### API Key Authentication
+- **Header**: `Authorization: Bearer your_api_key`  
+- **Obtain via**: [API Keys dashboard](/account/api-keys) in your account
+- **Best for**: Server-to-server integration, production applications
+
+<Info>
+For detailed API key management, see the [API Key Management guide](/account/api-keys).
+</Info>
 
 ## Get Credit Balance
 
@@ -28,13 +40,79 @@ All endpoints require authentication:
 Get current credit balance and account information.
 
 <Tabs>
-  <Tab title="GET">
-    ```http
-    GET /api/v1/credits
-    Authorization: Bearer {api_key}
+  <Tab title="Python">
+    ```python
+    from audiopod import Client
+
+    # Initialize client
+    client = Client()
+
+    # Get credit balance
+    credits = client.credits.get_credit_balance()
+    
+    print(f"Total Available Credits: {credits.total_available_credits}")
+    print(f"Subscription Credits: {credits.balance}")
+    print(f"Pay-as-You-Go Credits: {credits.payg_balance}")
+    print(f"Total Credits Used: {credits.total_credits_used}")
+    
+    if credits.next_reset_date:
+        print(f"Next Reset Date: {credits.next_reset_date}")
+    
+    # Check if you have enough credits for a service
+    if credits.total_available_credits < 1000:
+        print("⚠️  Low on credits! Consider purchasing more.")
+    
+    # Get usage history
+    usage_history = client.credits.get_usage_history()
+    print(f"\nRecent usage history ({len(usage_history)} entries):")
+    
+    for usage in usage_history[:5]:  # Show last 5 entries
+        print(f"- {usage['service_type']}: {usage['credits_used']} credits ({usage['created_at']})")
     ```
   </Tab>
-  <Tab title="Python">
+  <Tab title="Node.js">
+    ```javascript
+    const { AudioPodClient } = require('audiopod-js');
+
+    // Initialize client
+    const client = new AudioPodClient();
+
+    async function checkCredits() {
+      try {
+        // Get credit balance
+        const credits = await client.credits.getCreditBalance();
+        
+        console.log(`Total Available Credits: ${credits.totalAvailableCredits}`);
+        console.log(`Subscription Credits: ${credits.balance}`);
+        console.log(`Pay-as-You-Go Credits: ${credits.paygBalance}`);
+        console.log(`Total Credits Used: ${credits.totalCreditsUsed}`);
+        
+        if (credits.nextResetDate) {
+          console.log(`Next Reset Date: ${credits.nextResetDate}`);
+        }
+        
+        // Check if low on credits
+        if (credits.totalAvailableCredits < 1000) {
+          console.log("⚠️  Low on credits! Consider purchasing more.");
+        }
+        
+        // Get usage history
+        const usageHistory = await client.credits.getUsageHistory();
+        console.log(`\nRecent usage history (${usageHistory.length} entries):`);
+        
+        usageHistory.slice(0, 5).forEach(usage => {
+          console.log(`- ${usage.serviceType}: ${usage.creditsUsed} credits (${usage.createdAt})`);
+        });
+
+      } catch (error) {
+        console.error('Error checking credits:', error.message);
+      }
+    }
+
+    checkCredits();
+    ```
+  </Tab>
+  <Tab title="Raw HTTP">
     ```python
     import requests
     
@@ -49,12 +127,34 @@ Get current credit balance and account information.
         print(f"Subscription Credits: {credit_info['credits_balance']}")
         print(f"Pay-as-You-Go Credits: {credit_info['payg_balance']}")
         print(f"Total Credits Used: {credit_info['total_credits_used']}")
+        
+        # Get usage history
+        usage_response = requests.get(
+            "https://api.audiopod.ai/api/v1/credits/usage",
+            headers={"Authorization": f"Bearer {api_key}"}
+        )
+        
+        if usage_response.status_code == 200:
+            usage_logs = usage_response.json()
+            print(f"\nRecent usage history ({len(usage_logs)} entries):")
+            
+            for log in usage_logs[:5]:  # Show last 5 entries
+                print(f"- {log['service_type']}: {log['credits_used']} credits ({log['created_at']})")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
+    # Get credit balance
     curl -X GET "https://api.audiopod.ai/api/v1/credits" \
-      -H "Authorization: Bearer your_api_key"
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+
+    # Get usage history
+    curl -X GET "https://api.audiopod.ai/api/v1/credits/usage" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+
+    # Get credit multipliers (pricing)
+    curl -X GET "https://api.audiopod.ai/api/v1/credits/multipliers" \
+      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
@@ -70,9 +170,7 @@ Get current credit balance and account information.
   "total_credits_used": 3250,
   "total_payg_credits_purchased": 1000,
   "next_reset_date": "2024-02-01T00:00:00Z",
-  "credits_per_month": 2000,
-  "currency": "USD",
-  "credit_value": 0.001
+  "credits_per_month": 2000
 }
 ```
 
@@ -314,57 +412,82 @@ Monitor credit usage patterns and optimize costs.
 <Tabs>
   <Tab title="Python">
     ```python
-    def analyze_credit_usage(api_key):
+    from audiopod import Client
+    from datetime import datetime, timedelta
+    from collections import defaultdict
+
+    def analyze_credit_usage():
+        """Comprehensive credit usage analysis with SDK"""
+        
+        client = Client()
+        
         # Get current balance
-        balance_response = requests.get(
-            "https://api.audiopod.ai/api/v1/credits",
-            headers={"Authorization": f"Bearer {api_key}"}
-        )
+        credits = client.credits.get_credit_balance()
+        print(f"Current Balance: {credits.total_available_credits:,} credits")
+        print(f"Monthly Reset: {credits.next_reset_date}")
         
-        balance_data = balance_response.json()
+        # Get detailed usage history
+        usage_logs = client.credits.get_usage_history(limit=1000)
         
-        # Get usage history
-        usage_response = requests.get(
-            "https://api.audiopod.ai/api/v1/credits/usage",
-            headers={"Authorization": f"Bearer {api_key}"}
-        )
+        # Analyze by service type
+        service_analysis = defaultdict(lambda: {
+            'total_credits': 0,
+            'total_duration': 0,
+            'usage_count': 0,
+            'average_cost': 0
+        })
         
-        usage_logs = usage_response.json()
+        # Daily usage tracking
+        daily_usage = defaultdict(int)
         
-        # Analyze usage by service
-        service_usage = {}
         for log in usage_logs:
             service = log['service_type']
             credits = log['credits_used']
+            duration = log.get('audio_duration', 0)
+            date = datetime.fromisoformat(log['created_at'].replace('Z', '+00:00')).date()
             
-            if service not in service_usage:
-                service_usage[service] = {
-                    'total_credits': 0,
-                    'total_duration': 0,
-                    'usage_count': 0
-                }
+            # Service analysis
+            service_analysis[service]['total_credits'] += credits
+            service_analysis[service]['total_duration'] += duration
+            service_analysis[service]['usage_count'] += 1
             
-            service_usage[service]['total_credits'] += credits
-            service_usage[service]['total_duration'] += log['audio_duration']
-            service_usage[service]['usage_count'] += 1
+            # Daily usage
+            daily_usage[date] += credits
         
-        # Generate usage report
-        print("Credit Usage Analysis:")
-        print(f"Total Available: {balance_data['total_available_credits']} credits")
-        print(f"Total Used: {balance_data['total_credits_used']} credits")
-        print("\nUsage by Service:")
+        # Calculate averages
+        for service in service_analysis:
+            data = service_analysis[service]
+            if data['usage_count'] > 0:
+                data['average_cost'] = data['total_credits'] / data['usage_count']
         
-        for service, data in service_usage.items():
-            avg_credits = data['total_credits'] / data['usage_count']
+        # Generate report
+        print("\n📊 Credit Usage Analysis")
+        print("=" * 50)
+        
+        print("\n🎯 Usage by Service:")
+        for service, data in sorted(service_analysis.items(), key=lambda x: x[1]['total_credits'], reverse=True):
             print(f"  {service}:")
-            print(f"    Total Credits: {data['total_credits']}")
-            print(f"    Average per Use: {avg_credits:.2f}")
+            print(f"    Total Credits: {data['total_credits']:,}")
+            print(f"    Average per Use: {data['average_cost']:.1f}")
             print(f"    Usage Count: {data['usage_count']}")
+            if data['total_duration'] > 0:
+                print(f"    Total Duration: {data['total_duration']:.1f}s")
+            print()
         
-        return service_usage
-    
-    # Usage example
-    usage_analysis = analyze_credit_usage("your_api_key")
+        # Show cost optimization tips
+        print("💡 Optimization Tips:")
+        most_used = max(service_analysis.items(), key=lambda x: x[1]['total_credits'])
+        print(f"  • {most_used[0]} is your highest cost service ({most_used[1]['total_credits']} credits)")
+        
+        # Check for batch opportunities
+        for service, data in service_analysis.items():
+            if data['usage_count'] > 10 and data['average_cost'] < 100:
+                print(f"  • Consider batching {service} requests to reduce API overhead")
+        
+        return service_analysis
+
+    # Run analysis
+    analysis = analyze_credit_usage()
     ```
   </Tab>
 </Tabs>
@@ -597,7 +720,7 @@ def process_bulk_efficiently(files, operation_type):
   <Card title="Account Management" icon="user" href="/account/registration">
     Learn about account setup and credit allocation.
   </Card>
-  <Card title="API Authentication" icon="key" href="/api-reference/authentication">
-    Set up secure API access for credit management.
+  <Card title="API Key Management" icon="key" href="/account/api-keys">
+    Create and manage API keys for secure API access.
   </Card>
 </Columns>
