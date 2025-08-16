@@ -35,7 +35,7 @@ All endpoints require authentication using either:
 Generate speech from text using any voice (standard or custom) by voice UUID, ID, or name. All generation is processed asynchronously with job tracking.
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     from audiopod import Client
     import requests
@@ -88,7 +88,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
     )
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const { AudioPodClient } = require('audiopod-js');
     const fs = require('fs');
@@ -262,7 +262,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
 ### Voice Identification Examples
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     from audiopod import Client
 
@@ -302,7 +302,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
         print(f"- {voice.name} (UUID: {voice.uuid}): {voice.description}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const { AudioPodClient } = require('audiopod-js');
     const client = new AudioPodClient();
@@ -621,7 +621,7 @@ for code, name in supported_languages.items():
 ### Audiobook Narration
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     from audiopod import Client
     import re
@@ -686,7 +686,7 @@ for code, name in supported_languages.items():
     print(f"Audiobook chapter complete! Generated {len(audio_urls)} audio segments.")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const { AudioPodClient } = require('audiopod-js');
     const client = new AudioPodClient();

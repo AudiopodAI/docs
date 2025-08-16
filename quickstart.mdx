@@ -100,7 +100,7 @@ Set up your API key in your environment:
 Let's start with a simple text-to-speech generation:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     from audiopod import Client
 
@@ -127,7 +127,7 @@ Let's start with a simple text-to-speech generation:
     print("Audio saved as hello_world.mp3")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const { AudioPodClient } = require('audiopod-js');
 
@@ -197,7 +197,7 @@ Now that you've made your first call, let's try some other popular features:
 Create a custom voice from a sample:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     # Create a voice profile from audio sample
     voice_profile = client.voice.create_voice_profile(
@@ -219,7 +219,7 @@ Create a custom voice from a sample:
     print(f"Cloned speech: {cloned_speech.output_url}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const fs = require('fs');
 
@@ -265,7 +265,7 @@ Create a custom voice from a sample:
 Generate AI music from text prompts:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     # Generate music from text prompt
     music_job = client.music.generate_music(
@@ -287,7 +287,7 @@ Generate AI music from text prompts:
     print(f"Rap generated: {rap_job.output_url}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     // Generate music from text prompt
     const musicJob = await client.music.generateMusic({
@@ -339,7 +339,7 @@ Generate AI music from text prompts:
 Convert audio to text with speaker diarization:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     # Transcribe audio file
     transcription = client.transcription.transcribe_audio(
@@ -363,7 +363,7 @@ Convert audio to text with speaker diarization:
     print(f"URL Transcript: {url_transcription.transcript}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const fs = require('fs');
 
@@ -427,7 +427,7 @@ AudioPod AI uses a credit-based billing system:
 - **Speaker Separation**: 1650 credits per minute
 
 <Info>
-  New accounts receive $5 in welcome credits (~5,000 credits) to get started. Check your
+  New accounts receive 10,000 credits to get started. Check your
   [AudioPod Account](https://www.audiopod.ai/dashboard/account) to monitor
   usage.
 </Info>
@@ -435,7 +435,7 @@ AudioPod AI uses a credit-based billing system:
 ### Check Your Credit Balance
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     # Check credit balance
     credits = client.credits.get_credit_balance()
@@ -449,7 +449,7 @@ AudioPod AI uses a credit-based billing system:
         print(f"Used {usage.credits_used} credits for {usage.feature}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     // Check credit balance
     const credits = await client.credits.getCreditBalance();
@@ -486,7 +486,7 @@ Here are more advanced features you can try:
 Translate speech from one language to another:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     # Translate audio file
     translation = client.translation.translate_audio(
@@ -501,7 +501,7 @@ Translate speech from one language to another:
     print(f"Translated text: {translation.translated_text}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     // Translate audio file
     const translation = await client.translation.translateAudio({
@@ -533,7 +533,7 @@ Translate speech from one language to another:
 Remove noise from audio files:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     # Denoise audio
     denoised = client.denoiser.denoise_audio(
@@ -545,7 +545,7 @@ Remove noise from audio files:
     print(f"Denoised audio: {denoised.output_url}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     // Denoise audio
     const denoised = await client.denoiser.denoiseAudio({
@@ -573,7 +573,7 @@ Remove noise from audio files:
 Separate music into individual instruments:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     # Split stems from music
     stems = client.stem_extraction.extract_stems(
@@ -587,7 +587,7 @@ Separate music into individual instruments:
         print(f"{stem_type}: {url}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     // Extract stems from music
     const stems = await client.stemExtraction.extractStems({

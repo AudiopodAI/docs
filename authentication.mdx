@@ -47,7 +47,7 @@ Authorization: Bearer your_api_key_here
 The easiest way to authenticate is using our official SDKs:
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     import os
     from audiopod import Client
@@ -75,7 +75,7 @@ The easiest way to authenticate is using our official SDKs:
         print(f"Authentication failed: {e}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const { AudioPodClient } = require('audiopod-js');
 
@@ -540,7 +540,7 @@ X-RateLimit-Reset: 1640995200
 ### Handling Errors in Code
 
 <Tabs>
-  <Tab title="Python SDK">
+  <Tab title="Python">
     ```python
     from audiopod import Client
     from audiopod.exceptions import (
@@ -615,7 +615,7 @@ X-RateLimit-Reset: 1640995200
         print(f"Failed after all retries: {e}")
     ```
   </Tab>
-  <Tab title="Node.js SDK">
+  <Tab title="Node.js">
     ```javascript
     const { AudioPodClient } = require('audiopod-js');
     const client = new AudioPodClient();
