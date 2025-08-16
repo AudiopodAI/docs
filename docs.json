@@ -15,13 +15,15 @@
         "groups": [
           {
             "group": "Getting Started",
+            "icon": "rocket",
             "pages": ["index", "quickstart", "authentication"]
           },
           {
-            "group": "Account Management",
+            "group": "Account Management", 
+            "icon": "user-gear",
             "pages": [
               "account/registration",
-              "account/api-keys",
+              "account/api-keys", 
               "account/credits"
             ]
           }
@@ -32,6 +34,7 @@
         "groups": [
           {
             "group": "Authentication & Account",
+            "icon": "shield-check",
             "pages": [
               "api-reference/auth",
               "api-reference/account"
@@ -39,15 +42,16 @@
           },
           {
             "group": "Voice",
+            "icon": "user-voice",
             "pages": [
               "api-reference/voice-management",
               "api-reference/text-to-speech",
               "api-reference/voice-changer"
             ]
           },
-
           {
             "group": "Music",
+            "icon": "music",
             "pages": [
               "api-reference/music-generation",
               "api-reference/stem-splitter",
@@ -56,6 +60,7 @@
           },
           {
             "group": "Speech",
+            "icon": "waveform",
             "pages": [
               "api-reference/speaker-separation",
               "api-reference/speech-to-text",
@@ -64,6 +69,7 @@
           },
           {
             "group": "Utilities",
+            "icon": "gear",
             "pages": [
               "api-reference/media-extraction",
               "api-reference/credits-management"
@@ -81,7 +87,7 @@
         },
         {
           "anchor": "Discord Community",
-          "href": "https://discord.gg/audiopod",
+          "href": "https://discord.gg/audiopod", 
           "icon": "discord"
         },
         {
@@ -113,7 +119,7 @@
   "contextual": {
     "options": [
       "copy",
-      "view",
+      "view", 
       "chatgpt",
       "claude",
       "perplexity",
@@ -121,6 +127,32 @@
       "cursor",
       "vscode"
     ]
+  },
+  "api": {
+    "baseUrl": "https://api.audiopod.ai/api/v1",
+    "playground": {
+      "mode": "show"
+    }
+  },
+  "openapi": "/api-reference/openapi.json",
+  "analytics": {
+    "fathom": {
+      "siteId": "AUDIOPOD_FATHOM_ID"
+    },
+    "koala": {
+      "publicApiKey": "AUDIOPOD_KOALA_KEY"
+    }
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "raiseIssue": true,
+    "suggestEdit": true
+  },
+  "seo": {
+    "indexHiddenPages": false
+  },
+  "search": {
+    "prompt": "Search AudioPod AI docs..."
   },
   "footer": {
     "socials": {
@@ -130,3 +162,4 @@
     }
   }
 }
+
