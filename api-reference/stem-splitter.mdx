@@ -1,829 +1,630 @@
 ---
 title: "Stem Separation"
-description: "Isolate and extract individual audio components from mixed recordings using advanced AI-powered source separation technology."
+description: "Extract individual audio components from mixed recordings using AI-powered audio source separation."
 ---
 
 ## Overview
 
-AudioPod AI's Stem Separation API uses state-of-the-art AI models to separate mixed audio recordings into individual components (stems). Extract vocals, drums, bass, and other instruments from songs, or separate speech from background music in recordings.
+AudioPod AI's Stem Separation API uses state-of-the-art AI models to separate mixed audio recordings into individual components (stems). Extract vocals, drums, bass, guitar, piano, and more from any song.
 
 ### Key Features
 
-- **Multi-Stem Extraction**: Separate vocals, drums, bass, and other instruments
-- **AI-Powered Models**: Advanced neural networks for high-quality separation
-- **Multiple Output Formats**: Get individual stems or specific combinations
-- **Background Music Removal**: Extract clean speech from music backgrounds
-- **Karaoke Track Creation**: Generate instrumental versions by removing vocals
-- **Music Production Ready**: Professional quality for remixing and production
-- **Batch Processing**: Handle multiple files efficiently
+- **Granular Separation**: Single, two, four, six, eight(producer), twelve(studio), sixteen(mastering)
+- **File Upload & URL Support**: Process local files or YouTube/SoundCloud URLs
+- **Quality Scores**: Get AI-assessed quality metrics for each stem
+- **Presigned Downloads**: Direct S3 URLs for fast stem downloads
+
+## Installation
+
+<Tabs>
+  <Tab title="Python">
+    ```bash
+    pip install audiopod
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```bash
+    npm install audiopod
+    ```
+  </Tab>
+</Tabs>
 
 ## Authentication
 
-All endpoints require authentication:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
-
-## Music Stem Separation
-
-### Extract All Stems
-
-Separate a full song into individual instrument and vocal tracks.
+Get your API key from the [API Keys Dashboard](https://www.audiopod.ai/dashboard/account/api-keys).
 
 <Tabs>
   <Tab title="Python">
     ```python
-    from audiopod import Client
+    from audiopod import AudioPod
 
-    client = Client()
-
-    # Extract all stems from a song
-    separation = client.stem_extraction.extract_all_stems(
-        audio_file="song.mp3",
-        stem_types=["vocals", "drums", "bass", "other"],  # Model auto-selected based on stems
-        wait_for_completion=True
-    )
-
-    print(f"Stem separation completed!")
-    print(f"Input file: {separation.input_file}")
-    print(f"Model used: {separation.model}")
-    print(f"Available stems: {separation.available_stems}")
-
-    # Access individual stems
-    for stem_name, stem_url in separation.stems.items():
-        print(f"\n{stem_name}: {stem_url}")
-        
-        # Download each stem
-        stem_audio = client.download_file(stem_url)
-        output_filename = f"{stem_name}_isolated.wav"
-        with open(output_filename, "wb") as f:
-            f.write(stem_audio)
-        print(f"Downloaded: {output_filename}")
-
-    # Process multiple songs individually
-    songs = [
-        "album_track_1.mp3",
-        "album_track_2.mp3", 
-        "album_track_3.mp3"
-    ]
-
-    for i, song_file in enumerate(songs):
-        print(f"\nProcessing Song {i+1}: {song_file}")
-        
-        separation = client.stem_extraction.extract_all_stems(
-            audio_file=song_file,
-            stem_types=["vocals", "drums", "bass", "other", "piano", "guitar"],
-            wait_for_completion=True
-        )
-        
-        song_name = song_file.split('.')[0]
-        print(f"Status: {separation.status}")
-        
-        if separation.status == "completed":
-            print(f"Extracted stems: {list(separation.stems.keys())}")
-            
-            # Download all stems for this song
-            for stem_name, stem_url in separation.stems.items():
-                stem_audio = client.download_file(stem_url)
-                output_filename = f"{song_name}_{stem_name}.wav"
-                with open(output_filename, "wb") as f:
-                    f.write(stem_audio)
-                print(f"  Saved: {output_filename}")
-
-    # Example 1: Auto-select model based on stems (piano/guitar → 6-stem model)
-    piano_separation = client.stem_extraction.extract_all_stems(
-        audio_file="piano_song.wav",
-        stem_types=["vocals", "piano", "other"],  
-        wait_for_completion=True
-    )
-
-    # Example 2: Standard 4-stem separation
-    standard_separation = client.stem_extraction.extract_all_stems(
-        audio_file="rock_song.wav",
-        stem_types=["vocals", "drums", "bass", "other"],  
-        wait_for_completion=True
-    )
-
-    print(f"Piano separation completed!")
-    print(f"Quality: {piano_separation.quality_level}")
-    print(f"Processing time: {piano_separation.processing_time}s")
-
-    # Download individual stems for manual combination
-    stems = standard_separation.stems
-    
-    # Download all stems except vocals to create instrumental mix manually  
-    instrumental_stems = {k: v for k, v in stems.items() if k != 'vocals'}
-    
-    print("Downloaded stems for manual combination:")
-    for stem_name, stem_url in instrumental_stems.items():
-        stem_audio = client.download_file(stem_url)
-        with open(f"instrumental_{stem_name}.wav", "wb") as f:
-            f.write(stem_audio)
-        print(f"  Saved: instrumental_{stem_name}.wav")
+    client = AudioPod(api_key="ap_your_api_key")
+    # Or set AUDIOPOD_API_KEY environment variable
     ```
   </Tab>
   <Tab title="Node.js">
-    ```javascript
-    const { AudioPodClient } = require('audiopod-js');
-    const fs = require('fs');
+    ```typescript
+    import AudioPod from 'audiopod';
 
-    const client = new AudioPodClient();
-
-    async function extractAllStems() {
-      try {
-        // Extract all stems from a song
-        const separation = await client.stemExtraction.extractAllStems({
-          audioFile: fs.createReadStream('song.mp3'),
-          stemTypes: ['vocals', 'drums', 'bass', 'other'],  // Model auto-selected
-          waitForCompletion: true
-        });
-
-        console.log('Stem separation completed!');
-        console.log(`Input file: ${separation.inputFile}`);
-        console.log(`Model used: ${separation.model}`);
-        console.log(`Available stems: ${separation.availableStems}`);
-
-        // Access individual stems
-        for (const [stemName, stemUrl] of Object.entries(separation.stems)) {
-          console.log(`\n${stemName}: ${stemUrl}`);
-          
-          // Download each stem
-          const stemAudio = await client.downloadFile(stemUrl);
-          const outputFilename = `${stemName}_isolated.wav`;
-          fs.writeFileSync(outputFilename, stemAudio);
-          console.log(`Downloaded: ${outputFilename}`);
-        }
-
-        // Process multiple songs individually
-        const songs = [
-          'album_track_1.mp3',
-          'album_track_2.mp3', 
-          'album_track_3.mp3'
-        ];
-
-        for (let i = 0; i < songs.length; i++) {
-          const songFile = songs[i];
-          console.log(`\nProcessing Song ${i + 1}: ${songFile}`);
-          
-          const separation = await client.stemExtraction.extractAllStems({
-            audioFile: fs.createReadStream(songFile),
-            stemTypes: ['vocals', 'drums', 'bass', 'other', 'piano', 'guitar'], 
-            waitForCompletion: true
-          });
-          
-          const songName = songFile.split('.')[0];
-          console.log(`Status: ${separation.status}`);
-          
-          if (separation.status === 'completed') {
-            console.log(`Extracted stems: ${Object.keys(separation.stems)}`);
-            
-            // Download all stems for this song
-            for (const [stemName, stemUrl] of Object.entries(separation.stems)) {
-              const stemAudio = await client.downloadFile(stemUrl);
-              const outputFilename = `${songName}_${stemName}.wav`;
-              fs.writeFileSync(outputFilename, stemAudio);
-              console.log(`  Saved: ${outputFilename}`);
-            }
-          }
-        }
-
-        // Advanced separation with multiple stems  
-        const advancedSeparation = await client.stemExtraction.extractAllStems({
-          audioFile: fs.createReadStream('complex_mix.wav'),
-          stemTypes: ['vocals', 'drums', 'bass', 'other'],
-          waitForCompletion: true
-        });
-
-        console.log('Advanced separation completed!');
-        console.log(`Quality: ${advancedSeparation.qualityLevel}`);
-        console.log(`Processing time: ${advancedSeparation.processingTime}s`);
-
-        // Download individual stems for manual combination
-        const stems = advancedSeparation.stems;
-        
-        // Download all stems except vocals to create instrumental mix manually
-        const instrumentalStems = Object.fromEntries(
-          Object.entries(stems).filter(([k, v]) => k !== 'vocals')
-        );
-        
-        console.log('Downloaded stems for manual combination:');
-        for (const [stemName, stemUrl] of Object.entries(instrumentalStems)) {
-          const stemAudio = await client.downloadFile(stemUrl);
-          const filename = `instrumental_${stemName}.wav`;
-          fs.writeFileSync(filename, stemAudio);
-          console.log(`  Saved: ${filename}`);
-        }
-
-      } catch (error) {
-        console.error('Stem extraction error:', error.message);
-      }
-    }
-
-    extractAllStems();
-    ```
-  </Tab>
-  <Tab title="Raw HTTP">
-    ```python
-    import requests
-    import time
-    
-    # Extract all stems
-    with open("song.mp3", "rb") as audio_file:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
-            headers={"Authorization": f"Bearer {api_key}"},
-            data={
-                "stem_types": '["vocals", "drums", "bass", "other"]'     # Uses 4-stem model
-            },
-            files={"file": audio_file}
-        )
-    
-    if response.status_code == 200:
-        job_data = response.json()
-        job_id = job_data["id"]
-        print(f"Stem extraction job created: {job_id}")
-        
-        # Poll for completion
-        while True:
-            status_response = requests.get(
-                f"https://api.audiopod.ai/api/v1/stem-extraction/status/{job_id}",
-                headers={"Authorization": f"Bearer {api_key}"}
-            )
-            
-            if status_response.status_code == 200:
-                job_status = status_response.json()
-                print(f"Status: {job_status['status']}")
-                
-                if job_status["status"] == "COMPLETED":
-                    print(f"Stem extraction completed!")
-                    
-                    # Get the separated stems
-                    result_response = requests.get(
-                        f"https://api.audiopod.ai/api/v1/stem-extraction/result/{job_id}",
-                        headers={"Authorization": f"Bearer {api_key}"}
-                    )
-                    
-                    if result_response.status_code == 200:
-                        result_data = result_response.json()
-                        stems = result_data.get('stems', {})
-                        
-                        print(f"Available stems: {list(stems.keys())}")
-                        
-                        # Download each stem
-                        for stem_name, stem_url in stems.items():
-                            print(f"Downloading {stem_name}...")
-                            stem_response = requests.get(stem_url)
-                            
-                            if stem_response.status_code == 200:
-                                output_filename = f"{stem_name}_isolated.wav"
-                                with open(output_filename, "wb") as f:
-                                    f.write(stem_response.content)
-                                print(f"Saved: {output_filename}")
-                    break
-                elif job_status["status"] == "FAILED":
-                    print(f"Stem extraction failed: {job_status.get('error', 'Unknown error')}")
-                    break
-                    
-            time.sleep(10)  # Check every 10 seconds
-    else:
-        print(f"Error: {response.status_code} - {response.text}")
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+    // Or set AUDIOPOD_API_KEY environment variable
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Extract all 4 stems
-    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/extract" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "file=@song.mp3" \
-      -F "stem_types=[\"vocals\",\"drums\",\"bass\",\"other\"]"
+    export AUDIOPOD_API_KEY="ap_your_api_key"
+    # Use -H "X-API-Key: $AUDIOPOD_API_KEY" in requests
+    ```
+  </Tab>
+</Tabs>
 
-    # Extract piano stems (uses 6-stem model)
-    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/extract" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "file=@piano_song.mp3" \
-      -F "stem_types=[\"vocals\",\"piano\",\"other\"]"
+## Separation Modes
 
-    # Check job status (replace JOB_ID with actual job ID)
+| Mode | Stems | Output | Use Case |
+|------|-------|--------|----------|
+| `single` | 1 | Specified stem only | Vocal isolation, drum extraction |
+| `two` | 2 | vocals + instrumental | Karaoke tracks |
+| `four` | 4 | vocals, drums, bass, other | Standard remixing |
+| `six` | 6 | + guitar, piano | Full instrument separation |
+| `producer` | 8 | + kick, snare, hihat | Beat production |
+| `studio` | 12 | + cymbals, sub_bass, synth | Professional mixing |
+| `mastering` | 16 | Maximum detail | Forensic analysis |
+
+---
+
+## Quick Start
+
+### Six-Stem Separation
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Extract and wait for completion
+    result = client.stems.separate(
+        url="https://youtube.com/watch?v=VIDEO_ID",
+        mode="six"
+    )
+
+    # Download stems
+    print("Stems ready:")
+    for stem, url in result["download_urls"].items():
+        print(f"  {stem}: {url[:60]}...")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    // Extract and wait for completion
+    const result = await client.stems.separate({
+      url: 'https://youtube.com/watch?v=VIDEO_ID',
+      mode: 'six'
+    });
+
+    // Download stems
+    console.log('Stems ready:');
+    for (const [stem, url] of Object.entries(result.download_urls)) {
+      console.log(`  ${stem}: ${url.substring(0, 60)}...`);
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Submit job
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "mode=six"
+
+    # Check status (replace JOB_ID)
     curl -X GET "https://api.audiopod.ai/api/v1/stem-extraction/status/JOB_ID" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
-
-    # The status endpoint returns the complete job information including download URLs
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
 
-### Extract Specific Stems
+---
 
-Extract only specific components from audio.
+## Examples by Mode
 
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/stem-extraction/extract
-    Authorization: Bearer {api_key}
-    Content-Type: multipart/form-data
-    
-    file: (audio file)
-    stem_types: ["vocals"]
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    with open("recording.wav", "rb") as audio_file:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
-            headers={"Authorization": f"Bearer {api_key}"},
-            data={
-                "stem_types": '["vocals"]'    # Extract only vocals, model auto-selected
-            },
-            files={"file": audio_file}
-        )
-    
-    if response.status_code == 200:
-        job_data = response.json()
-        print(f"Vocal extraction job: {job_data['id']}")
-    ```
-  </Tab>
-</Tabs>
+### Four-Stem Separation (Standard)
 
-### Extract from URL
-
-Separate stems from online audio/video content.
+Extract vocals, drums, bass, and other.
 
 <Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/stem-extraction/extract
-    Authorization: Bearer {api_key}
-    Content-Type: application/x-www-form-urlencoded
-    
-    url=https://youtube.com/watch?v=example123&stem_types=["vocals","other"]
-    ```
-  </Tab>
-  <Tab title="Python">
+  <Tab title="Python (URL)">
     ```python
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/stem-extraction/extract",
-        headers={"Authorization": f"Bearer {api_key}"},
-        data={
-            "url": "https://youtube.com/watch?v=example123",
-            "stem_types": '["vocals", "other"]'    # Extract vocals and other, model auto-selected
-        }
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    result = client.stems.separate(
+        url="https://youtube.com/watch?v=VIDEO_ID",
+        mode="four"
     )
-    
-    if response.status_code == 200:
-        job_data = response.json()
-        print(f"URL stem extraction started: {job_data['id']}")
+
+    print(f"Vocals: {result['download_urls']['vocals']}")
+    print(f"Drums: {result['download_urls']['drums']}")
+    print(f"Bass: {result['download_urls']['bass']}")
+    print(f"Other: {result['download_urls']['other']}")
+    ```
+  </Tab>
+  <Tab title="Python (File)">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    result = client.stems.separate(
+        file="/path/to/song.mp3",
+        mode="four"
+    )
+
+    for stem, url in result["download_urls"].items():
+        print(f"{stem}: {url}")
+    ```
+  </Tab>
+  <Tab title="Node.js (URL)">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const result = await client.stems.separate({
+      url: 'https://youtube.com/watch?v=VIDEO_ID',
+      mode: 'four'
+    });
+
+    console.log(`Vocals: ${result.download_urls.vocals}`);
+    console.log(`Drums: ${result.download_urls.drums}`);
+    console.log(`Bass: ${result.download_urls.bass}`);
+    console.log(`Other: ${result.download_urls.other}`);
+    ```
+  </Tab>
+  <Tab title="Node.js (File)">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const result = await client.stems.separate({
+      file: '/path/to/song.mp3',
+      mode: 'four'
+    });
+
+    for (const [stem, url] of Object.entries(result.download_urls)) {
+      console.log(`${stem}: ${url}`);
+    }
+    ```
+  </Tab>
+  <Tab title="cURL (URL)">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "mode=four"
+    ```
+  </Tab>
+  <Tab title="cURL (File)">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "file=@/path/to/song.mp3" \
+      -F "mode=four"
     ```
   </Tab>
 </Tabs>
 
-**Automatic Model Selection:**
-The API automatically selects the most appropriate model based on your requested `stem_types`:
-- Requests for `piano` or `guitar` stems → automatically uses the 6-stem model for highest quality
-- All other stem combinations → automatically uses the 4-stem model for balanced performance
+---
 
-**Stem Types:**
-- **`vocals`**: Extract vocal tracks
-- **`drums`**: Extract drum tracks  
-- **`bass`**: Extract bass tracks
-- **`other`**: Extract other instruments (available in 4-stem mode)
-- **`piano`**: Extract piano tracks (available in 6-stem mode only)
-- **`guitar`**: Extract guitar tracks (available in 6-stem mode only)
+### Single Stem Extraction (Vocals Only)
 
-**Two-Stems Mode:**
-- **`vocals`**: Extract vocals vs everything else
-- **`drums`**: Extract drums vs everything else  
-- **`bass`**: Extract bass vs everything else
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
 
-**Response:**
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Extract only vocals
+    result = client.stems.separate(
+        url="https://youtube.com/watch?v=VIDEO_ID",
+        mode="single",
+        stem="vocals"  # Options: vocals, drums, bass, guitar, piano, other
+    )
+
+    print(f"Vocals: {result['download_urls']['vocals']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    // Extract only vocals
+    const result = await client.stems.separate({
+      url: 'https://youtube.com/watch?v=VIDEO_ID',
+      mode: 'single',
+      stem: 'vocals' // Options: vocals, drums, bass, guitar, piano, other
+    });
+
+    console.log(`Vocals: ${result.download_urls.vocals}`);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "mode=single" \
+      -F "stem=vocals"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Two-Stem Separation (Karaoke)
+
+Separate vocals from instrumental.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    result = client.stems.separate(
+        url="https://youtube.com/watch?v=VIDEO_ID",
+        mode="two"
+    )
+
+    # Returns: vocals + no_vocals (instrumental)
+    print(f"Vocals: {result['download_urls']['vocals']}")
+    print(f"Instrumental: {result['download_urls']['no_vocals']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const result = await client.stems.separate({
+      url: 'https://youtube.com/watch?v=VIDEO_ID',
+      mode: 'two'
+    });
+
+    // Returns: vocals + no_vocals (instrumental)
+    console.log(`Vocals: ${result.download_urls.vocals}`);
+    console.log(`Instrumental: ${result.download_urls.no_vocals}`);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "mode=two"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+### Producer Mode (8 Stems with Drum Kit)
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    result = client.stems.separate(
+        url="https://youtube.com/watch?v=VIDEO_ID",
+        mode="producer"
+    )
+
+    # Returns: vocals, kick, snare, hihat, bass, guitar, piano, other
+    for stem, url in result["download_urls"].items():
+        print(f"{stem}: {url[:60]}...")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const result = await client.stems.separate({
+      url: 'https://youtube.com/watch?v=VIDEO_ID',
+      mode: 'producer'
+    });
+
+    // Returns: vocals, kick, snare, hihat, bass, guitar, piano, other
+    for (const [stem, url] of Object.entries(result.download_urls)) {
+      console.log(`${stem}: ${url.substring(0, 60)}...`);
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "mode=producer"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Advanced Usage
+
+### Async Job Handling
+
+For more control, use `extract()` and `wait_for_completion()` separately:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Submit job (returns immediately)
+    job = client.stems.extract(
+        url="https://youtube.com/watch?v=VIDEO_ID",
+        mode="six"
+    )
+    print(f"Job submitted: {job['id']}")
+
+    # Do other work...
+
+    # Wait for completion when ready
+    result = client.stems.wait_for_completion(job["id"], timeout=600)
+
+    if result["status"] == "COMPLETED":
+        print("Download URLs:")
+        for stem, url in result["download_urls"].items():
+            print(f"  {stem}: {url}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    // Submit job (returns immediately)
+    const job = await client.stems.extract({
+      url: 'https://youtube.com/watch?v=VIDEO_ID',
+      mode: 'six'
+    });
+    console.log(`Job submitted: ${job.id}`);
+
+    // Do other work...
+
+    // Wait for completion when ready
+    const result = await client.stems.waitForCompletion(job.id, 600000);
+
+    if (result.status === 'COMPLETED') {
+      console.log('Download URLs:');
+      for (const [stem, url] of Object.entries(result.download_urls)) {
+        console.log(`  ${stem}: ${url}`);
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Get Available Modes
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    modes = client.stems.modes()
+
+    print("Available modes:")
+    for m in modes["modes"]:
+        print(f"  {m['mode']}: {m['description']} ({m['stem_count']} stems)")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const modes = await client.stems.modes();
+
+    console.log('Available modes:');
+    modes.modes.forEach(m => {
+      console.log(`  ${m.mode}: ${m.description} (${m.stem_count} stems)`);
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/stem-extraction/modes"
+    ```
+  </Tab>
+</Tabs>
+
+### Check Job Status
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    status = client.stems.status(5512)
+
+    print(f"Status: {status['status']}")
+
+    if status["status"] == "COMPLETED":
+        print("Quality scores:")
+        for stem, score in status["quality_scores"].items():
+            print(f"  {stem}: {score:.2f}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const status = await client.stems.status(5512);
+
+    console.log(`Status: ${status.status}`);
+
+    if (status.status === 'COMPLETED') {
+      console.log('Quality scores:');
+      for (const [stem, score] of Object.entries(status.quality_scores)) {
+        console.log(`  ${stem}: ${score.toFixed(2)}`);
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/stem-extraction/status/5512" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Response Format
+
+**Completed Job Response:**
 
 ```json
 {
-  "id": 123,
-  "status": "PROCESSING",
-  "input_path": "inputs/stem_extraction/job123/song.mp3",
-  "source_type": "FILE",
-  "stem_paths": null,
-  "task_id": "celery_task_uuid_here",
-  "error_message": null,
-  "created_at": "2024-01-15T10:30:00Z",
-  "updated_at": null,
-  "completed_at": null,
-  "quality_scores": null,
-  "download_urls": null
-}
-```
-
-
-## Job Management
-
-### Get Job Status
-
-Monitor the progress of stem separation jobs.
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /api/v1/stem-extraction/status/{job_id}
-    Authorization: Bearer {api_key}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        f"https://api.audiopod.ai/api/v1/stem-extraction/status/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
-    )
-    
-    if response.status_code == 200:
-        job_status = response.json()
-        print(f"Status: {job_status['status']}")
-        print(f"Progress: {job_status['progress']}%")
-        
-        if job_status["status"] == "COMPLETED":
-            print("Stem extraction complete!")
-            result = job_status["result"]
-            print(f"Generated {len(result['stems'])} stems")
-            
-            for stem in result["stems"]:
-                print(f"- {stem['name']}: {stem['download_url']}")
-    ```
-  </Tab>
-</Tabs>
-
-**Response (Completed):**
-
-```json
-{
-  "id": 123,
+  "id": 5512,
   "status": "COMPLETED",
-  "input_path": "inputs/stem_extraction/job123/song.mp3",
-  "source_type": "FILE",
+  "source_type": "URL",
   "stem_paths": {
-    "vocals": "stems/job123/vocals.wav",
-    "drums": "stems/job123/drums.wav",
-    "bass": "stems/job123/bass.wav",
-    "other": "stems/job123/other.wav"
+    "vocals": "stems/5512/vocals.wav",
+    "drums": "stems/5512/drums.wav",
+    "bass": "stems/5512/bass.wav",
+    "guitar": "stems/5512/guitar.wav",
+    "piano": "stems/5512/piano.wav",
+    "other": "stems/5512/other.wav"
   },
-  "task_id": "celery_task_uuid_here",
-  "error_message": null,
-  "created_at": "2024-01-15T10:30:00Z",
-  "updated_at": "2024-01-15T10:35:45Z",
-  "completed_at": "2024-01-15T10:35:45Z",
   "quality_scores": {
-    "vocals": 0.85,
-    "drums": 0.92,
-    "bass": 0.78,
-    "other": 0.83
+    "vocals": 0.64,
+    "drums": 0.35,
+    "bass": 0.87,
+    "guitar": 0.38,
+    "piano": 0.0,
+    "other": 0.36
   },
   "download_urls": {
-    "vocals": "https://s3.amazonaws.com/bucket/stems/job123/vocals.wav?presigned_params",
-    "drums": "https://s3.amazonaws.com/bucket/stems/job123/drums.wav?presigned_params",
-    "bass": "https://s3.amazonaws.com/bucket/stems/job123/bass.wav?presigned_params",
-    "other": "https://s3.amazonaws.com/bucket/stems/job123/other.wav?presigned_params"
-  }
+    "vocals": "https://audiopod-new.s3-accelerate.amazonaws.com/...",
+    "drums": "https://audiopod-new.s3-accelerate.amazonaws.com/...",
+    "bass": "https://audiopod-new.s3-accelerate.amazonaws.com/...",
+    "guitar": "https://audiopod-new.s3-accelerate.amazonaws.com/...",
+    "piano": "https://audiopod-new.s3-accelerate.amazonaws.com/...",
+    "other": "https://audiopod-new.s3-accelerate.amazonaws.com/..."
+  },
+  "completed_at": "2025-12-11T12:39:37.379848"
 }
 ```
 
-### List Extraction Jobs
-
-Get all stem separation jobs for the authenticated user.
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /api/v1/stem-extraction/jobs?skip=0&limit=50
-    Authorization: Bearer {api_key}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/stem-extraction/jobs",
-        headers={"Authorization": f"Bearer {api_key}"},
-        params={
-            "skip": 0,
-            "limit": 50
-        }
-    )
-    
-    if response.status_code == 200:
-        jobs_data = response.json()
-        for job in jobs_data:
-            display_name = job.get('display_name', job.get('input_path', 'Unknown'))
-            print(f"Job {job['id']}: {job['status']} - {display_name}")
-            print(f"  Source: {job['source_type']}, Created: {job['created_at']}")
-    ```
-  </Tab>
-</Tabs>
-
-### Download Individual Stems
-
-Use the presigned URLs from the status endpoint response to download individual stems.
-
-## Job Control
-
-# Job retries are handled automatically by the system
-
-### Delete Job
-
-Remove a stem extraction job and its results.
-
-<Tabs>
-  <Tab title="DELETE">
-    ```http
-    DELETE /api/v1/stem-extraction/jobs/{job_id}
-    Authorization: Bearer {api_key}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    response = requests.delete(
-        f"https://api.audiopod.ai/api/v1/stem-extraction/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
-    )
-    
-    if response.status_code == 204:
-        print("Job deleted successfully")
-    ```
-  </Tab>
-</Tabs>
-
-## Use Cases & Examples
-
-### Music Production Workflow
-
-```python
-def extract_stems_for_remix(song_file, api_key):
-    """Extract all stems from a song for remixing"""
-    
-    print("Starting stem extraction for remix...")
-    
-    with open(song_file, "rb") as audio_file:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
-            headers={"Authorization": f"Bearer {api_key}"},
-            data={
-                "stem_types": '["vocals", "drums", "bass", "other"]'  # Model auto-selected for production
-            },
-            files={"file": audio_file}
-        )
-    
-    if response.status_code != 200:
-        return {"error": "Failed to start extraction"}
-    
-    job_data = response.json()
-    job_id = job_data["id"]
-    
-    # Wait for completion
-    import time
-    while True:
-        status_response = requests.get(
-            f"https://api.audiopod.ai/api/v1/stem-extraction/status/{job_id}",
-            headers={"Authorization": f"Bearer {api_key}"}
-        )
-        
-        job_status = status_response.json()
-        print(f"Progress: {job_status['progress']}%")
-        
-        if job_status["status"] == "COMPLETED":
-            break
-        elif job_status["status"] == "FAILED":
-            return {"error": "Job failed"}
-        
-        time.sleep(10)
-    
-    # Download stems
-    result = job_status["result"]
-    downloaded_stems = []
-    
-    for stem in result["stems"]:
-        stem_response = requests.get(stem["download_url"])
-        filename = f"remix_{stem['name']}.wav"
-        
-        with open(filename, "wb") as f:
-            f.write(stem_response.content)
-        
-        downloaded_stems.append({
-            "name": stem["name"],
-            "filename": filename,
-            "rms_level": stem["rms_level"]
-        })
-        
-        print(f"Downloaded {stem['name']}: {filename}")
-    
-    return {
-        "success": True,
-        "job_id": job_id,
-        "stems": downloaded_stems,
-        "total_stems": result["num_stems"]
-    }
-
-# Usage
-result = extract_stems_for_remix("song.mp3", "your_api_key")
-if result.get("success"):
-    print(f"Successfully extracted {result['total_stems']} stems")
-    for stem in result["stems"]:
-        print(f"  {stem['name']}: {stem['filename']}")
-```
-
-### Karaoke Track Generation
-
-```python
-def create_karaoke_track(song_file, api_key):
-    """Create karaoke version by removing vocals"""
-    
-    with open(song_file, "rb") as audio_file:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/stem-extraction/extract",
-            headers={"Authorization": f"Bearer {api_key}"},
-            data={
-                "two_stems_mode": "vocals"    # Separate vocals from everything else, model auto-selected
-            },
-            files={"file": audio_file}
-        )
-    
-    job_id = response.json()["id"]
-    
-    # Monitor job (simplified)
-    while True:
-        status_response = requests.get(
-            f"https://api.audiopod.ai/api/v1/stem-extraction/status/{job_id}",
-            headers={"Authorization": f"Bearer {api_key}"}
-        )
-        
-        job_status = status_response.json()
-        if job_status["status"] == "COMPLETED":
-            break
-        time.sleep(5)
-    
-    # Download instrumental track (non-vocals)
-    download_urls = job_status.get("download_urls", {})
-    other_url = download_urls.get("other")  # This contains the instrumental mix
-    
-    if other_url:
-        karaoke_response = requests.get(other_url)
-        karaoke_filename = f"karaoke_{song_file}"
-        
-        with open(karaoke_filename, "wb") as f:
-            f.write(karaoke_response.content)
-        
-        return {
-            "karaoke_file": karaoke_filename,
-            "job_id": job_id
-        }
-    
-    return {"error": "No instrumental track found"}
-```
-
-# Use vocal extraction for speech enhancement by extracting the vocals stem from podcast recordings
-
-## Error Handling
-
-<AccordionGroup>
-  <Accordion title="400 Bad Request - Invalid Audio">
-    **Causes:** - Audio file format not supported - No audio content detected - File corrupted
-    **Solutions:** - Use supported formats (WAV, MP3, M4A, FLAC) - Verify audio contains music/speech - Check file integrity
-  </Accordion>
-
-  <Accordion title="422 Processing Error - Separation Failed">
-    **Causes:** - Audio too complex for separation - Mono audio (some models require stereo) - Very short duration
-    **Solutions:** - Try different separation model - Use stereo audio - Ensure minimum 10 seconds duration
-  </Accordion>
-
-  <Accordion title="413 Payload Too Large">
-    **Causes:** - Audio file exceeds size limits - Very long recordings
-    **Solutions:** - Split large files into segments - Use URL processing for large files - Compress audio
-  </Accordion>
-
-  <Accordion title="402 Payment Required - Insufficient Credits">
-    **Causes:** - Not enough credits for processing duration
-    **Solutions:** - Purchase additional credits - Check credit requirements
-  </Accordion>
-</AccordionGroup>
-
-## Best Practices
-
-### Stem Selection Guide
-
-The API automatically selects the optimal model based on your stem requirements. Here's how to choose the right stems for your use case:
-
-```python
-def choose_stems_for_use_case(use_case):
-    """Choose optimal stem types based on your use case"""
-    
-    use_cases = {
-        "karaoke": ["vocals", "other"],  # Separate vocals from instrumental
-        "vocal_removal": ["vocals"],     # Extract just vocals
-        "music_production": ["vocals", "drums", "bass", "other"],  # Standard 4-stem
-        "piano_music": ["vocals", "piano", "other"],  # Uses 6-stem model
-        "guitar_music": ["vocals", "guitar", "other"], # Uses 6-stem model
-        "professional_production": ["vocals", "drums", "bass", "other", "piano", "guitar"], # Full 6-stem
-        "podcast_cleanup": ["vocals"],   # Extract speech/vocals only
-        "drum_isolation": ["drums"],     # Extract drums only
-        "bass_isolation": ["bass"]       # Extract bass only
-    }
-    
-    return use_cases.get(use_case, ["vocals", "drums", "bass", "other"])  # Default to 4-stem
-
-# Usage examples:
-# For karaoke: stem_types = ["vocals", "other"]
-# For piano separation: stem_types = ["vocals", "piano", "other"]  → uses 6-stem model
-# For full production: stem_types = ["vocals", "drums", "bass", "other"] → uses 4-stem model
-```
-
-### Quality Assessment
-
-```python
-def assess_separation_quality(job_id, api_key):
-    """Assess the quality of stem separation results"""
-    
-    response = requests.get(
-        f"https://api.audiopod.ai/api/v1/stem-extraction/status/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
-    )
-    
-    job_data = response.json()
-    result = job_data.get("result", {})
-    
-    if not result:
-        return {"assessment": "no_results"}
-    
-    stems = result.get("stems", [])
-    processing_stats = result.get("processing_stats", {})
-    
-    # Analyze RMS levels for balance
-    rms_levels = [stem.get("rms_level", 0) for stem in stems if stem.get("rms_level")]
-    
-    assessment = {
-        "num_stems": len(stems),
-        "separation_quality": processing_stats.get("separation_quality", "unknown"),
-        "rms_analysis": {
-            "avg_level": sum(rms_levels) / len(rms_levels) if rms_levels else 0,
-            "level_variance": max(rms_levels) - min(rms_levels) if rms_levels else 0,
-            "balanced_levels": (max(rms_levels) - min(rms_levels)) < 10 if rms_levels else False
-        },
-        "processing_efficiency": {
-            "processing_time": processing_stats.get("model_processing_time", 0),
-            "audio_duration": processing_stats.get("audio_duration", 0),
-            "efficiency_ratio": 0
-        },
-        "quality_indicators": {}
-    }
-    
-    # Calculate efficiency ratio
-    if processing_stats.get("audio_duration", 0) > 0:
-        assessment["processing_efficiency"]["efficiency_ratio"] = (
-            processing_stats.get("model_processing_time", 0) / 
-            processing_stats.get("audio_duration", 1)
-        )
-    
-    # Quality indicators
-    assessment["quality_indicators"] = {
-        "good_balance": assessment["rms_analysis"]["balanced_levels"],
-        "reasonable_processing": assessment["processing_efficiency"]["efficiency_ratio"] < 5.0,
-        "all_stems_present": len(stems) >= 2,
-        "high_quality_model": processing_stats.get("separation_quality") == "high"
-    }
-    
-    # Overall score
-    quality_score = sum(assessment["quality_indicators"].values())
-    assessment["overall_rating"] = {
-        4: "excellent",
-        3: "good", 
-        2: "acceptable",
-        1: "poor",
-        0: "failed"
-    }.get(quality_score, "unknown")
-    
-    return assessment
-```
+---
 
 ## Pricing
 
-Stem separation pricing is based on audio duration. The API automatically selects the appropriate model based on your requested stems:
+**Rate:** $0.10 per minute of audio processed (all modes)
 
-| Model Type | Cost | Description |
-|------------|------|-------------|
-| 4-stem | 990 credits/minute | Standard separation (vocals, drums, bass, other) |
-| 6-stem | 990 credits/minute | Advanced separation (vocals, drums, bass, other, piano, guitar) |
+| Duration | Cost |
+|----------|------|
+| 3 minutes | $0.31 |
+| 5 minutes | $0.50 |
+| 10 minutes | $1.00 |
+| 1 hour | $6.00 |
 
-### Cost Examples
+<Info>
+Check your balance and usage at [API Wallet](/account/api-wallet).
+</Info>
 
-| Duration | Stem Types | Model Used | Credits | USD Cost |
-|----------|------------|------------|---------|----------|
-| 4 minutes | vocals, drums, bass, other | 4-stem | 3960 | $0.53 |
-| 6 minutes | vocals, piano, guitar, other | 6-stem | 5940 | $0.79 |
-| 5 minutes | vocals, other | 4-stem | 4950 | $0.66 |
-| 10 minutes | all 6 stems | 6-stem | 9900 | $1.32 |
+---
+
+## Error Handling
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod, InsufficientBalanceError, AuthenticationError
+
+    try:
+        client = AudioPod(api_key="ap_...")
+        result = client.stems.separate(url="...", mode="six")
+    except AuthenticationError:
+        print("Invalid API key")
+    except InsufficientBalanceError as e:
+        print(f"Need ${e.required_cents / 100:.2f}, have ${e.available_cents / 100:.2f}")
+    except ValueError as e:
+        print(f"Invalid input: {e}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod, { InsufficientBalanceError, AuthenticationError } from 'audiopod';
+
+    try {
+      const client = new AudioPod({ apiKey: 'ap_...' });
+      const result = await client.stems.separate({ url: '...', mode: 'six' });
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        console.log('Invalid API key');
+      } else if (error instanceof InsufficientBalanceError) {
+        console.log(`Need $${error.requiredCents / 100}, have $${error.availableCents / 100}`);
+      } else {
+        console.log(`Error: ${error.message}`);
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Status Codes
+
+| Status | Description |
+|--------|-------------|
+| `PENDING` | Job queued, waiting for worker |
+| `PROCESSING` | Stem separation in progress |
+| `COMPLETED` | Success - download URLs available |
+| `FAILED` | Error occurred - check error_message |
+
+---
 
 ## Next Steps
 
 <Columns cols={2}>
-  <Card title="Music Generation" icon="music" href="/api-reference/music-generation">
-    Create new music using separated stems as input.
+  <Card title="API Wallet" icon="wallet" href="/account/api-wallet">
+    Manage billing and view usage history.
   </Card>
   <Card title="Noise Reduction" icon="volume-xmark" href="/api-reference/noise-reduction">
-    Clean up individual stems for better quality.
+    Clean up stems for better quality.
   </Card>
 </Columns>

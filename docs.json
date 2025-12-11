@@ -24,7 +24,8 @@
             "pages": [
               "account/registration",
               "account/api-keys", 
-              "account/credits"
+              "account/credits",
+              "account/api-wallet"
             ]
           }
         ]

@@ -45,18 +45,31 @@ While you can use any HTTP client, we highly recommend using our official SDKs f
 <Tabs>
   <Tab title="Python">
     ```bash
-    pip install audiopod-client
+    pip install audiopod
     ```
   </Tab>
   <Tab title="Node.js">
     ```bash
-    npm install audiopod-js
+    npm install audiopod-sdk
     ```
   </Tab>
   <Tab title="cURL">
     No installation required - use cURL directly
   </Tab>
 </Tabs>
+
+## Step 3.5: Fund Your API Wallet
+
+Before making API calls, add funds to your wallet:
+
+1. Go to [API Keys Dashboard](https://www.audiopod.ai/dashboard/account/api-keys)
+2. Click **Add Funds** in the Wallet Balance section
+3. Choose an amount (minimum $1.00)
+4. Complete payment via Stripe
+
+<Info>
+API calls are billed per minute of audio processed. Check [API Wallet pricing](/account/api-wallet) for rates.
+</Info>
 
 ## Step 4: Authentication Setup
 
@@ -570,48 +583,117 @@ Remove noise from audio files:
 
 ### Stem Separation
 
-Separate music into individual instruments:
+Separate music into individual instruments using simple mode names:
 
 <Tabs>
   <Tab title="Python">
     ```python
-    # Split stems from music
-    stems = client.stem_extraction.extract_stems(
-        audio_file="path/to/song.wav",
-        stem_types=["vocals", "drums", "bass", "other"],
-        wait_for_completion=True
-    )
+    import requests
+    import time
 
-    print("Separated stems:")
-    for stem_type, url in stems.download_urls.items():
-        print(f"{stem_type}: {url}")
+    API_KEY = "your_api_key_here"
+    BASE_URL = "https://api.audiopod.ai/api/v1"
+
+    # Submit 6-stem extraction job
+    response = requests.post(
+        f"{BASE_URL}/stem-extraction/api/extract",
+        headers={"X-API-Key": API_KEY},
+        data={
+            "url": "https://youtube.com/watch?v=VIDEO_ID",
+            "mode": "six"  # Options: single, two, four, six, producer, studio, mastering
+        }
+    )
+    job = response.json()
+    print(f"Job ID: {job['id']}")
+
+    # Poll for completion
+    while True:
+        status = requests.get(
+            f"{BASE_URL}/stem-extraction/status/{job['id']}",
+            headers={"X-API-Key": API_KEY}
+        ).json()
+        
+        if status["status"] == "COMPLETED":
+            print("Separated stems:")
+            for stem, url in status["download_urls"].items():
+                print(f"  {stem}: {url[:60]}...")
+            break
+        elif status["status"] == "FAILED":
+            print(f"Error: {status['error_message']}")
+            break
+        time.sleep(5)
     ```
   </Tab>
   <Tab title="Node.js">
     ```javascript
-    // Extract stems from music
-    const stems = await client.stemExtraction.extractStems({
-      audioFile: fs.createReadStream('path/to/song.wav'),
-      stemTypes: ['vocals', 'drums', 'bass', 'other'],
-      waitForCompletion: true
-    });
+    const axios = require('axios');
 
-    console.log('Separated stems:');
-    Object.entries(stems.downloadUrls).forEach(([stemType, url]) => {
-      console.log(`${stemType}: ${url}`);
-    });
+    const API_KEY = 'your_api_key_here';
+    const BASE_URL = 'https://api.audiopod.ai/api/v1';
+
+    async function extractStems() {
+      // Submit job
+      const formData = new FormData();
+      formData.append('url', 'https://youtube.com/watch?v=VIDEO_ID');
+      formData.append('mode', 'six'); // Options: single, two, four, six, producer, studio, mastering
+
+      const { data: job } = await axios.post(
+        `${BASE_URL}/stem-extraction/api/extract`,
+        formData,
+        { headers: { 'X-API-Key': API_KEY } }
+      );
+      console.log(`Job ID: ${job.id}`);
+
+      // Poll for completion
+      while (true) {
+        const { data: status } = await axios.get(
+          `${BASE_URL}/stem-extraction/status/${job.id}`,
+          { headers: { 'X-API-Key': API_KEY } }
+        );
+
+        if (status.status === 'COMPLETED') {
+          console.log('Separated stems:');
+          Object.entries(status.download_urls).forEach(([stem, url]) => {
+            console.log(`  ${stem}: ${url.substring(0, 60)}...`);
+          });
+          break;
+        } else if (status.status === 'FAILED') {
+          console.log(`Error: ${status.error_message}`);
+          break;
+        }
+        await new Promise(r => setTimeout(r, 5000));
+      }
+    }
+
+    extractStems();
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Extract stems
-    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/extract" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "file=@path/to/song.wav" \
-      -F "stem_types=[\"vocals\", \"drums\", \"bass\", \"other\"]"
+    # Submit 6-stem extraction job
+    curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "mode=six"
+
+    # Available modes: single, two, four, six, producer, studio, mastering
+    # For single mode, also specify: -F "stem=vocals"
+
+    # Check status (replace JOB_ID)
+    curl -X GET "https://api.audiopod.ai/api/v1/stem-extraction/status/JOB_ID" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
+
+**Available Modes:**
+- `single` - Extract one stem (vocals, drums, bass, guitar, piano, or other)
+- `two` - Vocals + Instrumental
+- `four` - Vocals, Drums, Bass, Other
+- `six` - Vocals, Drums, Bass, Guitar, Piano, Other
+- `producer` - 8 stems with drum decomposition
+- `studio` - 12 stems for professional mixing
+- `mastering` - 16 stems maximum detail
 
 ## Next Steps
 
