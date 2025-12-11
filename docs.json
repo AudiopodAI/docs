@@ -52,8 +52,7 @@
             "icon": "microphone",
             "pages": [
               "api-reference/speech-to-text",
-              "api-reference/text-to-speech",
-              "api-reference/ai-dubbing"
+              "api-reference/text-to-speech"
             ]
           },
           {
