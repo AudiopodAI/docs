@@ -1,0 +1,179 @@
+---
+title: "MCP Integration"
+description: "Connect AI coding assistants to AudioPod documentation using Model Context Protocol"
+---
+
+<Info>
+**What is MCP?** Model Context Protocol is an open standard that lets AI assistants (Cursor, Claude, etc.) access external documentation directly—enabling smarter code suggestions and instant API lookups.
+</Info>
+
+## Why Use AudioPod MCP?
+
+When you connect the AudioPod MCP server to your AI coding assistant:
+
+- **Accurate API calls** — AI knows exact parameters, modes, and response formats
+- **Instant documentation** — No switching to browser to look up APIs
+- **Real examples** — AI can reference working Python & Node.js code
+- **Up-to-date** — Always uses current documentation from docs.audiopod.ai
+
+---
+
+## Setup for Cursor IDE
+
+### Step 1: Open MCP Settings
+
+In Cursor, open settings:
+
+- **macOS**: `Cmd + ,` → Search "MCP"
+- **Windows/Linux**: `Ctrl + ,` → Search "MCP"
+
+Or use the command palette: `Cmd/Ctrl + Shift + P` → "Cursor: Open MCP Settings"
+
+### Step 2: Add AudioPod MCP Server
+
+Add the following to your MCP configuration:
+
+```json
+{
+  "mcpServers": {
+    "audiopod-docs": {
+      "url": "https://docs.audiopod.ai/mcp"
+    }
+  }
+}
+```
+
+### Step 3: Restart Cursor
+
+Restart Cursor for the changes to take effect.
+
+### Step 4: Verify It Works
+
+Ask your AI assistant:
+
+> "Search AudioPod docs for stem separation API"
+
+If configured correctly, you'll see documentation results with API details, code examples, and pricing.
+
+---
+
+## Usage Examples
+
+Once connected, ask your AI assistant questions like:
+
+<AccordionGroup>
+  <Accordion title="API Usage">
+    - "How do I use the AudioPod stem splitter API?"
+    - "What stem separation modes are available?"
+    - "Show me the transcription API parameters"
+  </Accordion>
+  <Accordion title="SDK Examples">
+    - "Give me Python code to separate stems"
+    - "How do I handle errors in the Node.js SDK?"
+    - "Show me voice cloning examples"
+  </Accordion>
+  <Accordion title="Pricing & Account">
+    - "What does AudioPod charge for stem separation?"
+    - "How do I check my wallet balance?"
+    - "How do I create an API key?"
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Available Tool
+
+The MCP server provides one powerful tool:
+
+| Tool | Description |
+|------|-------------|
+| `SearchAudioPodAi` | Semantic search across all AudioPod documentation |
+
+### What It Searches
+
+- **API Reference** — All endpoints, parameters, responses
+- **SDK Documentation** — Python & Node.js examples
+- **Pricing** — Service rates and cost estimation
+- **Authentication** — API keys, tokens, scopes
+- **Error Handling** — Exception types and recovery
+
+---
+
+## Sample Query Response
+
+When you search for "stem splitter API", the MCP returns:
+
+```
+Title: Stem Separation
+Link: https://docs.audiopod.ai/api-reference/stem-splitter
+
+Extract individual audio components from mixed recordings 
+using AI-powered audio source separation.
+
+Modes:
+  • four - vocals, drums, bass, other
+  • six - vocals, drums, bass, guitar, piano, other  
+  • two - vocals, instrumental (karaoke)
+  • single - extract one specific stem
+
+Python Example:
+  result = client.stems.separate(
+      url="https://youtube.com/watch?v=VIDEO_ID",
+      mode="six"
+  )
+```
+
+---
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MCP Not Responding">
+    1. Check your internet connection
+    2. Verify URL is exactly: `https://docs.audiopod.ai/mcp`
+    3. Restart Cursor IDE
+    4. Check Cursor's MCP logs for errors
+  </Accordion>
+  <Accordion title="No Search Results">
+    - Try more specific queries (e.g., "stem separation modes" vs "stems")
+    - Use different keywords
+    - Check if the topic is covered in our docs
+  </Accordion>
+  <Accordion title="Connection Errors">
+    Test the endpoint directly:
+    ```bash
+    curl -I https://docs.audiopod.ai/mcp
+    ```
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Alternative Access
+
+If MCP isn't available, access documentation directly:
+
+<Columns cols={3}>
+  <Card title="Documentation" icon="book" href="https://docs.audiopod.ai">
+    Full documentation site
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/stem-splitter">
+    Endpoint documentation
+  </Card>
+  <Card title="SDKs" icon="rectangle-code" href="/sdks/overview">
+    Python & Node.js SDKs
+  </Card>
+</Columns>
+
+---
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Make your first API call
+  </Card>
+  <Card title="Get API Key" icon="key" href="https://www.audiopod.ai/dashboard/account/api-keys">
+    Generate your API key
+  </Card>
+</Columns>

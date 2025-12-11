@@ -32,6 +32,11 @@
             "group": "Official SDKs",
             "icon": "code",
             "pages": ["sdks/overview", "sdks/python", "sdks/nodejs"]
+          },
+          {
+            "group": "AI Integration",
+            "icon": "robot",
+            "pages": ["sdks/mcp"]
           }
         ]
       },
