@@ -1,0 +1,272 @@
+---
+title: "Python SDK"
+description: "Official Python SDK for AudioPod AI - Professional Audio Processing powered by AI"
+---
+
+[![PyPI version](https://badge.fury.io/py/audiopod.svg)](https://pypi.org/project/audiopod/)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
+## Installation
+
+```bash
+pip install audiopod
+```
+
+## Quick Start
+
+```python
+from audiopod import AudioPod
+
+# Initialize client
+client = AudioPod(api_key="ap_your_api_key")
+
+# Separate audio into 6 stems
+result = client.stems.separate(
+    url="https://youtube.com/watch?v=VIDEO_ID",
+    mode="six"
+)
+
+# Download stems
+for stem, url in result["download_urls"].items():
+    print(f"{stem}: {url}")
+```
+
+## Authentication
+
+```python
+from audiopod import AudioPod
+
+# Method 1: Pass API key directly
+client = AudioPod(api_key="ap_your_api_key")
+
+# Method 2: Use environment variable (recommended)
+# Set AUDIOPOD_API_KEY environment variable, then:
+client = AudioPod()
+```
+
+---
+
+## Stem Separation
+
+Extract individual audio components from mixed recordings.
+
+### Available Modes
+
+| Mode | Stems | Output |
+|------|-------|--------|
+| `single` | 1 | Specified stem only (vocals, drums, bass, guitar, piano, other) |
+| `two` | 2 | Vocals + Instrumental |
+| `four` | 4 | Vocals, Drums, Bass, Other |
+| `six` | 6 | Vocals, Drums, Bass, Guitar, Piano, Other |
+| `producer` | 8 | + Kick, Snare, Hihat |
+| `studio` | 12 | Full production toolkit |
+| `mastering` | 16 | Maximum detail |
+
+### Examples
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod(api_key="ap_your_api_key")
+
+# Six-stem separation from YouTube
+result = client.stems.separate(
+    url="https://youtube.com/watch?v=VIDEO_ID",
+    mode="six"
+)
+print(result["download_urls"])
+
+# From local file
+result = client.stems.separate(
+    file="./song.mp3",
+    mode="four"
+)
+
+# Extract only vocals
+result = client.stems.separate(
+    url="https://youtube.com/watch?v=VIDEO_ID",
+    mode="single",
+    stem="vocals"
+)
+
+# Async job handling (for more control)
+job = client.stems.extract(
+    url="https://youtube.com/watch?v=VIDEO_ID",
+    mode="six"
+)
+print(f"Job ID: {job['id']}")
+
+# Wait for completion
+result = client.stems.wait_for_completion(job["id"])
+
+# Get available modes
+modes = client.stems.modes()
+for m in modes["modes"]:
+    print(f"{m['mode']}: {m['description']}")
+```
+
+---
+
+## Transcription
+
+Convert audio to text with speaker diarization.
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod(api_key="ap_your_api_key")
+
+# From URL
+job = client.transcription.create(url="https://...")
+result = client.transcription.wait_for_completion(job["id"])
+print(result["transcript"])
+
+# From file
+job = client.transcription.create(file="./audio.mp3")
+result = client.transcription.wait_for_completion(job["id"])
+```
+
+---
+
+## Voice Cloning and TTS
+
+Create custom voices and generate speech.
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod(api_key="ap_your_api_key")
+
+# Clone a voice from audio sample
+voice = client.voice.clone(
+    file="./sample.wav",
+    name="My Voice"
+)
+print(f"Voice ID: {voice['id']}")
+```
+
+---
+
+## Music Generation
+
+Generate AI music from text prompts.
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod(api_key="ap_your_api_key")
+
+# Generate music
+song = client.music.generate(
+    prompt="upbeat electronic dance music with heavy bass"
+)
+print(f"Music URL: {song['output_url']}")
+```
+
+---
+
+## Noise Reduction
+
+Clean up audio by removing background noise.
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod(api_key="ap_your_api_key")
+
+# Denoise audio file
+clean = client.denoiser.denoise(file="./noisy.wav")
+print(f"Clean audio: {clean['output_url']}")
+```
+
+---
+
+## Speaker Separation
+
+Identify and separate multiple speakers.
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod(api_key="ap_your_api_key")
+
+# Diarize speakers
+speakers = client.speaker.diarize(url="https://...")
+print(f"Found {len(speakers['segments'])} speaker segments")
+```
+
+---
+
+## API Wallet
+
+Check balance and manage billing.
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod(api_key="ap_your_api_key")
+
+# Check balance
+balance = client.wallet.balance()
+print(f"Balance: {balance['balance_usd']}")
+
+# Estimate cost before processing
+estimate = client.wallet.estimate("stem_extraction", duration_seconds=180)
+print(f"Estimated cost: {estimate['cost_usd']}")
+
+# Get usage history
+usage = client.wallet.usage()
+for log in usage["logs"]:
+    print(f"{log['service_type']}: {log['amount_usd']}")
+```
+
+---
+
+## Error Handling
+
+```python
+from audiopod import AudioPod, AuthenticationError, InsufficientBalanceError
+
+try:
+    client = AudioPod(api_key="ap_...")
+    result = client.stems.separate(url="...", mode="six")
+except AuthenticationError:
+    print("Invalid API key")
+except InsufficientBalanceError as e:
+    print(f"Need more credits. Required: {e.required_cents} cents")
+except ValueError as e:
+    print(f"Invalid input: {e}")
+```
+
+---
+
+## Environment Variables
+
+```bash
+export AUDIOPOD_API_KEY="ap_your_api_key"
+```
+
+```python
+# Client reads from env automatically
+from audiopod import AudioPod
+client = AudioPod()
+```
+
+---
+
+## Resources
+
+<Columns cols={2}>
+  <Card title="PyPI Package" icon="python" href="https://pypi.org/project/audiopod/">
+    View on PyPI
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/audiopod-ai/audiopod-python">
+    Source code
+  </Card>
+  <Card title="Get API Key" icon="key" href="https://www.audiopod.ai/dashboard/account/api-keys">
+    Generate your API key
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/stem-splitter">
+    Raw API documentation
+  </Card>
+</Columns>

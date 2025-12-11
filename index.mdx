@@ -1,251 +1,123 @@
 ---
-title: "Developer Guide"
-description: "Build amazing audio-powered applications with AudioPod AI's comprehensive suite of Audio Processing APIs"
+title: "AudioPod AI"
+description: "AI-powered audio processing APIs. Stem separation, transcription, voice cloning, music generation, and more."
 ---
 
-## Welcome to AudioPod AI
+## Get Started in 5 Minutes
 
-Transform your applications with cutting-edge AI audio processing. AudioPod AI provides a complete suite of APIs for speech synthesis, audio processing, voice cloning, and content generation.
+<Card title="Quick Start →" icon="rocket" href="/quickstart">
+  Create account, get API key, make your first call.
+</Card>
 
-### ⚡ Ready-to-Use SDKs
+---
 
-Get started instantly with our comprehensive SDKs:
-- **Python SDK**: `pip install audiopod`
-- **Node.js SDK**: `npm install audiopod-sdk`  
-- **REST API**: Direct HTTP access with comprehensive cURL examples
-
-Each endpoint includes complete code examples for Python, Node.js, and cURL to get you building immediately.
-
-## Getting Started
-
-Essential resources to begin building with AudioPod AI.
-
-<Columns cols={2}>
-  <Card title="Quick Start" icon="rocket" href="/quickstart">
-    Make your first API call and generate speech in minutes.
-  </Card>
-  <Card title="Authentication" icon="key" href="/authentication">
-    Learn how to authenticate and secure your API requests.
-  </Card>
-</Columns>
-
-## Account Management
-
-Manage your AudioPod AI account, API keys, and billing.
-
-<Columns cols={2}>
-  <Card
-    title="Account Registration"
-    icon="user-plus"
-    href="/account/registration"
-  >
-    Create and manage your AudioPod AI developer account.
-  </Card>
-  <Card title="API Key Management" icon="key" href="/account/api-keys">
-    Generate, manage, and secure your API keys.
-  </Card>
-</Columns>
-
-## 🎯 Core Audio Processing APIs
-
-Build powerful voice-enabled applications with our comprehensive audio processing suite.
-
-<Columns cols={2}>
-  <Card
-    title="Text-to-Speech"
-    icon="microphone"
-    href="/api-reference/text-to-speech"
-  >
-    **Generate natural-sounding voices in 64+ languages** with studio-grade quality. Support for SSML, custom voices, and real-time streaming.
-    
-    ```python
-    speech = client.text_to_speech.create(
-        text="Hello world!",
-        voice_id="aura"
-    )
-    ```
-  </Card>
-  <Card title="Speech-to-Text" icon="waveform" href="/api-reference/speech-to-text">
-    **Convert audio to accurate text transcriptions** with speaker diarization, word-level timestamps, and 90%+ accuracy across 50+ languages.
-    
-    ```python
-    transcription = client.transcription.transcribe_from_file(
-        audio_file="meeting.wav",
-        enable_speaker_diarization=True
-    )
-    ```
-  </Card>
-  <Card title="Voice Cloning" icon="user-clone" href="/api-reference/voice-management">
-    **Create custom voices with just 10 seconds of audio**. Build personalized voice experiences and maintain brand consistency.
-    
-    ```python
-    voice = client.voice.create_custom_voice(
-        name="My Voice",
-        audio_file="sample.wav"
-    )
-    ```
-  </Card>
-  <Card title="Voice Changer" icon="magic-wand" href="/api-reference/voice-changer">
-    **Transform voices with AI-powered style transfer**. Change gender, age, accent, and emotional tone while preserving speech content.
-    
-    ```python
-    changed = client.voice.change_voice(
-        audio_file="original.wav",
-        target_voice="female_professional"
-    )
-    ```
-  </Card>
- <Card
-    title="Voices Management"
-    icon="settings"
-    href="/api-reference/voice-management"
-  >
-    **Discover and manage 150+ pre-built voices**. Create, customize, and organize your voice library with advanced filtering and search.
-  </Card>
-  <Card
-    title="Speech Translation"
-    icon="language"
-    href="/api-reference/ai-dubbing"
-  >
-    **Translate speech while preserving voice characteristics**. Support for 21+ languages with voice cloning and lip-sync timing preservation.
-    
-    ```python
-    translation = client.translation.translate_audio(
-        audio_file="english.wav",
-        target_language="es"
-    )
-    ```
-  </Card>
-</Columns>
-
-## 🎵 Advanced Audio Processing Suite
-
-Professional-grade tools for music production, audio enhancement, and content creation.
-
-<Columns cols={2}>
-  <Card title="Stem Splitter" icon="music" href="/api-reference/stem-splitter">
-    **Isolate instruments, vocals, and audio components** from mixed tracks using state-of-the-art AI models. Perfect for remixing and karaoke creation.
-    
-    ```python
-    stems = client.stem_extraction.extract_all_stems(
-        audio_file="song.mp3",
-        model="demucs_htdemucs"
-    )
-    ```
-  </Card>
-  <Card
-    title="Speaker Separation"
-    icon="users"
-    href="/api-reference/speaker-separation"
-  >
-    **Automatically identify and separate multiple speakers** from recordings. Essential for podcast editing and meeting transcription.
-    
-    ```python
-    speakers = client.speaker.extract_speakers(
-        audio_file="meeting.wav",
-        max_speakers=5
-    )
-    ```
-  </Card>
-  <Card
-    title="Noise Reduction"
-    icon="volume-x"
-    href="/api-reference/noise-reduction"
-  >
-    **Remove background noise while preserving voice quality** using advanced AI denoising. Multiple quality modes for different use cases.
-    
-    ```python
-    clean = client.denoiser.denoise_audio(
-        audio_file="noisy.wav",
-        quality_mode="balanced"
-    )
-    ```
-  </Card>
-  <Card
-    title="Music Generation"
-    icon="musical-note"
-    href="/api-reference/music-generation"
-  >
-    **Generate original music, instrumentals, and sound effects** from text descriptions. Create custom soundtracks and background music.
-    
-    ```python
-    music = client.music.generate(
-        prompt="Upbeat electronic dance music",
-        duration=60
-    )
-    ```
-  </Card>
-</Columns>
-
-## 🌍 Supported Languages
-
-AudioPod AI supports **64+ languages** including English, Chinese, Hindi, Spanish, French, Arabic, Japanese, German, Korean, and many more. Most features work across all supported languages with high accuracy.
-
-[View complete language list →](https://www.audiopod.ai/languages)
-
-## 📚 Complete Code Examples
-
-Every API endpoint in our documentation includes comprehensive examples for:
-
-- **Python SDK**: Full SDK integration with error handling and best practices
-- **Node.js SDK**: TypeScript-ready with async/await patterns  
-- **Raw HTTP**: Direct REST API calls with polling and result handling
-- **cURL**: Ready-to-run command-line examples
-
-### Quick SDK Setup
+## Install SDK
 
 <Tabs>
   <Tab title="Python">
-    ```python
-    # Install and setup
+    ```bash
     pip install audiopod
-    
-    from audiopod import Client
-    client = Client()  # Uses AUDIOPOD_API_KEY env var
-    
-    # Generate speech
-    speech = client.text_to_speech.create(
-        text="Hello, world!",
-        voice_id="aura"
-    )
     ```
   </Tab>
   <Tab title="Node.js">
-    ```javascript
-    // Install and setup
-    npm install audiopod-js
-    
-    const { AudioPodClient } = require('audiopod-js');
-    const client = new AudioPodClient(); // Uses AUDIOPOD_API_KEY env var
-    
-    // Generate speech
-    const speech = await client.textToSpeech.create({
-      text: "Hello, world!",
-      voiceId: "aura"
-    });
+    ```bash
+    npm install audiopod
     ```
   </Tab>
   <Tab title="cURL">
-    ```bash
-    # Set your API key
-    export AUDIOPOD_API_KEY="your_api_key_here"
-    
-    # Generate speech
-    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/aura/generate" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "input_text=Hello, world!" \
-      -F "audio_format=mp3"
-    ```
+    No installation needed — use cURL directly with `X-API-Key` header.
   </Tab>
 </Tabs>
 
-## Developer Resources
+---
+
+## Hello World
+
+```python
+from audiopod import AudioPod
+
+client = AudioPod()  # Uses AUDIOPOD_API_KEY env var
+
+# Separate a song into vocals, drums, bass, guitar, piano, other
+result = client.stems.separate(
+    url="https://youtube.com/watch?v=VIDEO_ID",
+    mode="six"
+)
+
+print(result["download_urls"])
+```
+
+---
+
+## What Can You Build?
 
 <Columns cols={2}>
-  <Card title="API Health" icon="activity" href="https://api.audiopod.ai/health">
-    Monitor API uptime and service status in real-time.
+  <Card title="🎵 Stem Separation" href="/api-reference/stem-splitter">
+    Isolate vocals, drums, bass, guitar from any song. 2-16 stem modes.
+  </Card>
+  <Card title="🎤 Voice Cloning" href="/api-reference/voice-management">
+    Clone any voice from 10 seconds of audio. Generate speech in that voice.
+  </Card>
+  <Card title="📝 Transcription" href="/api-reference/speech-to-text">
+    Convert audio/video to text. Speaker diarization, 50+ languages.
+  </Card>
+  <Card title="🎹 Music Generation" href="/api-reference/music-generation">
+    Generate music from text prompts. Any genre, any duration.
+  </Card>
+  <Card title="🔇 Noise Reduction" href="/api-reference/noise-reduction">
+    Remove background noise from audio. Multiple quality modes.
+  </Card>
+  <Card title="👥 Speaker Separation" href="/api-reference/speaker-separation">
+    Identify and separate speakers from recordings.
+  </Card>
+  <Card title="🗣️ Text-to-Speech" href="/api-reference/text-to-speech">
+    150+ voices, 64+ languages. SSML support.
+  </Card>
+  <Card title="🌍 Speech Translation" href="/api-reference/ai-dubbing">
+    Translate speech while preserving voice characteristics.
+  </Card>
+</Columns>
+
+---
+
+## Pricing
+
+Pay-as-you-go. No subscriptions required. Add funds to your wallet and use.
+
+| Service | Rate |
+|---------|------|
+| Stem Separation | $0.10/min |
+| Transcription | $0.01/min |
+| Voice Cloning/TTS | $0.04/min |
+| Music Generation | $0.02/min |
+| Noise Reduction | $0.02-$0.08/min |
+| Speaker Separation | $0.20/min |
+
+<Card title="View Full Pricing →" icon="calculator" href="/account/api-wallet">
+  Complete pricing for all 14+ services
+</Card>
+
+---
+
+## Resources
+
+<Columns cols={3}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Zero to API call in 5 minutes
+  </Card>
+  <Card title="Python SDK" icon="python" href="/sdks/python">
+    Full Python SDK reference
+  </Card>
+  <Card title="Node.js SDK" icon="node-js" href="/sdks/nodejs">
+    Full Node.js SDK reference
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/stem-splitter">
+    Complete endpoint documentation
+  </Card>
+  <Card title="API Status" icon="activity" href="https://api.audiopod.ai/health">
+    Check service health
   </Card>
   <Card title="Support" icon="envelope" href="mailto:support@audiopod.ai">
-    Get direct help from our technical support team.
+    Get help from our team
   </Card>
 </Columns>

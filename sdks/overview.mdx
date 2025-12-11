@@ -1,0 +1,171 @@
+---
+title: "Official SDKs"
+description: "Get started quickly with AudioPod AI's official SDKs for Python and Node.js"
+---
+
+## Ready-to-Use SDKs
+
+AudioPod AI provides official SDKs that make it easy to integrate audio processing into your applications. Our SDKs handle authentication, request formatting, polling for job completion, and error handling automatically.
+
+<Columns cols={2}>
+  <Card title="Python SDK" icon="python" href="/sdks/python">
+    **pip install audiopod**
+    
+    Full-featured Python SDK with type hints and async support.
+  </Card>
+  <Card title="Node.js SDK" icon="node-js" href="/sdks/nodejs">
+    **npm install audiopod**
+    
+    TypeScript-ready SDK with promise-based API.
+  </Card>
+</Columns>
+
+## Quick Comparison
+
+| Feature | Python | Node.js |
+|---------|--------|---------|
+| Package | `audiopod` | `audiopod` |
+| Min Version | Python 3.8+ | Node 16+ |
+| Type Support | Type hints | Full TypeScript |
+| Async Support | Yes | Yes |
+| File Upload | Yes | Yes |
+| URL Processing | Yes | Yes |
+| Auto-polling | Yes | Yes |
+
+## Installation
+
+<Tabs>
+  <Tab title="Python">
+    ```bash
+    pip install audiopod
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```bash
+    npm install audiopod
+    # or
+    yarn add audiopod
+    ```
+  </Tab>
+</Tabs>
+
+## Quick Start
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    # Initialize client (uses AUDIOPOD_API_KEY env var)
+    client = AudioPod()
+    # Or pass API key directly
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Separate audio into stems
+    result = client.stems.separate(
+        url="https://youtube.com/watch?v=VIDEO_ID",
+        mode="six"
+    )
+
+    # Download stems
+    for stem, url in result["download_urls"].items():
+        print(f"{stem}: {url}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    // Initialize client (uses AUDIOPOD_API_KEY env var)
+    const client = new AudioPod();
+    // Or pass API key directly
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    // Separate audio into stems
+    const result = await client.stems.separate({
+      url: 'https://youtube.com/watch?v=VIDEO_ID',
+      mode: 'six'
+    });
+
+    // Download stems
+    for (const [stem, url] of Object.entries(result.download_urls)) {
+      console.log(`${stem}: ${url}`);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Available Services
+
+Both SDKs provide access to the same set of services:
+
+| Service | Python | Node.js | Description |
+|---------|--------|---------|-------------|
+| Stems | `client.stems` | `client.stems` | Audio stem separation |
+| Transcription | `client.transcription` | `client.transcription` | Speech-to-text |
+| Voice | `client.voice` | `client.voice` | Voice cloning and TTS |
+| Music | `client.music` | `client.music` | AI music generation |
+| Denoiser | `client.denoiser` | `client.denoiser` | Noise reduction |
+| Speaker | `client.speaker` | `client.speaker` | Speaker diarization |
+| Wallet | `client.wallet` | `client.wallet` | Balance and billing |
+
+## Error Handling
+
+Both SDKs provide typed exceptions for common error scenarios:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod, AuthenticationError, InsufficientBalanceError
+
+    try:
+        client = AudioPod(api_key="ap_...")
+        result = client.stems.separate(url="...", mode="six")
+    except AuthenticationError:
+        print("Invalid API key")
+    except InsufficientBalanceError as e:
+        print(f"Need ${e.required_cents / 100:.2f}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod, { AuthenticationError, InsufficientBalanceError } from 'audiopod';
+
+    try {
+      const client = new AudioPod({ apiKey: 'ap_...' });
+      const result = await client.stems.separate({ url: '...', mode: 'six' });
+    } catch (error) {
+      if (error instanceof AuthenticationError) {
+        console.log('Invalid API key');
+      } else if (error instanceof InsufficientBalanceError) {
+        console.log(`Need $${error.requiredCents / 100}`);
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Environment Variables
+
+Both SDKs automatically read from the `AUDIOPOD_API_KEY` environment variable:
+
+```bash
+export AUDIOPOD_API_KEY="ap_your_api_key"
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Python SDK" icon="python" href="/sdks/python">
+    Complete Python SDK documentation
+  </Card>
+  <Card title="Node.js SDK" icon="node-js" href="/sdks/nodejs">
+    Complete Node.js SDK documentation
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/stem-splitter">
+    Raw API endpoint documentation
+  </Card>
+  <Card title="Get API Key" icon="key" href="https://www.audiopod.ai/dashboard/account/api-keys">
+    Generate your API key
+  </Card>
+</Columns>

@@ -1,75 +1,62 @@
 ---
-title: "API Wallet"
-description: "Fund your API wallet to start making API calls. Pay only for what you use."
+title: "API Wallet & Pricing"
+description: "Pay-as-you-go pricing. Add funds and pay only for what you use."
 ---
-
-## Quick Start
-
-1. **Create an API Key** from [Dashboard → API Keys](https://www.audiopod.ai/dashboard/account/api-keys)
-2. **Top up your wallet** with a minimum of $1.00
-3. **Start making API calls** - costs are deducted automatically
 
 ## Pricing
 
-| Service | Rate |
-|---------|------|
-| Stem Separation | $0.10/min |
-| Transcription | $0.01/min |
-| Voice Cloning/TTS | $0.04/min |
-| Voice Conversion | $0.13/min |
-| Speaker Separation | $0.20/min |
-| Speech Translation | $0.40/min |
-| Noise Reduction | $0.02-$0.08/min |
-| Music Generation | $0.02/min |
+All prices are per minute of audio processed.
+
+| Service | Rate | $10 Gets You |
+|---------|------|--------------|
+| **Stem Separation** | $0.10/min | 100 min |
+| **Transcription** | $0.01/min | 1000 min |
+| **Voice Cloning/TTS** | $0.04/min | 250 min |
+| **Voice Conversion** | $0.13/min | 77 min |
+| **Music Generation** | $0.02/min | 500 min |
+| **Noise Reduction (Balanced)** | $0.02/min | 500 min |
+| **Noise Reduction (Studio)** | $0.04/min | 250 min |
+| **Noise Reduction (Ultra)** | $0.08/min | 125 min |
+| **Speaker Separation** | $0.20/min | 50 min |
+| **Speech Translation** | $0.40/min | 25 min |
+| **Karaoke Generation** | $0.25/min | 40 min |
+| **Media Conversion** | $0.01/min | 1000 min |
+
+<Info>
+  Minimum top-up: **$1.00**. Maximum: **$10,000**.
+</Info>
 
 ---
 
-## API Reference
-
-### Get Balance
-
-Check your current wallet balance.
+## Check Balance
 
 <Tabs>
   <Tab title="cURL">
     ```bash
-    curl -X GET "https://api.audiopod.ai/api/v1/api-wallet/balance" \
-      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    curl -s "https://api.audiopod.ai/api/v1/api-wallet/balance" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" | jq .
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    import requests
-
-    API_KEY = "your_api_key_here"
-
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/api-wallet/balance",
-        headers={"X-API-Key": API_KEY}
-    )
-
-    balance = response.json()
+    from audiopod import AudioPod
+    
+    client = AudioPod()
+    balance = client.wallet.balance()
+    
     print(f"Balance: {balance['balance_usd']}")
-    print(f"Total spent: {balance['total_spent_usd']}")
+    print(f"Spent: {balance['total_spent_usd']}")
     ```
   </Tab>
   <Tab title="Node.js">
-    ```javascript
-    const axios = require('axios');
-
-    const API_KEY = 'your_api_key_here';
-
-    async function getBalance() {
-      const { data } = await axios.get(
-        'https://api.audiopod.ai/api/v1/api-wallet/balance',
-        { headers: { 'X-API-Key': API_KEY } }
-      );
-
-      console.log(`Balance: ${data.balance_usd}`);
-      console.log(`Total spent: ${data.total_spent_usd}`);
-    }
-
-    getBalance();
+    ```typescript
+    import AudioPod from 'audiopod';
+    
+    const client = new AudioPod();
+    const balance = await client.wallet.balance();
+    
+    console.log(`Balance: ${balance.balance_usd}`);
+    console.log(`Spent: ${balance.total_spent_usd}`);
     ```
   </Tab>
 </Tabs>
@@ -80,54 +67,32 @@ Check your current wallet balance.
 {
   "balance_cents": 2500,
   "balance_usd": "$25.00",
-  "total_topup_cents": 5000,
-  "total_topup_usd": "$50.00",
-  "total_spent_cents": 2500,
-  "total_spent_usd": "$25.00",
-  "low_balance_warning": false,
-  "warning_threshold_cents": 500
+  "total_spent_cents": 1500,
+  "total_spent_usd": "$15.00",
+  "low_balance_warning": false
 }
 ```
 
 ---
 
-### Get Pricing
-
-Get pricing table for all services. **No authentication required.**
+## Add Funds
 
 <Tabs>
   <Tab title="cURL">
     ```bash
-    curl -X GET "https://api.audiopod.ai/api/v1/api-wallet/pricing"
+    # Get Stripe payment link ($25)
+    curl -X POST "https://api.audiopod.ai/api/v1/api-wallet/topup/checkout" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"amount_cents": 2500}'
     ```
+    
+    Open the returned `url` in your browser to complete payment.
   </Tab>
-  <Tab title="Python">
-    ```python
-    import requests
-
-    response = requests.get("https://api.audiopod.ai/api/v1/api-wallet/pricing")
-    pricing = response.json()
-
-    print("Service Pricing:")
-    for service, info in pricing["services"].items():
-        print(f"  {service}: {info['rate_per_minute']}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const axios = require('axios');
-
-    async function getPricing() {
-      const { data } = await axios.get('https://api.audiopod.ai/api/v1/api-wallet/pricing');
-
-      console.log('Service Pricing:');
-      Object.entries(data.services).forEach(([service, info]) => {
-        console.log(`  ${service}: ${info.rate_per_minute}`);
-      });
-    }
-
-    getPricing();
-    ```
+  <Tab title="App">
+    1. Go to [API Keys](https://www.audiopod.ai/dashboard/account/api-keys)
+    2. Click **Add Funds**
+    3. Choose amount and complete Stripe checkout
   </Tab>
 </Tabs>
 
@@ -135,230 +100,53 @@ Get pricing table for all services. **No authentication required.**
 
 ```json
 {
-  "services": {
-    "stem_extraction": {
-      "rate_per_minute": "$0.10/min",
-      "rate_per_hour": "$6.00",
-      "cents_per_minute": 10,
-      "description": "AI-powered stem separation (2/4/6/16-stem modes)"
-    },
-    "transcription": {
-      "rate_per_minute": "$0.01/min",
-      "cents_per_minute": 1
-    }
-  },
-  "wallet": {
-    "minimum_topup_cents": 100,
-    "minimum_topup_usd": "$1.00",
-    "maximum_topup_cents": 1000000,
-    "maximum_topup_usd": "$10000.00",
-    "currency": "USD"
-  }
+  "url": "https://checkout.stripe.com/c/pay/...",
+  "amount_usd": "$25.00"
 }
 ```
 
 ---
 
-### Estimate Cost
+## Estimate Cost
 
-Calculate cost before processing. **No authentication required.**
+Calculate cost before processing (no auth required):
 
-<Tabs>
-  <Tab title="cURL">
-    ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/api-wallet/estimate" \
-      -H "Content-Type: application/json" \
-      -d '{"service_type": "stem_extraction", "duration_seconds": 300}'
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import requests
-
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/api-wallet/estimate",
-        json={
-            "service_type": "stem_extraction",
-            "duration_seconds": 300  # 5 minutes
-        }
-    )
-
-    estimate = response.json()
-    print(f"Duration: {estimate['duration_minutes']} minutes")
-    print(f"Estimated cost: {estimate['cost_usd']}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const axios = require('axios');
-
-    async function estimateCost() {
-      const { data } = await axios.post(
-        'https://api.audiopod.ai/api/v1/api-wallet/estimate',
-        {
-          service_type: 'stem_extraction',
-          duration_seconds: 300  // 5 minutes
-        }
-      );
-
-      console.log(`Duration: ${data.duration_minutes} minutes`);
-      console.log(`Estimated cost: ${data.cost_usd}`);
-    }
-
-    estimateCost();
-    ```
-  </Tab>
-</Tabs>
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/api-wallet/estimate" \
+  -H "Content-Type: application/json" \
+  -d '{"service_type": "stem_extraction", "duration_seconds": 300}'
+```
 
 **Response:**
 
 ```json
 {
   "service_type": "stem_extraction",
-  "duration_seconds": 300,
   "duration_minutes": 5.0,
   "rate_per_minute": "$0.10/min",
-  "cost_cents": 50,
-  "cost_usd": "$0.50",
-  "description": "AI-powered stem separation (2/4/6/16-stem modes)"
+  "cost_usd": "$0.50"
 }
 ```
 
 ---
 
-### Top Up Wallet
+## Usage History
 
-Create a Stripe Checkout session to add funds.
-
-<Tabs>
-  <Tab title="cURL">
-    ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/api-wallet/topup/checkout" \
-      -H "X-API-Key: $AUDIOPOD_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{"amount_cents": 2500}'
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import requests
-
-    API_KEY = "your_api_key_here"
-
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/api-wallet/topup/checkout",
-        headers={"X-API-Key": API_KEY},
-        json={"amount_cents": 2500}  # $25.00
-    )
-
-    checkout = response.json()
-    print(f"Complete payment at: {checkout['url']}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const axios = require('axios');
-
-    const API_KEY = 'your_api_key_here';
-
-    async function topUp() {
-      const { data } = await axios.post(
-        'https://api.audiopod.ai/api/v1/api-wallet/topup/checkout',
-        { amount_cents: 2500 },  // $25.00
-        { headers: { 'X-API-Key': API_KEY } }
-      );
-
-      console.log(`Complete payment at: ${data.url}`);
-    }
-
-    topUp();
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-
-```json
-{
-  "session_id": "cs_live_abc123...",
-  "url": "https://checkout.stripe.com/c/pay/cs_live_abc123..."
-}
+```bash
+curl -s "https://api.audiopod.ai/api/v1/api-wallet/usage?limit=10" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq .
 ```
 
----
-
-### Get Usage History
-
-View your API usage logs.
-
-<Tabs>
-  <Tab title="cURL">
-    ```bash
-    curl -X GET "https://api.audiopod.ai/api/v1/api-wallet/usage?page=1&limit=50" \
-      -H "X-API-Key: $AUDIOPOD_API_KEY"
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import requests
-
-    API_KEY = "your_api_key_here"
-
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/api-wallet/usage",
-        headers={"X-API-Key": API_KEY},
-        params={"page": 1, "limit": 50}
-    )
-
-    usage = response.json()
-    print(f"Recent usage:")
-    for log in usage["logs"]:
-        print(f"  {log['service_type']}: {log['amount_usd']} ({log['duration_minutes']} min)")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const axios = require('axios');
-
-    const API_KEY = 'your_api_key_here';
-
-    async function getUsage() {
-      const { data } = await axios.get(
-        'https://api.audiopod.ai/api/v1/api-wallet/usage',
-        {
-          headers: { 'X-API-Key': API_KEY },
-          params: { page: 1, limit: 50 }
-        }
-      );
-
-      console.log('Recent usage:');
-      data.logs.forEach(log => {
-        console.log(`  ${log.service_type}: ${log.amount_usd} (${log.duration_minutes} min)`);
-      });
-    }
-
-    getUsage();
-    ```
-  </Tab>
-</Tabs>
-
 **Response:**
 
 ```json
 {
-  "page": 1,
-  "limit": 50,
   "logs": [
     {
-      "id": "550e8400-e29b-41d4-a716-446655440000",
       "service_type": "stem_extraction",
-      "duration_seconds": 328,
       "duration_minutes": 5.47,
-      "amount_cents": 55,
       "amount_usd": "$0.55",
-      "job_id": "5512",
-      "api_key_id": "3dd1cad7-0b78-4358-94d0-0d17afe5771f",
-      "created_at": "2025-12-11T12:39:37.385561"
+      "created_at": "2025-12-11T12:39:37Z"
     }
   ]
 }
@@ -366,113 +154,30 @@ View your API usage logs.
 
 ---
 
-### Get Top-up History
+## Get Pricing (No Auth)
 
-View your wallet top-up transactions.
-
-<Tabs>
-  <Tab title="cURL">
-    ```bash
-    curl -X GET "https://api.audiopod.ai/api/v1/api-wallet/topups?page=1&limit=20" \
-      -H "X-API-Key: $AUDIOPOD_API_KEY"
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import requests
-
-    API_KEY = "your_api_key_here"
-
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/api-wallet/topups",
-        headers={"X-API-Key": API_KEY},
-        params={"page": 1, "limit": 20}
-    )
-
-    topups = response.json()
-    print("Top-up history:")
-    for topup in topups["topups"]:
-        print(f"  {topup['created_at']}: {topup['amount_usd']} ({topup['status']})")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const axios = require('axios');
-
-    const API_KEY = 'your_api_key_here';
-
-    async function getTopups() {
-      const { data } = await axios.get(
-        'https://api.audiopod.ai/api/v1/api-wallet/topups',
-        {
-          headers: { 'X-API-Key': API_KEY },
-          params: { page: 1, limit: 20 }
-        }
-      );
-
-      console.log('Top-up history:');
-      data.topups.forEach(topup => {
-        console.log(`  ${topup.created_at}: ${topup.amount_usd} (${topup.status})`);
-      });
-    }
-
-    getTopups();
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-
-```json
-{
-  "page": 1,
-  "limit": 20,
-  "topups": [
-    {
-      "id": "660f8400-e29b-41d4-a716-446655440111",
-      "amount_cents": 1000,
-      "amount_usd": "$10.00",
-      "status": "completed",
-      "created_at": "2025-12-11T10:00:00Z"
-    }
-  ]
-}
+```bash
+curl -s "https://api.audiopod.ai/api/v1/api-wallet/pricing" | jq .services
 ```
 
 ---
 
-## Status Codes
+## Error Handling
 
-| Code | Description |
-|------|-------------|
-| `200` | Success |
-| `400` | Invalid request (e.g., amount below minimum) |
-| `401` | Missing or invalid API key |
-| `402` | Insufficient wallet balance |
-| `429` | Rate limit exceeded |
-| `500` | Server error |
+| Code | Error | Meaning |
+|------|-------|---------|
+| `402` | `insufficient_api_balance` | Wallet is empty |
+| `400` | `invalid_amount` | Amount outside $1-$10,000 range |
+| `401` | `unauthorized` | Invalid API key |
 
----
-
-## Error Responses
-
-**Insufficient Balance (402):**
+**Example 402 response:**
 
 ```json
 {
   "error": "insufficient_api_balance",
-  "message": "Insufficient API wallet balance. Required: $0.50, Available: $0.25",
+  "message": "Insufficient balance. Required: $0.50, Available: $0.00",
   "required_cents": 50,
-  "available_cents": 25
-}
-```
-
-**Invalid Amount (400):**
-
-```json
-{
-  "error": "invalid_amount",
-  "message": "Amount must be between $1.00 and $10,000.00"
+  "available_cents": 0
 }
 ```
 
@@ -481,10 +186,10 @@ View your wallet top-up transactions.
 ## Next Steps
 
 <Columns cols={2}>
-  <Card title="API Keys" icon="key" href="/account/api-keys">
-    Create and manage your API keys.
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Make your first API call
   </Card>
   <Card title="Stem Separation" icon="music" href="/api-reference/stem-splitter">
-    Start separating audio stems.
+    Most popular API
   </Card>
 </Columns>

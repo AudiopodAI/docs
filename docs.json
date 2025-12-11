@@ -11,22 +11,27 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Overview",
+        "tab": "Docs",
         "groups": [
           {
             "group": "Getting Started",
             "icon": "rocket",
-            "pages": ["index", "quickstart", "authentication"]
+            "pages": ["index", "quickstart"]
           },
           {
-            "group": "Account Management", 
-            "icon": "user-gear",
-            "pages": [
-              "account/registration",
-              "account/api-keys", 
-              "account/credits",
-              "account/api-wallet"
-            ]
+            "group": "Account",
+            "icon": "user",
+            "pages": ["account/api-keys", "account/api-wallet"]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "groups": [
+          {
+            "group": "Official SDKs",
+            "icon": "code",
+            "pages": ["sdks/overview", "sdks/python", "sdks/nodejs"]
           }
         ]
       },
@@ -34,11 +39,21 @@
         "tab": "API Reference",
         "groups": [
           {
-            "group": "Authentication & Account",
-            "icon": "shield-check",
+            "group": "Audio Processing",
+            "icon": "waveform",
             "pages": [
-              "api-reference/auth",
-              "api-reference/account"
+              "api-reference/stem-splitter",
+              "api-reference/noise-reduction",
+              "api-reference/speaker-separation"
+            ]
+          },
+          {
+            "group": "Speech",
+            "icon": "microphone",
+            "pages": [
+              "api-reference/speech-to-text",
+              "api-reference/text-to-speech",
+              "api-reference/ai-dubbing"
             ]
           },
           {
@@ -46,34 +61,21 @@
             "icon": "user-voice",
             "pages": [
               "api-reference/voice-management",
-              "api-reference/text-to-speech",
               "api-reference/voice-changer"
             ]
           },
           {
             "group": "Music",
             "icon": "music",
-            "pages": [
-              "api-reference/music-generation",
-              "api-reference/stem-splitter",
-              "api-reference/noise-reduction"
-            ]
-          },
-          {
-            "group": "Speech",
-            "icon": "waveform",
-            "pages": [
-              "api-reference/speaker-separation",
-              "api-reference/speech-to-text",
-              "api-reference/ai-dubbing"
-            ]
+            "pages": ["api-reference/music-generation"]
           },
           {
             "group": "Utilities",
             "icon": "gear",
             "pages": [
               "api-reference/media-extraction",
-              "api-reference/credits-management"
+              "api-reference/auth",
+              "api-reference/account"
             ]
           }
         ]
@@ -85,11 +87,6 @@
           "anchor": "AudioPod AI",
           "href": "https://www.audiopod.ai",
           "icon": "house"
-        },
-        {
-          "anchor": "Discord Community",
-          "href": "https://discord.gg/audiopod", 
-          "icon": "discord"
         },
         {
           "anchor": "Support",
@@ -107,7 +104,7 @@
   "navbar": {
     "links": [
       {
-        "label": "Manage Account",
+        "label": "Dashboard",
         "href": "https://www.audiopod.ai/dashboard/account"
       }
     ],
@@ -120,14 +117,16 @@
   "contextual": {
     "options": [
       "copy",
-      "view", 
+      "view",
       "chatgpt",
       "claude",
       "perplexity",
-      "mcp",
       "cursor",
       "vscode"
     ]
+  },
+  "codeBlock": {
+    "showLineNumbers": false
   },
   "api": {
     "baseUrl": "https://api.audiopod.ai/api/v1",
@@ -136,14 +135,6 @@
     }
   },
   "openapi": "/api-reference/openapi.json",
-  "analytics": {
-    "fathom": {
-      "siteId": "AUDIOPOD_FATHOM_ID"
-    },
-    "koala": {
-      "publicApiKey": "AUDIOPOD_KOALA_KEY"
-    }
-  },
   "feedback": {
     "thumbsRating": true,
     "raiseIssue": true,
@@ -153,7 +144,7 @@
     "indexHiddenPages": false
   },
   "search": {
-    "prompt": "Search AudioPod AI docs..."
+    "prompt": "Search docs..."
   },
   "footer": {
     "socials": {
@@ -163,4 +154,3 @@
     }
   }
 }
-

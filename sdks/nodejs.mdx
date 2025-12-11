@@ -1,0 +1,306 @@
+---
+title: "Node.js SDK"
+description: "Official Node.js SDK for AudioPod AI - Professional Audio Processing powered by AI"
+---
+
+[![npm version](https://badge.fury.io/js/audiopod.svg)](https://www.npmjs.com/package/audiopod)
+[![Node 16+](https://img.shields.io/badge/node-16+-green.svg)](https://nodejs.org/)
+
+## Installation
+
+```bash
+npm install audiopod
+# or
+yarn add audiopod
+```
+
+## Quick Start
+
+```typescript
+import AudioPod from 'audiopod';
+
+// Initialize client
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Separate audio into 6 stems
+const result = await client.stems.separate({
+  url: 'https://youtube.com/watch?v=VIDEO_ID',
+  mode: 'six'
+});
+
+// Download stems
+for (const [stem, url] of Object.entries(result.download_urls)) {
+  console.log(`${stem}: ${url}`);
+}
+```
+
+## Authentication
+
+```typescript
+import AudioPod from 'audiopod';
+
+// Method 1: Pass API key directly
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Method 2: Use environment variable (recommended)
+// Set AUDIOPOD_API_KEY environment variable, then:
+const client = new AudioPod();
+```
+
+---
+
+## Stem Separation
+
+Extract individual audio components from mixed recordings.
+
+### Available Modes
+
+| Mode | Stems | Output |
+|------|-------|--------|
+| `single` | 1 | Specified stem only (vocals, drums, bass, guitar, piano, other) |
+| `two` | 2 | Vocals + Instrumental |
+| `four` | 4 | Vocals, Drums, Bass, Other |
+| `six` | 6 | Vocals, Drums, Bass, Guitar, Piano, Other |
+| `producer` | 8 | + Kick, Snare, Hihat |
+| `studio` | 12 | Full production toolkit |
+| `mastering` | 16 | Maximum detail |
+
+### Examples
+
+```typescript
+import AudioPod from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Six-stem separation from YouTube
+const result = await client.stems.separate({
+  url: 'https://youtube.com/watch?v=VIDEO_ID',
+  mode: 'six'
+});
+console.log(result.download_urls);
+
+// From local file
+const result = await client.stems.separate({
+  file: './song.mp3',
+  mode: 'four'
+});
+
+// Extract only vocals
+const result = await client.stems.separate({
+  url: 'https://youtube.com/watch?v=VIDEO_ID',
+  mode: 'single',
+  stem: 'vocals'
+});
+
+// Async job handling (for more control)
+const job = await client.stems.extract({
+  url: 'https://youtube.com/watch?v=VIDEO_ID',
+  mode: 'six'
+});
+console.log(`Job ID: ${job.id}`);
+
+// Wait for completion
+const result = await client.stems.waitForCompletion(job.id);
+
+// Get available modes
+const modes = await client.stems.modes();
+modes.modes.forEach(m => {
+  console.log(`${m.mode}: ${m.description}`);
+});
+```
+
+---
+
+## Transcription
+
+Convert audio to text with speaker diarization.
+
+```typescript
+import AudioPod from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// From URL
+const job = await client.transcription.create({ url: 'https://...' });
+const result = await client.transcription.waitForCompletion(job.id);
+console.log(result.transcript);
+
+// From file
+const job = await client.transcription.create({ file: './audio.mp3' });
+const result = await client.transcription.waitForCompletion(job.id);
+```
+
+---
+
+## Voice Cloning & TTS
+
+Create custom voices and generate speech.
+
+```typescript
+import AudioPod from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Clone a voice from audio sample
+const voice = await client.voice.clone({
+  file: './sample.wav',
+  name: 'My Voice'
+});
+console.log(`Voice ID: ${voice.id}`);
+
+// Generate speech with cloned voice
+const audio = await client.voice.generate({
+  voiceId: voice.id,
+  text: 'Hello, this is my cloned voice speaking!'
+});
+```
+
+---
+
+## Music Generation
+
+Generate AI music from text prompts.
+
+```typescript
+import AudioPod from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Generate music
+const song = await client.music.generate({
+  prompt: 'upbeat electronic dance music with heavy bass'
+});
+console.log(`Music URL: ${song.outputUrl}`);
+```
+
+---
+
+## Noise Reduction
+
+Clean up audio by removing background noise.
+
+```typescript
+import AudioPod from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Denoise audio file
+const clean = await client.denoiser.denoise({ file: './noisy.wav' });
+console.log(`Clean audio: ${clean.outputUrl}`);
+```
+
+---
+
+## Speaker Separation
+
+Identify and separate multiple speakers.
+
+```typescript
+import AudioPod from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Diarize speakers
+const speakers = await client.speaker.diarize({ url: 'https://...' });
+console.log(`Found ${speakers.segments.length} speaker segments`);
+```
+
+---
+
+## API Wallet
+
+Check balance and manage billing.
+
+```typescript
+import AudioPod from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Check balance
+const balance = await client.wallet.balance();
+console.log(`Balance: ${balance.balance_usd}`);
+
+// Estimate cost before processing
+const estimate = await client.wallet.estimate('stem_extraction', 180);
+console.log(`Estimated cost: ${estimate.cost_usd}`);
+
+// Get usage history
+const usage = await client.wallet.usage();
+usage.logs.forEach(log => {
+  console.log(`${log.service_type}: ${log.amount_usd}`);
+});
+```
+
+---
+
+## Error Handling
+
+```typescript
+import AudioPod, { AuthenticationError, InsufficientBalanceError } from 'audiopod';
+
+try {
+  const client = new AudioPod({ apiKey: 'ap_...' });
+  const result = await client.stems.separate({ url: '...', mode: 'six' });
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.log('Invalid API key');
+  } else if (error instanceof InsufficientBalanceError) {
+    console.log(`Need more credits. Required: ${error.requiredCents} cents`);
+  } else {
+    console.log(`Error: ${error.message}`);
+  }
+}
+```
+
+---
+
+## TypeScript Support
+
+Full TypeScript support with exported types:
+
+```typescript
+import AudioPod, { StemExtractionJob, StemMode, WalletBalance } from 'audiopod';
+
+const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+// Fully typed responses
+const job: StemExtractionJob = await client.stems.extract({
+  url: 'https://...',
+  mode: 'six' as StemMode
+});
+
+const balance: WalletBalance = await client.wallet.balance();
+```
+
+---
+
+## Environment Variables
+
+```bash
+export AUDIOPOD_API_KEY="ap_your_api_key"
+```
+
+```typescript
+// Client reads from env automatically
+import AudioPod from 'audiopod';
+const client = new AudioPod();
+```
+
+---
+
+## Resources
+
+<Columns cols={2}>
+  <Card title="npm Package" icon="npm" href="https://www.npmjs.com/package/audiopod">
+    View on npm
+  </Card>
+  <Card title="GitHub" icon="github" href="https://github.com/audiopod-ai/audiopod-node">
+    Source code
+  </Card>
+  <Card title="Get API Key" icon="key" href="https://www.audiopod.ai/dashboard/account/api-keys">
+    Generate your API key
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/stem-splitter">
+    Raw API documentation
+  </Card>
+</Columns>

@@ -1,753 +1,348 @@
 ---
-title: "Quick Start Guide"
-description: "Get started with AudioPod AI in minutes. Learn how to authenticate, make your first API call, and integrate audio processing into your app."
+title: "Quick Start"
+description: "Go from zero to your first API call in under 5 minutes"
 ---
 
-## Overview
+<Info>
+**TL;DR:** Register → Verify email → Create API key → Add funds → Make API calls. 
+</Info>
 
-Welcome to AudioPod AI! This guide will help you make your first API call in just a few minutes. By the end of this guide, you'll have:
+## Choose Your Path
 
-1. Created an AudioPod AI account
-2. Generated your API key
-3. Made your first text-to-speech API call
-4. Understood credit usage and billing
+<Tabs>
+  <Tab title="🖥️ cURL">
+    Complete setup directly with cURL commands.
+  </Tab>
+  <Tab title="🌐 App">
+    Login to AudioPod AI app to get your API key.
+  </Tab>
+</Tabs>
+
+---
 
 ## Step 1: Create Your Account
 
-Sign up for a free AudioPod AI account to get started:
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/auth/initiate-registration" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "you@example.com",
+        "password": "YourSecurePassword123",
+        "full_name": "Your Name"
+      }'
+    ```
+    
+    ✅ Check your email for a 6-digit verification code.
+  </Tab>
+  <Tab title="Dashboard">
+    <Card title="Sign Up" icon="user-plus" href="https://www.audiopod.ai/auth/signup">
+      Create your free account
+    </Card>
+  </Tab>
+</Tabs>
 
-<Card
-  title="Sign Up for AudioPod AI"
-  icon="user-plus"
-  href="https://www.audiopod.ai/auth/signup"
->
-  Create your free account with 10,000 credits
-</Card>
+---
 
-## Step 2: Get Your API Key
+## Step 2: Verify Your Email
 
-After creating your account:
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/auth/verify-registration" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "you@example.com",
+        "verification_code": "123456"
+      }'
+    ```
+    
+    **Response includes your JWT token:**
+    ```json
+    {
+      "access_token": "eyJhbGciOiJIUzI1NiIs...",
+      "token_type": "bearer"
+    }
+    ```
+    
+    <Warning>Save the `access_token` — you need it for Step 3!</Warning>
+  </Tab>
+  <Tab title="Dashboard">
+    Enter the 6-digit code from your email on the verification page.
+  </Tab>
+</Tabs>
 
-1. Log into the [AudioPod AI account](https://www.audiopod.ai/auth/signin)
-2. Navigate to **API Keys** in the sidebar
-3. Click **Create New API Key**
-4. Copy your API key and store it securely
+---
 
-<Warning>
-  Keep your API key secure and never expose it in client-side code. Use
-  environment variables in production.
-</Warning>
+## Step 3: Create Your API Key
 
-## Step 3: Install SDK (Recommended)
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    # Use the access_token from Step 2
+    curl -X POST "https://api.audiopod.ai/api/v1/auth/api-keys" \
+      -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{"name": "my-first-key", "scopes": ["*"]}'
+    ```
+    
+    **Response:**
+    ```json
+    {
+      "api_key": "ap_xxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+    ```
+    
+    <Warning>**Save this key immediately!** It's only shown once.</Warning>
+  </Tab>
+  <Tab title="Dashboard">
+    1. Go to [API Keys](https://www.audiopod.ai/dashboard/account/api-keys)
+    2. Click **Create New API Key**
+    3. Copy and save your key
+  </Tab>
+</Tabs>
 
-While you can use any HTTP client, we highly recommend using our official SDKs for a better developer experience:
+---
+
+## Step 4: Set Up Your Environment
+
+```bash
+# Add to your shell profile (~/.bashrc, ~/.zshrc)
+export AUDIOPOD_API_KEY="ap_your_api_key_here"
+```
+
+Or create a `.env` file:
+
+```bash
+AUDIOPOD_API_KEY=ap_your_api_key_here
+```
+
+---
+
+## Step 5: Add Funds to Your Wallet
+
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    # Get a Stripe payment link
+    curl -X POST "https://api.audiopod.ai/api/v1/api-wallet/topup/checkout" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"amount_cents": 500}'
+    ```
+    
+    Open the returned `url` in your browser to complete payment.
+  </Tab>
+  <Tab title="Dashboard">
+    1. Go to [API Keys](https://www.audiopod.ai/dashboard/account/api-keys)
+    2. Click **Add Funds** in the Wallet Balance section
+    3. Choose amount (min $1) and complete Stripe checkout
+  </Tab>
+</Tabs>
+
+---
+
+## Step 6: Make Your First API Call! 🎉
 
 <Tabs>
   <Tab title="Python">
     ```bash
     pip install audiopod
     ```
-  </Tab>
-  <Tab title="Node.js">
-    ```bash
-    npm install audiopod-sdk
-    ```
-  </Tab>
-  <Tab title="cURL">
-    No installation required - use cURL directly
-  </Tab>
-</Tabs>
-
-## Step 3.5: Fund Your API Wallet
-
-Before making API calls, add funds to your wallet:
-
-1. Go to [API Keys Dashboard](https://www.audiopod.ai/dashboard/account/api-keys)
-2. Click **Add Funds** in the Wallet Balance section
-3. Choose an amount (minimum $1.00)
-4. Complete payment via Stripe
-
-<Info>
-API calls are billed per minute of audio processed. Check [API Wallet pricing](/account/api-wallet) for rates.
-</Info>
-
-## Step 4: Authentication Setup
-
-Set up your API key in your environment:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Set environment variable
-    import os
-    os.environ['AUDIOPOD_API_KEY'] = 'your_api_key_here'
-
-    # Or use .env file
-    # Create .env file with: AUDIOPOD_API_KEY=your_api_key_here
-    from dotenv import load_dotenv
-    load_dotenv()
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    // Set environment variable
-    process.env.AUDIOPOD_API_KEY = 'your_api_key_here';
-
-    // Or use .env file
-    // Create .env file with: AUDIOPOD_API_KEY=your_api_key_here
-    require('dotenv').config();
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Set as environment variable
-    export AUDIOPOD_API_KEY="your_api_key_here"
-
-    # Or replace YOUR_API_KEY in examples below
-    ```
-  </Tab>
-</Tabs>
-
-## Step 5: Make Your First API Call
-
-Let's start with a simple text-to-speech generation:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    from audiopod import Client
-
-    # Initialize client
-    client = Client()
-
-    # Generate speech
-    result = client.voice.generate_speech(
-        voice_id="aura",
-        text="Hello world! This is my first AudioPod AI generated voice.",
-        language="en",
-        audio_format="mp3",
-        wait_for_completion=True
-    )
-
-    print(f"Audio generated: {result.output_url}")
     
-    # Download the audio file
-    import requests
-    audio_response = requests.get(result.output_url)
-    with open("hello_world.mp3", "wb") as f:
-        f.write(audio_response.content)
+    ```python
+    from audiopod import AudioPod
     
-    print("Audio saved as hello_world.mp3")
+    client = AudioPod()  # Uses AUDIOPOD_API_KEY env var
+    
+    # Separate a song into stems
+    result = client.stems.separate(
+        url="https://youtube.com/watch?v=dQw4w9WgXcQ",
+        mode="six"
+    )
+    
+    print("🎵 Stems ready!")
+    for stem, url in result["download_urls"].items():
+        print(f"  {stem}: {url[:50]}...")
     ```
   </Tab>
   <Tab title="Node.js">
-    ```javascript
-    const { AudioPodClient } = require('audiopod-js');
-
-    // Initialize client
-    const client = new AudioPodClient({
-      apiKey: process.env.AUDIOPOD_API_KEY
-    });
-
-    async function generateSpeech() {
-      try {
-        // Generate speech
-        const result = await client.voice.generateSpeech({
-          voiceId: 'aura',
-          text: 'Hello world! This is my first AudioPod AI generated voice.',
-          language: 'en',
-          audioFormat: 'mp3',
-          waitForCompletion: true
-        });
-
-        console.log(`Audio generated: ${result.outputUrl}`);
-        
-        // Download the audio file
-        const fs = require('fs');
-        const fetch = require('node-fetch');
-        
-        const audioResponse = await fetch(result.outputUrl);
-        const buffer = await audioResponse.buffer();
-        fs.writeFileSync('hello_world.mp3', buffer);
-        
-        console.log('Audio saved as hello_world.mp3');
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    }
-
-    generateSpeech();
-    ```
-  </Tab>
-  <Tab title="cURL">
     ```bash
-    # Create TTS job
-    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/aura/generate" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "input_text": "Hello world! This is my first AudioPod AI generated voice.",
-        "audio_format": "mp3",
-        "language": "en",
-        "speed": 1.0
-      }'
-
-    # Response will include job_id, check status:
-    curl -X GET "https://api.audiopod.ai/api/v1/voice/clone/JOB_ID/status" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
-
-    # When completed, download audio from the output_url in response
+    npm install audiopod
     ```
-  </Tab>
-</Tabs>
-
-## Step 6: Explore More Features
-
-Now that you've made your first call, let's try some other popular features:
-
-### Voice Cloning
-
-Create a custom voice from a sample:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Create a voice profile from audio sample
-    voice_profile = client.voice.create_voice_profile(
-        name="My Custom Voice",
-        voice_file="path/to/voice_sample.wav",
-        description="A custom voice for my project",
-        wait_for_completion=True
-    )
-
-    print(f"Voice profile created: {voice_profile.id}")
-
-    # Use the new voice for speech generation
-    cloned_speech = client.voice.generate_speech(
-        voice_id=voice_profile.id,
-        text="This is my cloned voice speaking!",
-        wait_for_completion=True
-    )
-
-    print(f"Cloned speech: {cloned_speech.output_url}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const fs = require('fs');
-
-    // Create voice profile from audio sample
-    const voiceProfile = await client.voice.createVoiceProfile({
-      name: 'My Custom Voice',
-      voiceFile: fs.createReadStream('path/to/voice_sample.wav'),
-      description: 'A custom voice for my project',
-      waitForCompletion: true
+    
+    ```typescript
+    import AudioPod from 'audiopod';
+    
+    const client = new AudioPod();
+    
+    const result = await client.stems.separate({
+      url: 'https://youtube.com/watch?v=dQw4w9WgXcQ',
+      mode: 'six'
     });
-
-    console.log(`Voice profile created: ${voiceProfile.id}`);
-
-    // Use the new voice
-    const clonedSpeech = await client.voice.generateSpeech({
-      voiceId: voiceProfile.id,
-      text: 'This is my cloned voice speaking!',
-      waitForCompletion: true
-    });
-
-    console.log(`Cloned speech: ${clonedSpeech.outputUrl}`);
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Create voice profile
-    curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-profiles" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "name=My Custom Voice" \
-      -F "description=A custom voice for my project" \
-      -F "file=@path/to/voice_sample.wav"
-
-    # Use the returned voice ID for generation
-    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/VOICE_ID/generate" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -d '{"input_text": "This is my cloned voice speaking!"}'
-    ```
-  </Tab>
-</Tabs>
-
-### Music Generation
-
-Generate AI music from text prompts:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Generate music from text prompt
-    music_job = client.music.generate_music(
-        prompt="upbeat electronic dance music with heavy bass",
-        duration=120.0,  # 2 minutes
-        wait_for_completion=True
-    )
-
-    print(f"Music generated: {music_job.output_url}")
-
-    # Generate rap music
-    rap_job = client.music.generate_rap(
-        lyrics="AudioPod AI, the future is here, Making music that's crystal clear",
-        style="modern",
-        tempo=120,
-        wait_for_completion=True
-    )
-
-    print(f"Rap generated: {rap_job.output_url}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    // Generate music from text prompt
-    const musicJob = await client.music.generateMusic({
-      prompt: 'upbeat electronic dance music with heavy bass',
-      duration: 120.0,
-      waitForCompletion: true
-    });
-
-    console.log(`Music generated: ${musicJob.outputUrl}`);
-
-    // Generate rap music
-    const rapJob = await client.music.generateRap({
-      lyrics: 'AudioPod AI, the future is here, Making music that\'s crystal clear',
-      style: 'modern',
-      tempo: 120,
-      waitForCompletion: true
-    });
-
-    console.log(`Rap generated: ${rapJob.outputUrl}`);
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Generate music
-    curl -X POST "https://api.audiopod.ai/api/v1/music/text2music" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "prompt": "upbeat electronic dance music with heavy bass",
-        "duration": 120.0,
-        "guidance_scale": 7.5
-      }'
-
-    # Generate rap
-    curl -X POST "https://api.audiopod.ai/api/v1/music/text2rap" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "lyrics": "AudioPod AI, the future is here, Making music that is crystal clear",
-        "style": "modern",
-        "tempo": 120
-      }'
-    ```
-  </Tab>
-</Tabs>
-
-### Speech-to-Text Transcription
-
-Convert audio to text with speaker diarization:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Transcribe audio file
-    transcription = client.transcription.transcribe_audio(
-        audio_file="path/to/meeting_recording.wav",
-        language="en",
-        enable_speaker_diarization=True,
-        enable_word_timestamps=True,
-        wait_for_completion=True
-    )
-
-    print(f"Transcript: {transcription.transcript}")
-    print(f"Detected language: {transcription.detected_language}")
-
-    # Transcribe from URL (YouTube, etc.)
-    url_transcription = client.transcription.transcribe_url(
-        url="https://youtube.com/watch?v=example",
-        enable_speaker_diarization=True,
-        wait_for_completion=True
-    )
-
-    print(f"URL Transcript: {url_transcription.transcript}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const fs = require('fs');
-
-    // Transcribe audio file
-    const transcription = await client.transcription.transcribeAudio({
-      audioFile: fs.createReadStream('path/to/meeting_recording.wav'),
-      language: 'en',
-      enableSpeakerDiarization: true,
-      enableWordTimestamps: true,
-      waitForCompletion: true
-    });
-
-    console.log(`Transcript: ${transcription.transcript}`);
-    console.log(`Detected language: ${transcription.detectedLanguage}`);
-
-    // Transcribe from URL
-    const urlTranscription = await client.transcription.transcribeUrl({
-      url: 'https://youtube.com/watch?v=example',
-      enableSpeakerDiarization: true,
-      waitForCompletion: true
-    });
-
-    console.log(`URL Transcript: ${urlTranscription.transcript}`);
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Transcribe uploaded file
-    curl -X POST "https://api.audiopod.ai/api/v1/transcription/transcribe-upload" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "files=@path/to/meeting_recording.wav" \
-      -F "language=en" \
-      -F "enable_speaker_diarization=true" \
-      -F "enable_word_timestamps=true"
-
-    # Transcribe from URL
-    curl -X POST "https://api.audiopod.ai/api/v1/transcription/transcribe" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "source_urls": ["https://youtube.com/watch?v=example"],
-        "language": "en",
-        "enable_speaker_diarization": true
-      }'
-    ```
-  </Tab>
-</Tabs>
-
-## Step 7: Understanding Credits
-
-AudioPod AI uses a credit-based billing system:
-
-- **Text to Speech**: 330 credits per minute
-- **Speech-to-Text**: 660 credits per minute
-- **Voice Cloning**: 330 credits per minute
-- **Voice Changer**: 990 credits per minute
-- **Speech Translation**: 3300 credits per minute
-- **Music Generation**: 1320 credits per minute
-- **Stem Splitter**: 990 credits per minute
-- **Noise Reduction**: 330 credits per minute
-- **Speaker Separation**: 1650 credits per minute
-
-<Info>
-  New accounts receive 10,000 credits to get started. Check your
-  [AudioPod Account](https://www.audiopod.ai/dashboard/account) to monitor
-  usage.
-</Info>
-
-### Check Your Credit Balance
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Check credit balance
-    credits = client.credits.get_credit_balance()
-    print(f"Available credits: {credits.balance}")
-    print(f"Pay-as-you-go credits: {credits.payg_balance}")
-    print(f"Total available: {credits.total_available_credits}")
-
-    # Get usage history
-    usage_history = client.credits.get_usage_history()
-    for usage in usage_history:
-        print(f"Used {usage.credits_used} credits for {usage.feature}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    // Check credit balance
-    const credits = await client.credits.getCreditBalance();
-    console.log(`Available credits: ${credits.balance}`);
-    console.log(`Pay-as-you-go credits: ${credits.paygBalance}`);
-    console.log(`Total available: ${credits.totalAvailableCredits}`);
-
-    // Get usage history
-    const usageHistory = await client.credits.getUsageHistory();
-    usageHistory.forEach(usage => {
-      console.log(`Used ${usage.creditsUsed} credits for ${usage.feature}`);
+    
+    console.log('🎵 Stems ready!');
+    Object.entries(result.download_urls).forEach(([stem, url]) => {
+      console.log(`  ${stem}: ${url.substring(0, 50)}...`);
     });
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Check credit balance
-    curl -X GET "https://api.audiopod.ai/api/v1/credits" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
-
-    # Get usage history
-    curl -X GET "https://api.audiopod.ai/api/v1/credits/usage" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
-    ```
-  </Tab>
-</Tabs>
-
-## Step 8: Additional Features
-
-Here are more advanced features you can try:
-
-### Audio Translation
-
-Translate speech from one language to another:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Translate audio file
-    translation = client.translation.translate_audio(
-        audio_file="path/to/spanish_audio.wav",
-        target_language="en",
-        source_language="es",
-        wait_for_completion=True
-    )
-
-    print(f"Translated audio: {translation.translated_audio_url}")
-    print(f"Original transcript: {translation.transcript}")
-    print(f"Translated text: {translation.translated_text}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    // Translate audio file
-    const translation = await client.translation.translateAudio({
-      audioFile: fs.createReadStream('path/to/spanish_audio.wav'),
-      targetLanguage: 'en',
-      sourceLanguage: 'es',
-      waitForCompletion: true
-    });
-
-    console.log(`Translated audio: ${translation.translatedAudioUrl}`);
-    console.log(`Original transcript: ${translation.transcript}`);
-    console.log(`Translated text: ${translation.translatedText}`);
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Translate audio
-    curl -X POST "https://api.audiopod.ai/api/v1/translation/translate" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "file=@path/to/spanish_audio.wav" \
-      -F "target_language=en" \
-      -F "source_language=es"
-    ```
-  </Tab>
-</Tabs>
-
-### Audio Enhancement
-
-Remove noise from audio files:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    # Denoise audio
-    denoised = client.denoiser.denoise_audio(
-        audio_file="path/to/noisy_audio.wav",
-        quality_mode="balanced",
-        wait_for_completion=True
-    )
-
-    print(f"Denoised audio: {denoised.output_url}")
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    // Denoise audio
-    const denoised = await client.denoiser.denoiseAudio({
-      audioFile: fs.createReadStream('path/to/noisy_audio.wav'),
-      qualityMode: 'balanced',
-      waitForCompletion: true
-    });
-
-    console.log(`Denoised audio: ${denoised.outputUrl}`);
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Denoise audio
-    curl -X POST "https://api.audiopod.ai/api/v1/denoiser/denoise" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
-      -F "file=@path/to/noisy_audio.wav" \
-      -F "quality_mode=balanced"
-    ```
-  </Tab>
-</Tabs>
-
-### Stem Separation
-
-Separate music into individual instruments using simple mode names:
-
-<Tabs>
-  <Tab title="Python">
-    ```python
-    import requests
-    import time
-
-    API_KEY = "your_api_key_here"
-    BASE_URL = "https://api.audiopod.ai/api/v1"
-
-    # Submit 6-stem extraction job
-    response = requests.post(
-        f"{BASE_URL}/stem-extraction/api/extract",
-        headers={"X-API-Key": API_KEY},
-        data={
-            "url": "https://youtube.com/watch?v=VIDEO_ID",
-            "mode": "six"  # Options: single, two, four, six, producer, studio, mastering
-        }
-    )
-    job = response.json()
-    print(f"Job ID: {job['id']}")
-
-    # Poll for completion
-    while True:
-        status = requests.get(
-            f"{BASE_URL}/stem-extraction/status/{job['id']}",
-            headers={"X-API-Key": API_KEY}
-        ).json()
-        
-        if status["status"] == "COMPLETED":
-            print("Separated stems:")
-            for stem, url in status["download_urls"].items():
-                print(f"  {stem}: {url[:60]}...")
-            break
-        elif status["status"] == "FAILED":
-            print(f"Error: {status['error_message']}")
-            break
-        time.sleep(5)
-    ```
-  </Tab>
-  <Tab title="Node.js">
-    ```javascript
-    const axios = require('axios');
-
-    const API_KEY = 'your_api_key_here';
-    const BASE_URL = 'https://api.audiopod.ai/api/v1';
-
-    async function extractStems() {
-      // Submit job
-      const formData = new FormData();
-      formData.append('url', 'https://youtube.com/watch?v=VIDEO_ID');
-      formData.append('mode', 'six'); // Options: single, two, four, six, producer, studio, mastering
-
-      const { data: job } = await axios.post(
-        `${BASE_URL}/stem-extraction/api/extract`,
-        formData,
-        { headers: { 'X-API-Key': API_KEY } }
-      );
-      console.log(`Job ID: ${job.id}`);
-
-      // Poll for completion
-      while (true) {
-        const { data: status } = await axios.get(
-          `${BASE_URL}/stem-extraction/status/${job.id}`,
-          { headers: { 'X-API-Key': API_KEY } }
-        );
-
-        if (status.status === 'COMPLETED') {
-          console.log('Separated stems:');
-          Object.entries(status.download_urls).forEach(([stem, url]) => {
-            console.log(`  ${stem}: ${url.substring(0, 60)}...`);
-          });
-          break;
-        } else if (status.status === 'FAILED') {
-          console.log(`Error: ${status.error_message}`);
-          break;
-        }
-        await new Promise(r => setTimeout(r, 5000));
-      }
-    }
-
-    extractStems();
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    # Submit 6-stem extraction job
+    # Separate audio into 6 stems
     curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
       -H "X-API-Key: $AUDIOPOD_API_KEY" \
-      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "url=https://youtube.com/watch?v=dQw4w9WgXcQ" \
       -F "mode=six"
-
-    # Available modes: single, two, four, six, producer, studio, mastering
-    # For single mode, also specify: -F "stem=vocals"
-
-    # Check status (replace JOB_ID)
+    
+    # Check job status (replace JOB_ID)
     curl -X GET "https://api.audiopod.ai/api/v1/stem-extraction/status/JOB_ID" \
       -H "X-API-Key: $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
 
-**Available Modes:**
-- `single` - Extract one stem (vocals, drums, bass, guitar, piano, or other)
-- `two` - Vocals + Instrumental
-- `four` - Vocals, Drums, Bass, Other
-- `six` - Vocals, Drums, Bass, Guitar, Piano, Other
-- `producer` - 8 stems with drum decomposition
-- `studio` - 12 stems for professional mixing
-- `mastering` - 16 stems maximum detail
+---
 
-## Next Steps
+## Pricing
 
-Congratulations! You've successfully made your first API call. Here's what to explore next:
+Pay only for what you use. No subscriptions required for API access.
 
-<Columns cols={2}>
-  <Card
-    title="Explore Voice Options"
-    icon="users"
-    href="/api-reference/voice-management"
-  >
-    Learn about our 50+ pre-built voices and voice cloning.
-  </Card>
-  <Card
-    title="Try Speech-to-Text"
-    icon="waveform"
-    href="/api-reference/speech-to-text"
-  >
-    Convert audio to text with speaker separation.
-  </Card>
-  <Card title="Authentication Guide" icon="key" href="/api-reference/auth">
-    Learn about API keys, webhooks, and security best practices.
-  </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/text-to-speech">
-    Dive deep into all available endpoints and parameters.
-  </Card>
-</Columns>
+| Service | Rate | $10 Gets You |
+|---------|------|--------------|
+| Stem Separation | $0.10/min | 100 min |
+| Transcription | $0.01/min | 1000 min |
+| Voice Cloning/TTS | $0.04/min | 250 min |
+| Music Generation | $0.02/min | 500 min |
+| Noise Reduction | $0.02/min | 500 min |
+| Speaker Separation | $0.20/min | 50 min |
+
+<Card title="Full Pricing" icon="calculator" href="/account/api-wallet">
+  View complete pricing for all services
+</Card>
+
+---
+
+## Try More Features
+
+<Tabs>
+  <Tab title="Transcription">
+    ```python
+    # Convert speech to text
+    result = client.transcription.create(
+        url="https://youtube.com/watch?v=VIDEO_ID"
+    )
+    print(result["transcript"])
+    ```
+  </Tab>
+  <Tab title="Music Generation">
+    ```python
+    # Generate music from text
+    song = client.music.generate(
+        prompt="upbeat electronic dance music"
+    )
+    print(song["output_url"])
+    ```
+  </Tab>
+  <Tab title="Voice Cloning">
+    ```python
+    # Clone a voice from audio
+    voice = client.voice.clone(
+        file="./sample.wav",
+        name="My Voice"
+    )
+    
+    # Generate speech with cloned voice
+    audio = client.tts.generate(
+        text="Hello world!",
+        voice_id=voice["id"]
+    )
+    ```
+  </Tab>
+  <Tab title="Noise Reduction">
+    ```python
+    # Remove background noise
+    clean = client.denoiser.denoise(
+        file="./noisy_audio.wav"
+    )
+    print(clean["output_url"])
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Manage Your Account (via CLI)
+
+Once you have an API key, manage everything via cURL:
+
+```bash
+# Check wallet balance
+curl -s "https://api.audiopod.ai/api/v1/api-wallet/balance" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq .
+
+# List your API keys
+curl -s "https://api.audiopod.ai/api/v1/auth/api-keys" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq .
+
+# Create another API key
+curl -X POST "https://api.audiopod.ai/api/v1/auth/api-keys" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "production-key", "scopes": ["*"]}'
+
+# View usage history
+curl -s "https://api.audiopod.ai/api/v1/api-wallet/usage" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq .
+```
+
+---
 
 ## Common Issues
 
 <AccordionGroup>
-  <Accordion title="401 Unauthorized Error">
-    This usually means your API key is invalid or missing. Make sure you're
-    including the `Authorization: Bearer YOUR_API_KEY` header in your requests.
+  <Accordion title="401 Unauthorized">
+    Your API key is invalid or missing.
+    
+    **Fix:** Check the `X-API-Key` header is set correctly:
+    ```bash
+    echo $AUDIOPOD_API_KEY  # Should print your key
+    ```
   </Accordion>
-
-  <Accordion title="Credit Limit Exceeded">
-    Check your [AudioPod Account](https://www.audiopod.ai/dashboard/account) to
-    see your credit balance and add more credits if needed.
+  <Accordion title="402 Insufficient Balance">
+    Your wallet is empty.
+    
+    **Fix:** Add funds via CLI or dashboard:
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/api-wallet/topup/checkout" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -d '{"amount_cents": 500}'
+    ```
   </Accordion>
-
-  <Accordion title="Audio File Not Playing">
-    Ensure you're saving the response as binary data. The audio is returned as
-    raw bytes that need to be written to a file.
+  <Accordion title="Job Stuck in Processing">
+    Audio processing jobs can take time depending on file length.
+    
+    **Fix:** Poll the status endpoint:
+    ```bash
+    curl "https://api.audiopod.ai/api/v1/stem-extraction/status/JOB_ID" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
   </Accordion>
 </AccordionGroup>
 
-## Need Help?
+---
 
-<Card
-  title="Join Our Discord Community"
-  icon="discord"
-  href="https://discord.gg/audiopod"
->
-  Get help from our team and connect with other developers building with
-  AudioPod AI.
-</Card>
+## Next Steps
+
+<Columns cols={3}>
+  <Card title="SDK Docs" icon="code" href="/sdks/overview">
+    Full SDK reference for Python & Node.js
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/stem-splitter">
+    Detailed endpoint documentation
+  </Card>
+  <Card title="Pricing" icon="wallet" href="/account/api-wallet">
+    Complete pricing & wallet management
+  </Card>
+</Columns>
