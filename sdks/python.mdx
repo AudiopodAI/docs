@@ -35,6 +35,7 @@ for stem, url in result["download_urls"].items():
 
 ```python
 from audiopod import AudioPod
+# or: from audiopod import Client
 
 # Method 1: Pass API key directly
 client = AudioPod(api_key="ap_your_api_key")
@@ -69,7 +70,7 @@ from audiopod import AudioPod
 
 client = AudioPod(api_key="ap_your_api_key")
 
-# Six-stem separation from YouTube
+# Six-stem separation from YouTube (waits for completion by default)
 result = client.stems.separate(
     url="https://youtube.com/watch?v=VIDEO_ID",
     mode="six"
@@ -95,6 +96,10 @@ job = client.stems.extract(
     mode="six"
 )
 print(f"Job ID: {job['id']}")
+
+# Check status
+status = client.stems.status(job["id"])
+print(f"Status: {status['status']}")
 
 # Wait for completion
 result = client.stems.wait_for_completion(job["id"])
