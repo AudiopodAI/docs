@@ -20,9 +20,9 @@ AudioPod AI's Voice Management API provides comprehensive tools for managing cus
 
 ## Authentication
 
-All endpoints require authentication:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
+All endpoints require authentication. Use one of these methods:
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
 
 ## Voice Discovery
 
@@ -34,7 +34,7 @@ Browse all available voices including pre-built and custom voices.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/voice-profiles?limit=50
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -43,7 +43,7 @@ Browse all available voices including pre-built and custom voices.
     
     response = requests.get(
         "https://api.audiopod.ai/api/v1/voice/voice-profiles",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "limit": 50,
             "skip": 0
@@ -64,7 +64,7 @@ Browse all available voices including pre-built and custom voices.
   <Tab title="cURL">
     ```bash
     curl -X GET "https://api.audiopod.ai/api/v1/voice/voice-profiles" \
-      -H "Authorization: Bearer your_api_key"
+      -H "X-API-Key: your_api_key"
     ```
   </Tab>
 </Tabs>
@@ -142,7 +142,7 @@ Retrieve detailed information about a specific voice.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/voices/{voice_id}/status
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -150,7 +150,7 @@ Retrieve detailed information about a specific voice.
     voice_id = 123  # Voice ID is actually an integer
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/voice/voices/{voice_id}/status",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -182,7 +182,7 @@ Create a custom voice model from a single audio file.
   <Tab title="POST">
     ```http
     POST /api/v1/voice/voice-profiles
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: multipart/form-data
     
     name: My Custom Voice
@@ -198,7 +198,7 @@ Create a custom voice model from a single audio file.
     with open("voice_sample.wav", "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/voice/voice-profiles",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             data={
                 "name": "My Custom Voice",
                 "description": "Professional voice for presentations",
@@ -216,7 +216,7 @@ Create a custom voice model from a single audio file.
   <Tab title="cURL">
     ```bash
     curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-profiles" \
-      -H "Authorization: Bearer your_api_key" \
+      -H "X-API-Key: your_api_key" \
       -F "name=My Custom Voice" \
       -F "description=Professional voice for presentations" \
       -F "denoise=true" \
@@ -250,7 +250,7 @@ Create a higher-quality voice model using multiple audio samples.
   <Tab title="POST">
     ```http
     POST /api/v1/voice/voice-profiles/multi-sample
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: multipart/form-data
     
     name: High Quality Voice
@@ -273,7 +273,7 @@ Create a higher-quality voice model using multiple audio samples.
     
     response = requests.post(
         "https://api.audiopod.ai/api/v1/voice/voice-profiles/multi-sample",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         data={
             "name": "High Quality Voice",
             "description": "Multi-sample voice for better quality",
@@ -310,7 +310,7 @@ Create a preview sample to test how a voice sounds.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/voice-profiles/{voice_identifier}/preview?audio_format=mp3
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -319,7 +319,7 @@ Create a preview sample to test how a voice sounds.
     
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/voice/voice-profiles/{voice_identifier}/preview",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "audio_format": "mp3",
             "generate_if_missing": True
@@ -348,7 +348,7 @@ Generate previews for multiple voices with the same text.
   <Tab title="POST">
     ```http
     POST /api/v1/voice/preview/batch
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -371,7 +371,7 @@ Generate previews for multiple voices with the same text.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/voice/preview/batch",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=batch_preview_data
@@ -399,14 +399,14 @@ Get all custom voices created by the authenticated user.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/voice-profiles?voice_type=CUSTOM&limit=25
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/voice/voice-profiles",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "voice_type": "CUSTOM",   # Filter for custom voices only
             "limit": 25,
@@ -435,7 +435,7 @@ Update metadata and settings for a custom voice.
   <Tab title="PATCH">
     ```http
     PATCH /api/v1/voice/voices/{voice_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -457,7 +457,7 @@ Update metadata and settings for a custom voice.
     response = requests.patch(
         f"https://api.audiopod.ai/api/v1/voice/voices/{voice_id}",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=update_data
@@ -481,7 +481,7 @@ Remove a custom voice and all associated data.
   <Tab title="DELETE">
     ```http
     DELETE /api/v1/voice/voices/{voice_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -489,7 +489,7 @@ Remove a custom voice and all associated data.
     voice_id = 123  # Voice ID is an integer or an UUID
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/voice/voices/{voice_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 204:
@@ -512,7 +512,7 @@ Organize voices into collections for better management.
   <Tab title="POST">
     ```http
     POST /api/v1/voice/collections
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -536,7 +536,7 @@ Organize voices into collections for better management.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/voice/collections",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=collection_data
@@ -559,14 +559,14 @@ Get all voice collections for the authenticated user.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/collections?limit=25
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/voice/collections",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={"limit": 25, "skip": 0}
     )
     
@@ -590,7 +590,7 @@ Add voices to an existing collection.
   <Tab title="POST">
     ```http
     POST /api/v1/voice/collections/{collection_id}/voices
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -608,7 +608,7 @@ Add voices to an existing collection.
     response = requests.post(
         f"https://api.audiopod.ai/api/v1/voice/collections/{collection_id}/voices",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=new_voices
@@ -632,7 +632,7 @@ Retrieve usage statistics for voices.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/analytics/usage?voice_id=voice_abc123&period=30d
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -640,7 +640,7 @@ Retrieve usage statistics for voices.
     voice_id = "voice_abc123"
     response = requests.get(
         "https://api.audiopod.ai/api/v1/voice/analytics/usage",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "voice_id": voice_id,
             "period": "30d",        # 7d, 30d, 90d, 1y
@@ -723,7 +723,7 @@ def find_best_voice_for_content(content_type, language, gender_preference, api_k
     
     response = requests.get(
         "https://api.audiopod.ai/api/v1/voice/voices",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params=params
     )
     
@@ -802,7 +802,7 @@ def organize_voices_by_project(voices_to_organize, api_key):
         # Get voice details
         response = requests.get(
             f"https://api.audiopod.ai/api/v1/voice/voices/{voice_id}",
-            headers={"Authorization": f"Bearer {api_key}"}
+            headers={"X-API-Key": api_key}
         )
         
         if response.status_code == 200:
@@ -859,7 +859,7 @@ def organize_voices_by_project(voices_to_organize, api_key):
             response = requests.post(
                 "https://api.audiopod.ai/api/v1/voice/collections",
                 headers={
-                    "Authorization": f"Bearer {api_key}",
+                    "X-API-Key": api_key,
                     "Content-Type": "application/json"
                 },
                 json=collection_data

@@ -20,8 +20,8 @@ AudioPod AI's Voice Changer API uses OpenVoice v2 technology to convert source a
 ## Authentication
 
 All endpoints require authentication:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
 
 ## Voice Conversion
 
@@ -33,7 +33,7 @@ Transform the voice characteristics in a source audio file to match a target voi
   <Tab title="POST">
     ```http
     POST /api/v1/voice/voice-convert
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: multipart/form-data
     
     file: (source audio file)
@@ -48,7 +48,7 @@ Transform the voice characteristics in a source audio file to match a target voi
     with open("source_speech.wav", "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/voice/voice-convert",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             data={
                 "voice_uuid": "550e8400-e29b-41d4-a716-446655440000"  # Target voice UUID
             },
@@ -65,7 +65,7 @@ Transform the voice characteristics in a source audio file to match a target voi
   <Tab title="cURL">
     ```bash
     curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-convert" \
-      -H "Authorization: Bearer your_api_key" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
       -F "file=@source_speech.wav" \
       -F "voice_uuid=550e8400-e29b-41d4-a716-446655440000"
     ```
@@ -109,7 +109,7 @@ Monitor the progress of voice conversion jobs.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/convert/{conversion_id}/status
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -117,7 +117,7 @@ Monitor the progress of voice conversion jobs.
     conversion_id = 123
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/voice/convert/{conversion_id}/status",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -163,14 +163,14 @@ Get all voice conversion jobs for the authenticated user.
   <Tab title="GET">
     ```http
     GET /api/v1/voice/convert/jobs?status=COMPLETED&limit=10
-    Authorization: Bearer {api_key}
+    X-API-Key: <api_key>
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/voice/convert/jobs",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "status": "COMPLETED",      # Filter by status
             "limit": 10,
@@ -199,7 +199,7 @@ Get all voice conversion jobs for the authenticated user.
         # Get conversion details
         response = requests.get(
             f"https://api.audiopod.ai/api/v1/voice/convert/{conversion_id}/status",
-            headers={"Authorization": f"Bearer {api_key}"}
+            headers={"X-API-Key": api_key}
         )
         
         if response.status_code != 200:
@@ -243,11 +243,11 @@ Before converting, you can browse available voice profiles to use as targets.
 ```python
 # Get available voices for conversion
 response = requests.get(
-    "https://api.audiopod.ai/api/v1/voice/voices",
-    headers={"Authorization": f"Bearer {api_key}"},
+    "https://api.audiopod.ai/api/v1/voice/voice-profiles",
+    headers={"X-API-Key": api_key},
     params={
-        "category": "professional",  # Filter by category
-        "language": "en",           # Filter by language
+        "voice_type": "CUSTOM",      # Filter by voice type
+        "include_public": "true",    # Include public voices
         "limit": 20
     }
 )
@@ -277,7 +277,7 @@ def convert_podcast_guest_to_host_voice(guest_audio, host_voice_uuid, api_key):
     with open(guest_audio, "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/voice/voice-convert",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             data={"voice_uuid": host_voice_uuid},
             files={"file": audio_file}
         )
@@ -293,7 +293,7 @@ def convert_podcast_guest_to_host_voice(guest_audio, host_voice_uuid, api_key):
     while True:
         status_response = requests.get(
             f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
-            headers={"Authorization": f"Bearer {api_key}"}
+            headers={"X-API-Key": api_key}
         )
         
         job_status = status_response.json()
@@ -349,7 +349,7 @@ def localize_content_voice(source_audio, target_locale_voices, api_key):
         with open(source_audio, "rb") as audio_file:
             response = requests.post(
                 "https://api.audiopod.ai/api/v1/voice/voice-convert",
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={"X-API-Key": api_key},
                 data={"voice_uuid": voice_uuid},
                 files={"file": audio_file}
             )
@@ -372,7 +372,7 @@ def localize_content_voice(source_audio, target_locale_voices, api_key):
             
             status_response = requests.get(
                 f"https://api.audiopod.ai/api/v1/voice/conversions/{job_info['job_id']}",
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"X-API-Key": api_key}
             )
             
             job_status = status_response.json()
@@ -427,7 +427,7 @@ def anonymize_voice_recording(source_audio, api_key):
     with open(source_audio, "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/voice/voice-convert",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             data={"voice_uuid": anonymous_voice_uuid},
             files={"file": audio_file}
         )
@@ -438,7 +438,7 @@ def anonymize_voice_recording(source_audio, api_key):
     while True:
         status_response = requests.get(
             f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
-            headers={"Authorization": f"Bearer {api_key}"}
+            headers={"X-API-Key": api_key}
         )
         
         job_status = status_response.json()

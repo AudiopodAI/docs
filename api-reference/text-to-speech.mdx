@@ -24,9 +24,42 @@ AudioPod AI's Text to Speech service provides unified text-to-speech capabilitie
 
 ## Authentication
 
-All endpoints require authentication using either:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
+All endpoints require authentication. Use one of these methods:
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
+
+## API Endpoints Quick Reference
+
+| Operation | Method | Endpoint |
+|-----------|--------|----------|
+| List voices | GET | `/api/v1/voice/voice-profiles` |
+| Generate TTS | POST | `/api/v1/voice/voices/{voice_id}/generate` |
+| Get job status | GET | `/api/v1/voice/tts-jobs/{job_id}/status` |
+
+## Quick Start (cURL)
+
+```bash
+# 1. List available voices to get a voice UUID
+curl -X GET "https://api.audiopod.ai/api/v1/voice/voice-profiles?include_public=true&limit=10" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+
+# 2. Generate speech (replace VOICE_UUID with actual UUID from step 1)
+curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/VOICE_UUID/generate" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "input_text=Hello, this is a test." \
+  -d "audio_format=mp3" \
+  -d "speed=1.0"
+# Returns: {"job_id": 1234, "status": "pending", ...}
+
+# 3. Poll job status until completed
+curl -X GET "https://api.audiopod.ai/api/v1/voice/tts-jobs/1234/status" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+# Returns: {"status": "completed", "output_url": "https://...", ...}
+
+# 4. Download the audio from output_url
+curl -o output.mp3 "OUTPUT_URL_FROM_STEP_3"
+```
 
 ## Generate Speech
 
@@ -154,7 +187,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
     # Create TTS job using voice UUID
     response = requests.post(
         "https://api.audiopod.ai/api/v1/voice/voices/550e8400-e29b-41d4-a716-446655440000/generate",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         data={
             "input_text": "Hello! This is AudioPod AI generating natural speech.",
             "audio_format": "mp3",
@@ -173,7 +206,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
         while True:
             status_response = requests.get(
                 f"https://api.audiopod.ai/api/v1/voice/tts-jobs/{job_id}/status",
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"X-API-Key": api_key}
             )
             
             if status_response.status_code == 200:
@@ -201,7 +234,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
     ```bash
     # Create TTS job using voice UUID
     JOB_RESPONSE=$(curl -s -X POST "https://api.audiopod.ai/api/v1/voice/voices/550e8400-e29b-41d4-a716-446655440000/generate" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
       -H "Content-Type: application/x-www-form-urlencoded" \
       -d 'input_text=Hello! This is AudioPod AI generating natural speech.' \
       -d 'audio_format=mp3' \
@@ -215,7 +248,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
     # Poll job status
     while true; do
       STATUS_RESPONSE=$(curl -s -X GET "https://api.audiopod.ai/api/v1/voice/tts-jobs/$JOB_ID/status" \
-        -H "Authorization: Bearer $AUDIOPOD_API_KEY")
+        -H "X-API-Key: $AUDIOPOD_API_KEY")
       
       STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
       echo "Job status: $STATUS"
@@ -355,7 +388,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
     ```python
     import requests
 
-    headers = {"Authorization": f"Bearer {api_key}"}
+    headers = {"X-API-Key": api_key}
 
     # Generate with a standard voice by name
     response1 = requests.post(

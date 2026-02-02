@@ -19,9 +19,9 @@ AudioPod AI's Speaker Extraction API automatically separates multiple speakers i
 
 ## Authentication
 
-All endpoints require authentication:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
+All endpoints require authentication. Use one of these methods:
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
 
 ## Speaker Extraction
 
@@ -33,7 +33,7 @@ Upload an audio or video file to extract individual speaker tracks.
   <Tab title="POST">
     ```http
     POST /api/v1/speaker/extract
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: multipart/form-data
     
     file: (audio/video file)
@@ -47,7 +47,7 @@ Upload an audio or video file to extract individual speaker tracks.
     with open("podcast_episode.mp3", "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/speaker/extract",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             data={"num_speakers": 4},  # Optional: specify expected speakers
             files={"file": audio_file}
         )
@@ -61,7 +61,7 @@ Upload an audio or video file to extract individual speaker tracks.
   <Tab title="cURL">
     ```bash
     curl -X POST "https://api.audiopod.ai/api/v1/speaker/extract" \
-      -H "Authorization: Bearer your_api_key" \
+      -H "X-API-Key: your_api_key" \
       -F "file=@podcast_episode.mp3" \
       -F "num_speakers=4"
     ```
@@ -76,7 +76,7 @@ Extract speakers from audio/video URLs (YouTube, Vimeo, etc.).
   <Tab title="POST">
     ```http
     POST /api/v1/speaker/extract
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/x-www-form-urlencoded
     
     url=https://youtube.com/watch?v=example123&num_speakers=3
@@ -86,7 +86,7 @@ Extract speakers from audio/video URLs (YouTube, Vimeo, etc.).
     ```python
     response = requests.post(
         "https://api.audiopod.ai/api/v1/speaker/extract",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         data={
             "url": "https://youtube.com/watch?v=example123",
             "num_speakers": 3  # Optional: specify expected speakers
@@ -101,7 +101,7 @@ Extract speakers from audio/video URLs (YouTube, Vimeo, etc.).
   <Tab title="cURL">
     ```bash
     curl -X POST "https://api.audiopod.ai/api/v1/speaker/extract" \
-      -H "Authorization: Bearer your_api_key" \
+      -H "X-API-Key: your_api_key" \
       -d "url=https://youtube.com/watch?v=example123" \
       -d "num_speakers=3"
     ```
@@ -131,14 +131,14 @@ Monitor the progress of speaker extraction jobs.
   <Tab title="GET">
     ```http
     GET /api/v1/speaker/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/speaker/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -222,14 +222,14 @@ Get all speaker extraction jobs for the authenticated user.
   <Tab title="GET">
     ```http
     GET /api/v1/speaker/jobs?job_type=extraction&status=COMPLETED&limit=50
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/speaker/jobs",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "job_type": "extraction",
             "status": "COMPLETED",     # Optional filter
@@ -293,14 +293,14 @@ Retry a failed speaker extraction job.
   <Tab title="POST">
     ```http
     POST /api/v1/speaker/jobs/{job_id}/retry
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.post(
         f"https://api.audiopod.ai/api/v1/speaker/jobs/{job_id}/retry",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -312,7 +312,7 @@ Retry a failed speaker extraction job.
   <Tab title="cURL">
     ```bash
     curl -X POST "https://api.audiopod.ai/api/v1/speaker/jobs/123/retry" \
-      -H "Authorization: Bearer your_api_key"
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
@@ -338,14 +338,14 @@ Remove a speaker extraction job and its associated files.
   <Tab title="DELETE">
     ```http
     DELETE /api/v1/speaker/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/speaker/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 204:
@@ -357,7 +357,7 @@ Remove a speaker extraction job and its associated files.
   <Tab title="cURL">
     ```bash
     curl -X DELETE "https://api.audiopod.ai/api/v1/speaker/jobs/123" \
-      -H "Authorization: Bearer your_api_key"
+      -H "X-API-Key: your_api_key"
     ```
   </Tab>
 </Tabs>

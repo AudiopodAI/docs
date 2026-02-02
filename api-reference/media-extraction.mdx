@@ -22,8 +22,8 @@ AudioPod AI's Media Extraction API provides powerful tools for downloading and e
 
 - **Public Access**: Limited features, 10-minute duration limit, basic formats only
 - **Authenticated Access**: Full features with API key or JWT token
-  - **API Key**: `Authorization: Bearer your_api_key`
-  - **JWT Token**: `Authorization: Bearer your_jwt_token`
+  - **API Key (Recommended)**: `X-API-Key: your_api_key` header
+  - **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
 
 ## Rate Limits
 
@@ -98,7 +98,7 @@ Extract comprehensive video metadata with full format information.
   <Tab title="POST">
     ```http
     POST /api/v1/video/info
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -117,7 +117,7 @@ Extract comprehensive video metadata with full format information.
     
     response = requests.post(
         "https://api.audiopod.ai/api/v1/video/info",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         json=video_info_request
     )
     
@@ -222,7 +222,7 @@ Download videos with full features and no restrictions.
   <Tab title="POST">
     ```http
     POST /api/v1/video/download
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -249,7 +249,7 @@ Download videos with full features and no restrictions.
     
     response = requests.post(
         "https://api.audiopod.ai/api/v1/video/download",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         json=download_request
     )
     
@@ -303,7 +303,7 @@ Download multiple videos in a single request.
   <Tab title="POST">
     ```http
     POST /api/v1/video/bulk-download
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -350,7 +350,7 @@ Download multiple videos in a single request.
     
     response = requests.post(
         "https://api.audiopod.ai/api/v1/video/bulk-download",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         json=bulk_request
     )
     
@@ -373,7 +373,7 @@ Monitor the progress of download jobs.
   <Tab title="GET">
     ```http
     GET /api/v1/video/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -381,7 +381,7 @@ Monitor the progress of download jobs.
     job_id = 123
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -438,14 +438,14 @@ Get all download jobs for the authenticated user.
   <Tab title="GET">
     ```http
     GET /api/v1/video/jobs?status=COMPLETED&platform=youtube&limit=50
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/video/jobs",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key"},
         params={
             "status": "COMPLETED",     # Filter by status
             "platform": "youtube",     # Filter by platform
@@ -478,7 +478,7 @@ Download the extracted media files.
         # Get job details
         response = requests.get(
             f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
-            headers={"Authorization": f"Bearer {api_key}"}
+            headers={"X-API-Key": api_key}
         )
         
         if response.status_code != 200:
@@ -555,7 +555,7 @@ Update job metadata such as custom title.
   <Tab title="PUT">
     ```http
     PUT /api/v1/video/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -572,7 +572,7 @@ Update job metadata such as custom title.
     
     response = requests.put(
         f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         json=update_data
     )
     
@@ -591,7 +591,7 @@ Remove a download job and its associated files.
   <Tab title="DELETE">
     ```http
     DELETE /api/v1/video/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -599,7 +599,7 @@ Remove a download job and its associated files.
     job_id = 123
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -617,14 +617,14 @@ Get comprehensive download statistics for the authenticated user.
   <Tab title="GET">
     ```http
     GET /api/v1/video/stats
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/video/stats",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -724,7 +724,7 @@ def extract_podcast_audio_from_videos(video_urls, api_key):
         
         response = requests.post(
             "https://api.audiopod.ai/api/v1/video/download",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             json=download_request
         )
         
@@ -746,7 +746,7 @@ def extract_podcast_audio_from_videos(video_urls, api_key):
             
             status_response = requests.get(
                 f"https://api.audiopod.ai/api/v1/video/jobs/{audio_job['job_id']}",
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"X-API-Key": api_key}
             )
             
             job_status = status_response.json()
@@ -801,7 +801,7 @@ def archive_educational_content(playlist_urls, api_key):
         # Get video info first
         info_response = requests.post(
             "https://api.audiopod.ai/api/v1/video/info",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             json={"url": url, "include_formats": True}
         )
         
@@ -819,7 +819,7 @@ def archive_educational_content(playlist_urls, api_key):
             
             download_response = requests.post(
                 "https://api.audiopod.ai/api/v1/video/download",
-                headers={"Authorization": f"Bearer {api_key}"},
+                headers={"X-API-Key": api_key},
                 json=download_request
             )
             
@@ -900,7 +900,7 @@ def extract_social_media_content(social_urls, api_key):
         
         response = requests.post(
             "https://api.audiopod.ai/api/v1/video/download",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             json=download_config
         )
         
@@ -1008,14 +1008,14 @@ Get complete list of formats available for authenticated users.
   <Tab title="GET">
     ```http
     GET /api/v1/video/formats
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/video/formats",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1096,7 +1096,7 @@ def optimize_batch_downloads(urls, api_key, max_concurrent=5):
         
         response = requests.post(
             "https://api.audiopod.ai/api/v1/video/download",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             json=download_request
         )
         

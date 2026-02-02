@@ -20,9 +20,9 @@ AudioPod AI's Speech-to-Text API converts audio and video content into accurate 
 
 ## Authentication
 
-All endpoints require authentication:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
+All endpoints require authentication. Use one of these methods:
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
 
 ## Transcribe from URLs
 
@@ -175,7 +175,7 @@ Transcribe audio from YouTube or other video platforms.
     # Start transcription job
     response = requests.post(
         "https://api.audiopod.ai/api/v1/transcription/transcribe",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         json={
             "source_urls": [
                 "https://youtube.com/watch?v=example123",
@@ -201,7 +201,7 @@ Transcribe audio from YouTube or other video platforms.
         while True:
             status_response = requests.get(
                 f"https://api.audiopod.ai/api/v1/transcription/status/{job_id}",
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"X-API-Key": api_key}
             )
             
             if status_response.status_code == 200:
@@ -212,7 +212,7 @@ Transcribe audio from YouTube or other video platforms.
                     # Get final result
                     result_response = requests.get(
                         f"https://api.audiopod.ai/api/v1/transcription/result/{job_id}",
-                        headers={"Authorization": f"Bearer {api_key}"}
+                        headers={"X-API-Key": api_key}
                     )
                     
                     if result_response.status_code == 200:
@@ -239,7 +239,7 @@ Transcribe audio from YouTube or other video platforms.
     ```bash
     # Start transcription job
     curl -X POST "https://api.audiopod.ai/api/v1/transcription/transcribe" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "source_urls": ["https://youtube.com/watch?v=example123"],
@@ -252,11 +252,11 @@ Transcribe audio from YouTube or other video platforms.
 
     # Check job status (replace JOB_ID with actual job ID)
     curl -X GET "https://api.audiopod.ai/api/v1/transcription/status/JOB_ID" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
 
     # Get transcription result when completed
     curl -X GET "https://api.audiopod.ai/api/v1/transcription/result/JOB_ID" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
@@ -534,7 +534,7 @@ Transcribe from uploaded audio or video files.
     # Upload and transcribe
     response = requests.post(
         "https://api.audiopod.ai/api/v1/transcription/transcribe-upload",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         data={
             "language": "en",
             "model_type": "whisperx",
@@ -562,7 +562,7 @@ Transcribe from uploaded audio or video files.
         while True:
             status_response = requests.get(
                 f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}",
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"X-API-Key": api_key}
             )
             
             if status_response.status_code == 200:
@@ -573,7 +573,7 @@ Transcribe from uploaded audio or video files.
                     # Get transcription result
                     result_response = requests.get(
                         f"https://api.audiopod.ai/api/v1/transcription/transcript/{job_id}",
-                        headers={"Authorization": f"Bearer {api_key}"}
+                        headers={"X-API-Key": api_key}
                     )
                     
                     if result_response.status_code == 200:
@@ -600,7 +600,7 @@ Transcribe from uploaded audio or video files.
     ```bash
     # Upload files for transcription
     curl -X POST "https://api.audiopod.ai/api/v1/transcription/transcribe-upload" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
       -F "files=@meeting_recording.mp3" \
       -F "files=@interview.wav" \
       -F "language=en" \
@@ -610,11 +610,11 @@ Transcribe from uploaded audio or video files.
 
     # Check job status (replace JOB_ID with actual job ID)
     curl -X GET "https://api.audiopod.ai/api/v1/transcription/jobs/JOB_ID" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
 
     # Get completed transcription
     curl -X GET "https://api.audiopod.ai/api/v1/transcription/transcript/JOB_ID" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
     ```
   </Tab>
 </Tabs>
@@ -629,14 +629,14 @@ Check the progress and status of transcription jobs.
   <Tab title="GET">
     ```http
     GET /api/v1/transcription/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     job_status = response.json()
@@ -684,14 +684,14 @@ Get all transcription jobs for the authenticated user.
   <Tab title="GET">
     ```http
     GET /api/v1/transcription/jobs?status=COMPLETED&limit=50&offset=0
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/transcription/jobs",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "status": "COMPLETED",  # Optional filter
             "limit": 50,
@@ -716,7 +716,7 @@ Download transcripts in various formats including JSON, TXT, PDF, SRT, VTT, DOCX
   <Tab title="GET">
     ```http
     GET /api/v1/transcription/jobs/{job_id}/transcript?format=json
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -724,7 +724,7 @@ Download transcripts in various formats including JSON, TXT, PDF, SRT, VTT, DOCX
     # Download as JSON with full details
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/transcript",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={"format": "json"}
     )
     
@@ -733,7 +733,7 @@ Download transcripts in various formats including JSON, TXT, PDF, SRT, VTT, DOCX
     # Download as SRT subtitle file
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/transcript",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={"format": "srt"}
     )
     
@@ -743,7 +743,7 @@ Download transcripts in various formats including JSON, TXT, PDF, SRT, VTT, DOCX
     # Download as PDF document
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/transcript",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={"format": "pdf"}
     )
     
@@ -831,14 +831,14 @@ Retrieve transcript in editable format for corrections.
   <Tab title="GET">
     ```http
     GET /api/v1/transcription/jobs/{job_id}/edit
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/edit",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     editable_transcript = response.json()
@@ -855,7 +855,7 @@ Submit edited transcript with corrections.
   <Tab title="PUT">
     ```http
     PUT /api/v1/transcription/jobs/{job_id}/edit
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -878,7 +878,7 @@ Submit edited transcript with corrections.
     # Get current transcript
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/edit",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     transcript = response.json()
@@ -891,7 +891,7 @@ Submit edited transcript with corrections.
     # Submit updates
     response = requests.put(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/edit",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         json={
             "segments": segments,
             "edit_notes": "Corrected speaker labels and technical terms"
@@ -913,14 +913,14 @@ View edit history and versions of transcripts.
   <Tab title="GET">
     ```http
     GET /api/v1/transcription/jobs/{job_id}/versions
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/versions",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     versions = response.json()
@@ -942,7 +942,7 @@ Get clean audio files extracted from videos during transcription.
   <Tab title="GET">
     ```http
     GET /api/v1/transcription/jobs/{job_id}/audio/{audio_index}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -950,7 +950,7 @@ Get clean audio files extracted from videos during transcription.
     # Download first audio file (index 0)
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}/audio/0",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -971,14 +971,14 @@ Remove transcription jobs and associated data.
   <Tab title="DELETE">
     ```http
     DELETE /api/v1/transcription/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/transcription/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 204:

@@ -20,9 +20,9 @@ AudioPod AI's Music Generation API uses the advanced Text to Music pipeline to t
 
 ## Authentication
 
-All endpoints require authentication:
-- **API Key**: `Authorization: Bearer your_api_key`
-- **JWT Token**: `Authorization: Bearer your_jwt_token`
+All endpoints require authentication. Use one of these methods:
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
 
 ## Text-to-Music Generation
 
@@ -175,7 +175,7 @@ Create complete musical compositions with vocals from text prompts and lyrics.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/text2music",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key",
             "Content-Type": "application/json"
         },
         json=music_request
@@ -191,7 +191,7 @@ Create complete musical compositions with vocals from text prompts and lyrics.
         while True:
             status_response = requests.get(
                 f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/status",
-                headers={"Authorization": f"Bearer {api_key}"}
+                headers={"X-API-Key": api_key"}
             )
             
             if status_response.status_code == 200:
@@ -211,7 +211,7 @@ Create complete musical compositions with vocals from text prompts and lyrics.
                     # Like the track
                     like_response = requests.post(
                         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/like",
-                        headers={"Authorization": f"Bearer {api_key}"}
+                        headers={"X-API-Key": api_key}
                     )
                     if like_response.status_code == 200:
                         print("Track liked!")
@@ -228,7 +228,7 @@ Create complete musical compositions with vocals from text prompts and lyrics.
     ```bash
     # Generate music
     JOB_RESPONSE=$(curl -s -X POST "https://api.audiopod.ai/api/v1/music/text2music" \
-      -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "prompt": "Upbeat pop song with electronic beats and catchy melody",
@@ -245,7 +245,7 @@ Create complete musical compositions with vocals from text prompts and lyrics.
     # Poll job status
     while true; do
       STATUS_RESPONSE=$(curl -s -X GET "https://api.audiopod.ai/api/v1/music/jobs/$JOB_ID/status" \
-        -H "Authorization: Bearer $AUDIOPOD_API_KEY")
+        -H "X-API-Key: $AUDIOPOD_API_KEY")
       
       STATUS=$(echo $STATUS_RESPONSE | jq -r '.status')
       echo "Job status: $STATUS"
@@ -260,7 +260,7 @@ Create complete musical compositions with vocals from text prompts and lyrics.
         
         # Like the track
         curl -s -X POST "https://api.audiopod.ai/api/v1/music/jobs/$JOB_ID/like" \
-          -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+          -H "X-API-Key: $AUDIOPOD_API_KEY"
         echo "Track liked!"
         break
       elif [ "$STATUS" = "failed" ]; then
@@ -387,7 +387,7 @@ Create instrumental music without vocals from text prompts.
   <Tab title="POST">
     ```http
     POST /api/v1/music/prompt2instrumental
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -410,7 +410,7 @@ Create instrumental music without vocals from text prompts.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/prompt2instrumental",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=instrumental_request
@@ -590,7 +590,7 @@ Create rap tracks with custom lyrics and beats.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/text2rap",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=rap_request
@@ -609,7 +609,7 @@ Create vocal tracks from lyrics without instrumental backing.
   <Tab title="POST">
     ```http
     POST /api/v1/music/lyric2vocals
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -633,7 +633,7 @@ Create vocal tracks from lyrics without instrumental backing.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/lyric2vocals",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=vocals_request
@@ -656,7 +656,7 @@ Create loops, one-shots, and samples for music production.
   <Tab title="POST">
     ```http
     POST /api/v1/music/text2samples
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -680,7 +680,7 @@ Create loops, one-shots, and samples for music production.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/text2samples",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=sample_request
@@ -704,7 +704,7 @@ Transform existing audio using text descriptions while preserving reference audi
   <Tab title="POST">
     ```http
     POST /api/v1/music/audio2audio
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: multipart/form-data
     
     prompt: "Transform this into an electronic dance version"
@@ -720,7 +720,7 @@ Transform existing audio using text descriptions while preserving reference audi
     with open("reference_song.mp3", "rb") as audio_file:
         response = requests.post(
             "https://api.audiopod.ai/api/v1/music/audio2audio",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
             data={
                 "prompt": "Transform this into an electronic dance version",
                 "ref_audio_strength": 0.7,     # Reference audio influence (0.0-1.0)
@@ -754,7 +754,7 @@ Extend an existing music track by adding more content to the end.
   <Tab title="POST">
     ```http
     POST /api/v1/music/extend
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -781,7 +781,7 @@ Extend an existing music track by adding more content to the end.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/extend",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=extend_request
@@ -812,7 +812,7 @@ Generate variations of existing music tracks.
   <Tab title="POST">
     ```http
     POST /api/v1/music/retake
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -834,7 +834,7 @@ Generate variations of existing music tracks.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/retake",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=retake_request
@@ -861,7 +861,7 @@ Modify specific sections of existing audio tracks.
   <Tab title="POST">
     ```http
     POST /api/v1/music/repaint
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -888,7 +888,7 @@ Modify specific sections of existing audio tracks.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/repaint",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=repaint_request
@@ -916,7 +916,7 @@ Comprehensive editing of existing music tracks.
   <Tab title="POST">
     ```http
     POST /api/v1/music/edit
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -946,7 +946,7 @@ Comprehensive editing of existing music tracks.
     response = requests.post(
         "https://api.audiopod.ai/api/v1/music/edit",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=edit_request
@@ -978,14 +978,14 @@ Retrieve available genre presets for music generation.
   <Tab title="GET">
     ```http
     GET /api/v1/music/presets
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/music/presets",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1007,7 +1007,7 @@ Monitor the progress of music generation jobs.
   <Tab title="GET">
     ```http
     GET /api/v1/music/jobs/{job_id}/status
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -1015,7 +1015,7 @@ Monitor the progress of music generation jobs.
     job_id = 123
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/status",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1082,14 +1082,14 @@ Get all music generation jobs for the authenticated user with enhanced filtering
   <Tab title="GET">
     ```http
     GET /api/v1/music/jobs?task=text2music&status=completed&song_type=song&liked=true&limit=50&skip=0
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/music/jobs",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "task": "text2music",      # Filter by specific task
             "status": "completed",     # Filter by status
@@ -1130,14 +1130,14 @@ Get all tracks liked by the current user with filtering options.
   <Tab title="GET">
     ```http
     GET /api/v1/music/liked?song_type=rap&status=completed&limit=20
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/music/liked",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={
             "song_type": "rap",        # Optional: filter by category
             "status": "completed",     # Optional: filter by status
@@ -1163,14 +1163,14 @@ Get statistics for building filter UI components.
   <Tab title="GET">
     ```http
     GET /api/v1/music/filters/stats
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
         "https://api.audiopod.ai/api/v1/music/filters/stats",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1212,7 +1212,7 @@ Update display name and thumbnail for an existing music job.
   <Tab title="PATCH">
     ```http
     PATCH /api/v1/music/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -1232,7 +1232,7 @@ Update display name and thumbnail for an existing music job.
     response = requests.patch(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=update_data
@@ -1255,7 +1255,7 @@ Update display name and thumbnail for an existing music job.
   <Tab title="DELETE">
     ```http
     DELETE /api/v1/music/jobs/{job_id}
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -1263,7 +1263,7 @@ Update display name and thumbnail for an existing music job.
     job_id = 123
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1281,13 +1281,13 @@ Update display name and thumbnail for an existing music job.
   <Tab title="POST (Like)">
     ```http
     POST /api/v1/music/jobs/{job_id}/like
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="DELETE (Unlike)">
     ```http
     DELETE /api/v1/music/jobs/{job_id}/like
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -1297,7 +1297,7 @@ Update display name and thumbnail for an existing music job.
     # Like a track
     response = requests.post(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/like",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1308,7 +1308,7 @@ Update display name and thumbnail for an existing music job.
     # Unlike a track
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/like",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     ```
   </Tab>
@@ -1335,13 +1335,13 @@ Update display name and thumbnail for an existing music job.
   <Tab title="POST (Dislike)">
     ```http
     POST /api/v1/music/jobs/{job_id}/dislike
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="DELETE (Remove Dislike)">
     ```http
     DELETE /api/v1/music/jobs/{job_id}/dislike
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -1351,7 +1351,7 @@ Update display name and thumbnail for an existing music job.
     # Dislike a track
     response = requests.post(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/dislike",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1362,7 +1362,7 @@ Update display name and thumbnail for an existing music job.
     # Remove dislike from track
     response = requests.delete(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/dislike",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     ```
   </Tab>
@@ -1376,7 +1376,7 @@ Generate a shareable URL for a music track, enabling public access.
   <Tab title="POST">
     ```http
     POST /api/v1/music/jobs/{job_id}/share
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -1402,7 +1402,7 @@ Generate a shareable URL for a music track, enabling public access.
     response = requests.post(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/share",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=share_data
@@ -1435,7 +1435,7 @@ Get public statistics for a music track.
   <Tab title="GET">
     ```http
     GET /api/v1/music/jobs/{job_id}/stats
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -1443,7 +1443,7 @@ Get public statistics for a music track.
     job_id = 123
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/stats",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1479,7 +1479,7 @@ Get the current user's interaction status with a specific track.
   <Tab title="GET">
     ```http
     GET /api/v1/music/jobs/{job_id}/interaction-status
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -1487,7 +1487,7 @@ Get the current user's interaction status with a specific track.
     job_id = 123
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/interaction-status",
-        headers={"Authorization": f"Bearer {api_key}"}
+        headers={"X-API-Key": api_key}
     )
     
     if response.status_code == 200:
@@ -1715,7 +1715,7 @@ Add a comment to a publicly shared track (supports both authenticated and anonym
   <Tab title="POST (Authenticated)">
     ```http
     POST /api/v1/music/shared/{share_token}/comments
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -1747,7 +1747,7 @@ Add a comment to a publicly shared track (supports both authenticated and anonym
     auth_response = requests.post(
         f"https://api.audiopod.ai/api/v1/music/shared/{share_token}/comments",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=authenticated_comment
@@ -1852,7 +1852,7 @@ Add a comment to your own track (requires authentication).
   <Tab title="POST">
     ```http
     POST /api/v1/music/jobs/{job_id}/comments
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     Content-Type: application/json
     
     {
@@ -1870,7 +1870,7 @@ Add a comment to your own track (requires authentication).
     response = requests.post(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/comments",
         headers={
-            "Authorization": f"Bearer {api_key}",
+            "X-API-Key": api_key,
             "Content-Type": "application/json"
         },
         json=comment_data
@@ -1889,7 +1889,7 @@ Add a comment to your own track (requires authentication).
   <Tab title="GET">
     ```http
     GET /api/v1/music/jobs/{job_id}/comments?skip=0&limit=50
-    Authorization: Bearer {api_key}
+    X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
@@ -1897,7 +1897,7 @@ Add a comment to your own track (requires authentication).
     job_id = 123
     response = requests.get(
         f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/comments",
-        headers={"Authorization": f"Bearer {api_key}"},
+        headers={"X-API-Key": api_key},
         params={"skip": 0, "limit": 50}
     )
     
@@ -1919,7 +1919,7 @@ Add a comment to your own track (requires authentication).
         # Get job details
         response = requests.get(
             f"https://api.audiopod.ai/api/v1/music/jobs/{job_id}/status",
-            headers={"Authorization": f"Bearer {api_key}"}
+            headers={"X-API-Key": api_key}
         )
         
         if response.status_code != 200:
