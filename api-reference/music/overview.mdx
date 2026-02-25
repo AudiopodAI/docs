@@ -10,7 +10,7 @@ AudioPod AI's **AudioMusic V2** is a state-of-the-art music generation engine th
 ### Key Capabilities
 
 - **Text-to-Music**: Generate complete songs with vocals from prompts and lyrics
-- **Simple Mode**: Describe what you want in natural language — the 4B LM handles everything
+- **Simple Mode**: Describe what you want in natural language — AudioMusic V2 handles everything
 - **Cover / Style Transfer**: Transform existing audio into different styles and genres
 - **Reference Audio**: Guide generation using a reference track's timbre and mixing style
 - **Audio Analysis**: Extract metadata (BPM, key, lyrics, caption) from any audio
@@ -49,7 +49,7 @@ The fastest way to generate music. Just describe what you want:
 
     client = AudioPod(api_key="ap_your_api_key")
 
-    # Simple mode — the 4B LM auto-generates everything
+    # Simple mode — AudioMusic V2 auto-generates everything
     job = client.music.simple(
         query="a soft Bengali love song for a quiet evening",
         wait_for_completion=True
@@ -63,7 +63,7 @@ The fastest way to generate music. Just describe what you want:
 
     const client = new AudioPod({ apiKey: 'ap_your_api_key' });
 
-    // Simple mode — the 4B LM auto-generates everything
+    // Simple mode — AudioMusic V2 auto-generates everything
     const job = await client.music.simple({
       query: 'a soft Bengali love song for a quiet evening',
     });
@@ -142,7 +142,7 @@ AudioMusic V2 includes a language model that can auto-generate and refine metada
 
 ### Music Metadata Parameters
 
-These are auto-detected by the 4B LM when `thinking: true`, but can be specified manually.
+These are auto-detected when `thinking: true`, but can be specified manually.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -221,7 +221,7 @@ Credits are reserved when the job is created and refunded if generation fails.
 
 ## Best Practices
 
-1. **Use Simple Mode for quick results** — describe what you want in natural language and let the 4B LM handle the details
+1. **Use Simple Mode for quick results** — describe what you want in natural language and let AudioMusic V2 handle the details
 2. **Enable `thinking: true`** (default) for best quality — Chain-of-Thought reasoning significantly improves output
 3. **Use `caption` over `prompt`** — AudioMusic V2 uses `caption` internally; `prompt` is a legacy alias
 4. **Set `inference_steps: 64`** for production quality. Use 32 for fast drafts, 8 for turbo previews
