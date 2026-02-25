@@ -1,0 +1,375 @@
+---
+title: "Job Management"
+description: "Query, filter, manage, and retry music generation jobs."
+---
+
+## Get Job Status
+
+### `GET /api/v1/music/jobs/{job_id}/status`
+
+Get the current status of a music generation job.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    job = client.music.get_job(123)
+    print(f"Status: {job['status']}")
+
+    if job['status'] == 'COMPLETED':
+        print(f"Audio URL: {job['output_url']}")
+        print(f"Duration: {job['audio_duration']}s")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const job = await client.music.get(123);
+    console.log(`Status: ${job.status}`);
+
+    if (job.status === 'COMPLETED') {
+      console.log(`Audio URL: ${job.output_url}`);
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.audiopod.ai/api/v1/music/jobs/123/status" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+**Response:** Full `MusicGenerationJob` object (see [response format](/api-reference/music/generation#response-format)).
+
+---
+
+## List Jobs
+
+### `GET /api/v1/music/jobs`
+
+List music generation jobs with filtering, search, and sorting.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # List recent jobs
+    jobs = client.music.list_jobs(limit=20)
+
+    # Filter by task type
+    songs = client.music.list_jobs(task="text2music", limit=50)
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    // List recent jobs
+    const jobs = await client.music.list({ limit: 20 });
+
+    // Filter by status
+    const completed = await client.music.list({
+      status: 'COMPLETED',
+      limit: 50,
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # List with filters
+    curl "https://api.audiopod.ai/api/v1/music/jobs?status=COMPLETED&sort_by=created_at&sort_order=desc&limit=20" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skip` | int | 0 | Number of records to skip |
+| `limit` | int | 50 | Number of records to return (max 100) |
+| `task` | string | null | Filter by task type (`text2music`, `prompt2instrumental`, etc.) |
+| `status` | string | null | Filter by status (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`) |
+| `song_type` | string | null | Filter by category: `rap`, `song`, `vocals`, `instrumental`, `samples` |
+| `liked` | bool | null | Filter to liked (true) or not-liked (false) tracks |
+| `search` | string | null | Search across display name, prompt, and lyrics |
+| `language` | string | null | Filter by vocal language |
+| `genre` | string | null | Filter by genre |
+| `emotion` | string | null | Filter by emotion tag |
+| `occasion` | string | null | Filter by occasion tag |
+| `sort_by` | string | `"created_at"` | Sort field: `created_at`, `display_name`, `audio_duration`, `status` |
+| `sort_order` | string | `"desc"` | Sort direction: `asc` or `desc` |
+| `include_interactions` | bool | false | Include like/dislike status for each job |
+
+**Response Headers:**
+- `X-Total-Count`: Total number of matching records (for pagination)
+
+---
+
+## Delete Job
+
+### `DELETE /api/v1/music/jobs/{job_id}`
+
+Delete a music generation job and its associated audio files.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    result = client.music.delete_job(123)
+    print(result['message'])  # "Job deleted successfully"
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    await client.music.delete(123);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X DELETE "https://api.audiopod.ai/api/v1/music/jobs/123" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Update Job Metadata
+
+### `PATCH /api/v1/music/jobs/{job_id}`
+
+Update a job's display name or thumbnail URL.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X PATCH "https://api.audiopod.ai/api/v1/music/jobs/123" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "display_name": "My Awesome Track",
+        "thumbnail_url": "https://example.com/thumbnail.jpg"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Body:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `display_name` | string | New display name |
+| `thumbnail_url` | string | New thumbnail image URL |
+
+---
+
+## Retry Failed Job
+
+### `POST /api/v1/music/jobs/{job_id}/retry`
+
+Retry a failed music generation job without consuming additional credits. The original credit reservation is reused.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/jobs/123/retry" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+**Constraints:**
+- Only works on jobs with `status: "FAILED"`
+- Original credit reservation is reused (no additional charge)
+- Returns a `MusicGenerationResponse` with the re-queued job
+
+**Rate limit:** 10 requests per minute.
+
+---
+
+## Job Counts
+
+### `GET /api/v1/music/jobs/counts`
+
+Get aggregated counts of your music generation jobs, broken down by task type and song category.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # All counts
+    curl "https://api.audiopod.ai/api/v1/music/jobs/counts" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+
+    # Filter by status
+    curl "https://api.audiopod.ai/api/v1/music/jobs/counts?status=COMPLETED" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+**Query Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `status` | string | Filter by status |
+| `song_type` | string | Filter by category: `rap`, `song`, `vocals`, `instrumental`, `samples` |
+
+**Response:**
+
+```json
+{
+  "total": 150,
+  "by_task": {
+    "text2music": 80,
+    "prompt2instrumental": 40,
+    "text2rap": 20,
+    "retake": 10
+  },
+  "by_song_type": {
+    "songs": 80,
+    "rap": 20,
+    "instrumental": 40,
+    "edits": 10
+  },
+  "filters": {
+    "status": null,
+    "song_type": null
+  }
+}
+```
+
+---
+
+## Liked Tracks
+
+### `GET /api/v1/music/liked`
+
+Get all tracks you've liked.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.audiopod.ai/api/v1/music/liked?limit=20" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `skip` | int | 0 | Pagination offset |
+| `limit` | int | 50 | Number of records |
+| `song_type` | string | null | Filter by category |
+| `status` | string | null | Filter by status |
+
+---
+
+## Filter Statistics
+
+### `GET /api/v1/music/filters/stats`
+
+Get statistics for building filter UI dropdowns — total tracks, liked count, task distribution, and available filter values.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.audiopod.ai/api/v1/music/filters/stats" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "total_tracks": 150,
+  "liked_count": 25,
+  "song_types": {
+    "songs": 80,
+    "rap": 20,
+    "instrumental": 40,
+    "edits": 10
+  },
+  "available_filters": {
+    "song_types": ["songs", "rap", "instrumental", "edits"],
+    "interactions": ["liked"],
+    "statuses": ["pending", "processing", "completed", "failed"],
+    "languages": ["en", "zh", "ja", "ko"],
+    "genres": ["pop", "rock", "jazz"],
+    "emotions": ["happy", "sad", "energetic"],
+    "occasions": ["party", "relaxation", "workout"]
+  }
+}
+```
+
+---
+
+## Genre Presets
+
+### `GET /api/v1/music/presets`
+
+Get available genre presets with their pre-configured parameters.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    presets = client.music.get_presets()
+    for name, config in presets['genre_presets'].items():
+        print(f"{name}: {config}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const presets = await client.music.getPresets();
+    console.log(presets);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.audiopod.ai/api/v1/music/presets" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Model Status
+
+### `GET /api/v1/music/model/status`
+
+Get AudioMusic V2 model health and status information.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.audiopod.ai/api/v1/music/model/status" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Sample Data
+
+### `GET /api/v1/music/sample-data`
+
+Get sample/test data for development and testing purposes.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl "https://api.audiopod.ai/api/v1/music/sample-data" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+</Tabs>

@@ -71,7 +71,13 @@
           {
             "group": "Music",
             "icon": "music",
-            "pages": ["api-reference/music-generation"]
+            "pages": [
+              "api-reference/music/overview",
+              "api-reference/music/generation",
+              "api-reference/music/audio-tools",
+              "api-reference/music/jobs",
+              "api-reference/music/social"
+            ]
           },
           {
             "group": "Utilities",
@@ -138,7 +144,6 @@
       "mode": "show"
     }
   },
-  "openapi": "/api-reference/openapi.json",
   "feedback": {
     "thumbsRating": true,
     "raiseIssue": true,

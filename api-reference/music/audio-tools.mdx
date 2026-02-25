@@ -1,0 +1,463 @@
+---
+title: "Audio Tools"
+description: "Cover generation, reference audio, audio analysis, stem extraction, and music editing with AudioMusic V2."
+---
+
+## Cover / Style Transfer
+
+### `POST /api/v1/music/cover`
+
+Transform existing audio while maintaining structure but changing style, timbre, and genre.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Transform a pop song into jazz
+    job = client.music.cover(
+        src_audio_url="https://example.com/pop-song.mp3",
+        caption="jazz piano version with upright bass and brushed drums",
+        audio_cover_strength=0.7,
+        wait_for_completion=True
+    )
+    print(f"Cover URL: {job['output_url']}")
+
+    # Lighter transformation (more of the original preserved)
+    job = client.music.cover(
+        src_audio_url="https://example.com/song.mp3",
+        caption="acoustic guitar version",
+        audio_cover_strength=0.4,
+        lyrics="[Verse 1]\nNew lyrics for the cover version",
+        wait_for_completion=True
+    )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const job = await client.music.cover({
+      srcAudioUrl: 'https://example.com/pop-song.mp3',
+      caption: 'jazz piano version with upright bass',
+      audioCoverStrength: 0.7,
+    });
+    const completed = await client.music.waitForCompletion(job.id);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/cover" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "src_audio_url": "https://example.com/pop-song.mp3",
+        "caption": "jazz piano version with upright bass and brushed drums",
+        "audio_cover_strength": 0.7
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `src_audio_url` | string | Yes | — | URL of the source audio to transform |
+| `caption` | string | Yes | — | Style description for the cover |
+| `lyrics` | string | No | null | New lyrics for the cover version |
+| `audio_cover_strength` | float | No | 0.7 | Transformation strength. 0.0 = completely new, 1.0 = closest to original |
+| `display_name` | string | No | null | Custom name |
+| + all [base parameters](/api-reference/music/overview#complete-parameters-reference) ||||
+
+---
+
+## Reference Audio
+
+### `POST /api/v1/music/reference`
+
+Generate music guided by a reference audio's acoustic features — timbre, mixing style, spatial characteristics, and overall atmosphere.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    job = client.music.reference(
+        reference_audio_url="https://example.com/reference-track.mp3",
+        caption="upbeat pop song with similar vocal warmth and production style",
+        lyrics="[Verse]\nHello world\n[Chorus]\nLa la la",
+        wait_for_completion=True
+    )
+    print(f"Reference-guided URL: {job['output_url']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const job = await client.music.reference({
+      referenceAudioUrl: 'https://example.com/reference-track.mp3',
+      caption: 'upbeat pop song with similar vocal warmth',
+      lyrics: '[Verse]\nHello world\n[Chorus]\nLa la la',
+    });
+    const completed = await client.music.waitForCompletion(job.id);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/reference" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "reference_audio_url": "https://example.com/reference-track.mp3",
+        "caption": "upbeat pop song with similar vocal warmth",
+        "lyrics": "[Verse]\nHello world\n[Chorus]\nLa la la"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `reference_audio_url` | string | Yes | — | URL of reference audio for style guidance |
+| `caption` | string | Yes | — | Text description of desired music |
+| `lyrics` | string | No | null | Song lyrics |
+| `instrumental` | bool | No | false | Generate instrumental only |
+| `display_name` | string | No | null | Custom name |
+| + all [base parameters](/api-reference/music/overview#complete-parameters-reference) ||||
+
+---
+
+## Audio Analysis
+
+### `POST /api/v1/music/analyze`
+
+Extract metadata from audio using AudioMusic V2's 4B Language Model. Returns caption, lyrics, BPM, key, time signature, duration, and language.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    analysis = client.music.analyze(
+        audio_url="https://example.com/song.mp3"
+    )
+
+    if analysis.get("success"):
+        print(f"Caption: {analysis['caption']}")
+        print(f"BPM: {analysis['bpm']}")
+        print(f"Key: {analysis['keyscale']}")
+        print(f"Time Sig: {analysis['timesignature']}")
+        print(f"Duration: {analysis['duration']}s")
+        print(f"Language: {analysis['language']}")
+        if analysis.get('lyrics'):
+            print(f"Lyrics:\n{analysis['lyrics']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const analysis = await client.music.analyze({
+      audioUrl: 'https://example.com/song.mp3',
+    });
+
+    if (analysis.success) {
+      console.log(`Caption: ${analysis.caption}`);
+      console.log(`BPM: ${analysis.bpm}`);
+      console.log(`Key: ${analysis.keyscale}`);
+    }
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/analyze" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"audio_url": "https://example.com/song.mp3"}'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `audio_url` | string | Yes | — | URL of audio to analyze |
+| `audio_codes` | string | No | null | Pre-extracted semantic codes |
+| `temperature` | float | No | 0.85 | LM temperature for analysis (0.0-2.0) |
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "caption": "upbeat pop song with female vocals, electronic beats, 4/4 time",
+  "lyrics": "[Verse 1]\nWalking down the street...",
+  "bpm": 120,
+  "keyscale": "C Major",
+  "timesignature": "4/4",
+  "duration": 195.5,
+  "language": "en",
+  "audio_codes": "..."
+}
+```
+
+**Rate limit:** 10 requests per minute.
+
+---
+
+## Stem Extraction
+
+### `POST /api/v1/music/extract-stem`
+
+Extract a specific instrument or vocal track from audio.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    # Extract vocals
+    job = client.music.extract_stem(
+        src_audio_url="https://example.com/song.mp3",
+        track_name="vocals",
+        wait_for_completion=True
+    )
+    print(f"Vocals URL: {job['output_url']}")
+
+    # Extract drums
+    job = client.music.extract_stem(
+        src_audio_url="https://example.com/song.mp3",
+        track_name="drums",
+        wait_for_completion=True
+    )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const job = await client.music.extractStem({
+      srcAudioUrl: 'https://example.com/song.mp3',
+      trackName: 'vocals',
+    });
+    const completed = await client.music.waitForCompletion(job.id);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/extract-stem" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "src_audio_url": "https://example.com/song.mp3",
+        "track_name": "vocals"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `src_audio_url` | string | Yes | URL of audio to extract stem from |
+| `track_name` | string | Yes | Instrument to extract (see table below) |
+| `display_name` | string | No | Custom name for the job |
+
+**Available Tracks:**
+
+| Track Name | Description |
+|------------|-------------|
+| `vocals` | Lead vocals |
+| `drums` | Full drum kit |
+| `bass` | Bass guitar / bass synth |
+| `guitar` | Guitar (acoustic/electric) |
+| `keyboard` | Piano / keyboard |
+| `strings` | String instruments |
+| `synth` | Synthesizers |
+| `percussion` | Percussion elements |
+| `brass` | Brass instruments |
+| `woodwinds` | Woodwind instruments |
+| `backing_vocals` | Background vocals |
+| `fx` | Sound effects |
+
+---
+
+## Retake (Variations)
+
+### `POST /api/v1/music/retake`
+
+Generate variations of an existing music track by re-running with different seeds.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/retake" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "original_job_id": 123,
+        "retake_variance": 0.7,
+        "display_name": "Jazz Variation"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `original_job_id` | int | Yes | — | ID of the completed original job |
+| `retake_variance` | float | No | 0.7 | Variation strength (0.0-1.0) |
+| `retake_seeds` | int[] | No | null | Specific seeds for reproducibility |
+| `display_name` | string | No | null | Custom name |
+
+**Rate limit:** 10 requests per minute.
+
+---
+
+## Repaint (Section Regeneration)
+
+### `POST /api/v1/music/repaint`
+
+Regenerate a specific time segment of audio while keeping the rest intact. Useful for fixing problematic sections or changing lyrics in a segment.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/repaint" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "source_job_id": 123,
+        "repainting_start": 30.0,
+        "repainting_end": 60.0,
+        "caption": "energetic chorus with powerful vocals",
+        "lyrics": "[Chorus]\nNew chorus lyrics here"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `source_job_id` | int | No | null | ID of source job (alternative to `src_audio_url`) |
+| `src_audio_url` | string | No | null | URL of source audio (alternative to `source_job_id`) |
+| `repainting_start` | float | Yes | — | Start time in seconds |
+| `repainting_end` | float | Yes | — | End time in seconds (-1 for end of file) |
+| `caption` | string | Yes | — | Style description for the repainted section |
+| `lyrics` | string | No | null | Lyrics for the repainted section |
+| `display_name` | string | No | null | Custom name |
+
+**Note:** Either `source_job_id` or `src_audio_url` must be provided.
+
+**Rate limit:** 3 requests per minute.
+
+---
+
+## Extend
+
+### `POST /api/v1/music/extend`
+
+Extend an existing music track by adding content at the beginning or end.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/extend" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "source_job_id": 123,
+        "right_extend_length": 30.0,
+        "prompt": "continue with the same energy and add a dramatic outro",
+        "lyrics": "[Outro]\nThe music fades away"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `source_job_id` | int | Yes | — | ID of the completed source job |
+| `left_extend_length` | float | No | 0.0 | Seconds to add at the beginning (0.0-60.0) |
+| `right_extend_length` | float | No | 30.0 | Seconds to add at the end (0.0-60.0) |
+| `prompt` | string | Yes | — | Style description for the extension |
+| `lyrics` | string | No | null | Lyrics for the extension |
+| `display_name` | string | No | null | Custom name |
+
+**Rate limit:** 3 requests per minute.
+
+---
+
+## Edit
+
+### `POST /api/v1/music/edit`
+
+Edit existing audio with new prompts and lyrics while preserving the overall structure.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/edit" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "source_job_id": 123,
+        "edit_target_prompt": "make the guitars more prominent and add reverb",
+        "display_name": "Guitar Edit"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `source_job_id` | int | Yes | — | ID of the completed source job |
+| `edit_target_prompt` | string | No | null | New style/prompt for the edit |
+| `edit_target_lyrics` | string | No | null | New lyrics |
+| `edit_type` | string | No | null | Edit type identifier |
+| `edit_n_min` | float | No | null | Edit range minimum |
+| `edit_n_max` | float | No | null | Edit range maximum |
+| `display_name` | string | No | null | Custom name |
+
+**Rate limit:** 3 requests per minute.
+
+---
+
+## LRC Timestamp Generation
+
+### `POST /api/v1/music/{job_id}/lrc`
+
+Generate synchronized LRC (lyric) timestamps for a completed music job.
+
+<Note>
+LRC generation requires internal tensors from the music generation process. For best results, enable `generate_lrc: true` when creating the music generation request. This endpoint is for retroactive LRC generation which has limitations.
+</Note>
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/123/lrc" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json"
+    ```
+  </Tab>
+</Tabs>
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "job_id": 123,
+  "lrc_content": "[00:00.00] Walking down the street\n[00:05.20] On a sunny day...",
+  "lrc_url": "https://media.audiopod.ai/lrc/123.lrc"
+}
+```
+
+**Rate limit:** 20 requests per minute.

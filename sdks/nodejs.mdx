@@ -157,20 +157,65 @@ const audio = await client.voice.generate({
 
 ---
 
-## Music Generation
+## Music Generation (AudioMusic V2)
 
-Generate AI music from text prompts.
+Generate AI music with AudioMusic V2 — text-to-music, covers, style transfer, audio analysis, and more.
 
 ```typescript
 import AudioPod from 'audiopod';
 
 const client = new AudioPod({ apiKey: 'ap_your_api_key' });
 
-// Generate music
-const song = await client.music.generate({
-  prompt: 'upbeat electronic dance music with heavy bass'
+// Simple mode — just describe what you want
+const job = await client.music.simple({
+  query: 'a soft Bengali love song for a quiet evening',
 });
-console.log(`Music URL: ${song.outputUrl}`);
+const song = await client.music.waitForCompletion(job.id);
+console.log(`Music URL: ${song.output_url}`);
+
+// Full control with text2music
+const advanced = await client.music.create({
+  prompt: 'upbeat pop, female vocals, catchy melody',
+  task: 'text2music',
+  lyrics: '[verse]\nSun is shining bright\n[chorus]\nDance the night away',
+  duration: 120,
+  inferenceSteps: 64,
+  guidanceScale: 7.0,
+  format: 'flac',
+});
+
+// Instrumental
+const instrumental = await client.music.instrumental(
+  'chill jazz piano with saxophone', 90
+);
+
+// Cover / style transfer
+const cover = await client.music.cover({
+  srcAudioUrl: 'https://example.com/song.mp3',
+  caption: 'jazz piano version with upright bass',
+  audioCoverStrength: 0.7,
+});
+
+// Analyze existing audio
+const analysis = await client.music.analyze({
+  audioUrl: 'https://example.com/song.mp3',
+});
+console.log(`BPM: ${analysis.bpm}, Key: ${analysis.keyscale}`);
+
+// Extract stems
+const vocals = await client.music.extractStem({
+  srcAudioUrl: 'https://example.com/song.mp3',
+  trackName: 'vocals',
+});
+const completed = await client.music.waitForCompletion(vocals.id);
+console.log(`Vocals URL: ${completed.output_url}`);
+
+// Reference audio for style guidance
+const ref = await client.music.reference({
+  referenceAudioUrl: 'https://example.com/reference.mp3',
+  caption: 'upbeat pop with similar warmth',
+  lyrics: '[verse]\nHello world',
+});
 ```
 
 ---

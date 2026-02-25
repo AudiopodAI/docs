@@ -152,20 +152,70 @@ print(f"Voice ID: {voice['id']}")
 
 ---
 
-## Music Generation
+## Music Generation (AudioMusic V2)
 
-Generate AI music from text prompts.
+Generate AI music with AudioMusic V2 — text-to-music, covers, style transfer, audio analysis, and more.
 
 ```python
 from audiopod import AudioPod
 
 client = AudioPod(api_key="ap_your_api_key")
 
-# Generate music
-song = client.music.generate(
-    prompt="upbeat electronic dance music with heavy bass"
+# Simple mode — just describe what you want
+song = client.music.simple(
+    query="a soft Bengali love song for a quiet evening",
+    wait_for_completion=True
 )
 print(f"Music URL: {song['output_url']}")
+
+# Full control with text2music
+song = client.music.generate(
+    prompt="upbeat pop, female vocals, catchy melody",
+    task="text2music",
+    lyrics="[verse]\nSun is shining bright today\n[chorus]\nLet's dance the night away",
+    duration=120,
+    inference_steps=64,
+    guidance_scale=7.0,
+    format="flac",
+    wait_for_completion=True
+)
+
+# Instrumental
+instrumental = client.music.instrumental(
+    prompt="chill jazz piano with saxophone",
+    duration=90,
+    wait_for_completion=True
+)
+
+# Cover / style transfer
+cover = client.music.cover(
+    src_audio_url="https://example.com/song.mp3",
+    caption="jazz piano version with upright bass",
+    audio_cover_strength=0.7,
+    wait_for_completion=True
+)
+
+# Analyze existing audio
+analysis = client.music.analyze(
+    audio_url="https://example.com/song.mp3"
+)
+print(f"BPM: {analysis['bpm']}, Key: {analysis['keyscale']}")
+
+# Extract stems
+vocals = client.music.extract_stem(
+    src_audio_url="https://example.com/song.mp3",
+    track_name="vocals",
+    wait_for_completion=True
+)
+print(f"Vocals URL: {vocals['output_url']}")
+
+# Reference audio for style guidance
+ref_song = client.music.reference(
+    reference_audio_url="https://example.com/reference.mp3",
+    caption="upbeat pop with similar warmth",
+    lyrics="[verse]\nHello world",
+    wait_for_completion=True
+)
 ```
 
 ---

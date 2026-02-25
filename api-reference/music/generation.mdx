@@ -1,0 +1,442 @@
+---
+title: "Music Generation"
+description: "Generate songs, instrumentals, rap, vocals, samples, and more using AudioMusic V2 endpoints."
+---
+
+## Text-to-Music
+
+### `POST /api/v1/music/text2music`
+
+Generate complete musical compositions with vocals from text prompts and lyrics.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Generate a pop song with lyrics
+    job = client.music.song(
+        prompt="upbeat pop, female vocals, catchy melody, electronic beats",
+        lyrics="""[Verse 1]
+Walking down the street on a sunny day
+Everything feels right in every way
+
+[Chorus]
+This is our time to shine
+Leave the worries behind
+Dancing through the night
+Everything's gonna be alright""",
+        duration=120,
+        wait_for_completion=True
+    )
+    print(f"Music URL: {job['output_url']}")
+
+    # Advanced generation with AudioMusic V2 parameters
+    job = client.music.generate(
+        prompt="epic orchestral soundtrack with dramatic crescendos",
+        task="text2music",
+        duration=180,
+        inference_steps=64,
+        guidance_scale=10.0,
+        thinking=True,
+        generate_lrc=True,
+        format="flac",
+        wait_for_completion=True
+    )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    // Generate a pop song with lyrics
+    const job = await client.music.song(
+      'upbeat pop, female vocals, catchy melody',
+      `[Verse 1]
+Walking down the street on a sunny day
+Everything feels right in every way
+
+[Chorus]
+This is our time to shine
+Leave the worries behind`,
+      120
+    );
+    const completed = await client.music.waitForCompletion(job.id);
+    console.log(`Music URL: ${completed.output_url}`);
+
+    // Advanced generation with AudioMusic V2 parameters
+    const advancedJob = await client.music.create({
+      prompt: 'epic orchestral soundtrack with dramatic crescendos',
+      task: 'text2music',
+      duration: 180,
+      inferenceSteps: 64,
+      guidanceScale: 10.0,
+      thinking: true,
+      generateLrc: true,
+      format: 'flac',
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/text2music" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "caption": "upbeat pop, female vocals, catchy melody, electronic beats",
+        "lyrics": "[Verse 1]\nWalking down the street on a sunny day\nEverything feels right\n[Chorus]\nThis is our time to shine",
+        "audio_duration": 120,
+        "inference_steps": 64,
+        "guidance_scale": 7.0,
+        "format": "flac",
+        "generate_lrc": true
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `caption` | string | Yes | Text description of desired music style (0-2048 chars). Also accepts `prompt` |
+| `lyrics` | string | No | Song lyrics with structure tags: `[verse]`, `[chorus]`, `[bridge]`, `[intro]`, `[outro]`, `[Instrumental]` |
+| `instrumental` | bool | No | If true, ignores lyrics and generates instrumental. Default: false |
+| `genre_preset` | string | No | Genre preset name (see [Overview](/api-reference/music/overview#genre-presets)) |
+| `display_name` | string | No | Custom name for the track |
+| + all [base parameters](/api-reference/music/overview#complete-parameters-reference) |||
+
+**Response:** `MusicGenerationResponse` with `job` object and `message`.
+
+---
+
+## Instrumental Generation
+
+### `POST /api/v1/music/prompt2instrumental`
+
+Create instrumental tracks without vocals from text prompts.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    client = AudioPod(api_key="ap_your_api_key")
+
+    job = client.music.instrumental(
+        prompt="chill jazz instrumental with piano and saxophone",
+        duration=90,
+        wait_for_completion=True
+    )
+    print(f"Instrumental URL: {job['output_url']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const job = await client.music.instrumental(
+      'chill jazz instrumental with piano and saxophone',
+      90
+    );
+    const completed = await client.music.waitForCompletion(job.id);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/prompt2instrumental" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "prompt": "chill jazz instrumental with piano and saxophone",
+        "audio_duration": 90,
+        "format": "flac"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `prompt` | string | Yes | Text description of desired instrumental |
+| `genre_preset` | string | No | Genre preset name |
+| `display_name` | string | No | Custom name for the track |
+| + all [base parameters](/api-reference/music/overview#complete-parameters-reference) |||
+
+---
+
+## Rap Generation
+
+### `POST /api/v1/music/text2rap`
+
+Generate rap music with custom lyrics and beats.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    client = AudioPod(api_key="ap_your_api_key")
+
+    job = client.music.rap(
+        prompt="hard-hitting trap beat with heavy bass and 808s",
+        lyrics="""[Verse 1]
+Started from the bottom now we here
+Grinding every day throughout the year
+Making moves, breaking through the ceiling
+Got that feeling, no time for healing
+
+[Chorus]
+This is our time to shine
+Leaving all the doubt behind
+Every step we take is gold
+Watch the story unfold""",
+        duration=120,
+        wait_for_completion=True
+    )
+    print(f"Rap URL: {job['output_url']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const job = await client.music.rap(
+      'hard-hitting trap beat with heavy bass and 808s',
+      `[Verse 1]
+Started from the bottom now we here
+Grinding every day throughout the year
+
+[Chorus]
+This is our time to shine
+Leaving all the doubt behind`,
+      120
+    );
+    const completed = await client.music.waitForCompletion(job.id);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/text2rap" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "prompt": "hard-hitting trap beat with heavy bass and 808s",
+        "lyrics": "[Verse 1]\nStarted from the bottom now we here\nGrinding every day throughout the year\n[Chorus]\nThis is our time to shine",
+        "audio_duration": 120
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:** Same as Text-to-Music. Lyrics are recommended for best results.
+
+---
+
+## Vocals Generation
+
+### `POST /api/v1/music/lyric2vocals`
+
+Generate vocal tracks from lyrics without full instrumental backing.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    job = client.music.generate(
+        prompt="female pop vocals with emotional delivery",
+        task="lyric2vocals",
+        lyrics="[Verse 1]\nWalking through the city lights\nEverything feels so bright",
+        duration=90,
+        wait_for_completion=True
+    )
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/lyric2vocals" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "prompt": "female pop vocals with emotional delivery",
+        "lyrics": "[Verse 1]\nWalking through the city lights\nEverything feels so bright",
+        "audio_duration": 90
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Sample Generation
+
+### `POST /api/v1/music/text2samples`
+
+Create audio loops, one-shots, and samples for music production.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    job = client.music.generate(
+        prompt="analog drum loop with vintage character, 120 BPM",
+        task="text2samples",
+        duration=8,
+        wait_for_completion=True
+    )
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/text2samples" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "prompt": "analog drum loop with vintage character, 120 BPM",
+        "audio_duration": 8,
+        "format": "wav"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Additional Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `sample_type` | string | null | Type of sample: `loop`, `one-shot` |
+| `tempo` | int | null | Target tempo in BPM (60-200) |
+
+**Note:** Maximum duration for samples is 120 seconds.
+
+---
+
+## Simple Mode
+
+### `POST /api/v1/music/simple`
+
+The easiest way to generate music. Describe what you want in natural language and AudioMusic V2's 4B Language Model automatically generates the caption, lyrics, BPM, key, time signature, and duration.
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Just describe what you want
+    job = client.music.simple(
+        query="energetic K-pop dance track with catchy hooks and a powerful chorus",
+        wait_for_completion=True
+    )
+    print(f"Music URL: {job['output_url']}")
+
+    # Instrumental with language preference
+    job = client.music.simple(
+        query="epic cinematic trailer music with orchestral elements",
+        instrumental=True,
+        wait_for_completion=True
+    )
+
+    # Specify language for vocals
+    job = client.music.simple(
+        query="a romantic ballad about lost love",
+        vocal_language="ja",  # Japanese
+        wait_for_completion=True
+    )
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    const job = await client.music.simple({
+      query: 'energetic K-pop dance track with catchy hooks',
+    });
+    const completed = await client.music.waitForCompletion(job.id);
+
+    // Instrumental
+    const instrumental = await client.music.simple({
+      query: 'epic cinematic trailer music',
+      instrumental: true,
+    });
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/music/simple" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "query": "energetic K-pop dance track with catchy hooks and a powerful chorus"
+      }'
+    ```
+  </Tab>
+</Tabs>
+
+**Request Parameters:**
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `query` | string | Yes | — | Natural language description of desired music (1-1000 chars) |
+| `instrumental` | bool | No | false | Generate instrumental only |
+| `vocal_language` | string | No | `"unknown"` | Vocal language code (auto-detected if `"unknown"`) |
+| `display_name` | string | No | null | Custom name for the track |
+| `duration` | float | No | -1 | Duration in seconds (-1 for auto) |
+| `format` | string | No | `"flac"` | Output format |
+
+**How Simple Mode Works:**
+
+The 4B Language Model uses Chain-of-Thought reasoning to automatically:
+1. Generate a detailed caption/tags from your natural language query
+2. Write lyrics (unless instrumental)
+3. Determine optimal BPM, musical key, and time signature
+4. Estimate appropriate duration
+
+This makes Simple Mode ideal for non-musicians who want to quickly generate high-quality music.
+
+---
+
+## Response Format
+
+All generation endpoints return the same response structure:
+
+```json
+{
+  "job": {
+    "id": 123,
+    "task": "text2music",
+    "status": "PENDING",
+    "progress": null,
+    "output_url": null,
+    "output_urls": null,
+    "display_name": "My Pop Song",
+    "audio_duration": 120.0,
+    "created_at": "2026-01-15T10:30:00Z",
+    "user_id": "user_123"
+  },
+  "message": "Text-to-music generation started"
+}
+```
+
+**Completed Job** (poll `GET /jobs/{id}/status`):
+
+```json
+{
+  "id": 123,
+  "task": "text2music",
+  "status": "COMPLETED",
+  "progress": 100,
+  "output_url": "https://media.audiopod.ai/music/123.flac",
+  "output_urls": {
+    "flac": "https://media.audiopod.ai/music/123.flac",
+    "mp3": "https://media.audiopod.ai/music/123.mp3",
+    "wav": "https://media.audiopod.ai/music/123.wav"
+  },
+  "audio_duration": 120.5,
+  "actual_seeds": [12345],
+  "lrc_content": "[00:00.00] Walking down the street...",
+  "quality_score": 0.87,
+  "display_name": "My Pop Song",
+  "created_at": "2026-01-15T10:30:00Z",
+  "completed_at": "2026-01-15T10:32:15Z"
+}
+```

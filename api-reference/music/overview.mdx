@@ -1,0 +1,270 @@
+---
+title: "AudioMusic V2"
+description: "Generate original music, instrumentals, covers, and audio transformations using AudioPod AI's AudioMusic V2 engine."
+---
+
+## Overview
+
+AudioPod AI's **AudioMusic V2** is a state-of-the-art music generation engine that transforms text descriptions into original musical compositions. Powered by a Diffusion Transformer (DiT) and a 4B parameter Language Model with Chain-of-Thought reasoning, AudioMusic V2 delivers studio-quality results across 50+ languages.
+
+### Key Capabilities
+
+- **Text-to-Music**: Generate complete songs with vocals from prompts and lyrics
+- **Simple Mode**: Describe what you want in natural language — the 4B LM handles everything
+- **Cover / Style Transfer**: Transform existing audio into different styles and genres
+- **Reference Audio**: Guide generation using a reference track's timbre and mixing style
+- **Audio Analysis**: Extract metadata (BPM, key, lyrics, caption) from any audio
+- **Stem Extraction**: Isolate specific instruments (vocals, drums, bass, guitar, and more)
+- **Repaint / Edit / Extend**: Modify specific sections, edit with new prompts, or extend tracks
+- **Batch Generation**: Generate 1-8 variations in a single request
+- **LRC Timestamps**: Synchronized lyric timestamps for karaoke-style playback
+- **Quality Scoring**: Automatic quality assessment for every generation
+- **50+ Languages**: Generate music with vocals in over 50 languages
+- **Multiple Formats**: Output in WAV, MP3, FLAC, or OGG
+- **Royalty-Free**: All generated music is 100% royalty-free for commercial use
+
+## Authentication
+
+All music endpoints require authentication. Use one of these methods:
+
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (for session-based auth)
+
+```bash
+# Example with API Key
+curl -X POST "https://api.audiopod.ai/api/v1/music/simple" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "upbeat pop song with catchy melody"}'
+```
+
+## Quick Start — Simple Mode
+
+The fastest way to generate music. Just describe what you want:
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # Simple mode — the 4B LM auto-generates everything
+    job = client.music.simple(
+        query="a soft Bengali love song for a quiet evening",
+        wait_for_completion=True
+    )
+    print(f"Music URL: {job['output_url']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    // Simple mode — the 4B LM auto-generates everything
+    const job = await client.music.simple({
+      query: 'a soft Bengali love song for a quiet evening',
+    });
+    const completed = await client.music.waitForCompletion(job.id);
+    console.log(`Music URL: ${completed.output_url}`);
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    # Create job
+    JOB=$(curl -s -X POST "https://api.audiopod.ai/api/v1/music/simple" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"query": "a soft Bengali love song for a quiet evening"}')
+
+    JOB_ID=$(echo $JOB | jq -r '.job.id')
+    echo "Job created: $JOB_ID"
+
+    # Poll for completion
+    while true; do
+      STATUS=$(curl -s "https://api.audiopod.ai/api/v1/music/jobs/$JOB_ID/status" \
+        -H "X-API-Key: $AUDIOPOD_API_KEY")
+      STATE=$(echo $STATUS | jq -r '.status')
+      echo "Status: $STATE"
+      [ "$STATE" = "COMPLETED" ] && echo "URL: $(echo $STATUS | jq -r '.output_url')" && break
+      [ "$STATE" = "FAILED" ] && echo "Failed" && break
+      sleep 5
+    done
+    ```
+  </Tab>
+</Tabs>
+
+## Complete Parameters Reference
+
+All music generation endpoints inherit from a common base. Here are all available parameters:
+
+### Core Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `duration` | float | -1.0 | Audio duration in seconds. Use -1 for automatic duration based on lyrics length. Max: 600 |
+| `format` | string | `"flac"` | Output audio format: `wav`, `mp3`, `flac`, `ogg` |
+| `model_version` | string | `"audiomusic-v2"` | Model version: `audiomusic-v2` (recommended) or `audiomusic-v1.5` |
+| `batch_size` | int | 1 | Number of variations to generate (1-8) |
+| `seed` | int | -1 | Random seed for reproducibility. Use -1 for random |
+
+### Diffusion Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `inference_steps` | int | 64 | Number of diffusion steps. Higher = better quality, slower. Range: 32-100 |
+| `guidance_scale` | float | 7.0 | Classifier-free guidance scale. Higher = more prompt adherence. Range: 1.0-15.0 |
+| `shift` | float | 3.0 | Timestep shift factor. Range: 1.0-5.0 |
+| `infer_method` | string | `"ode"` | Inference method: `ode` (Euler, faster) or `sde` (stochastic, more diverse) |
+| `use_adg` | bool | false | Enable Adaptive Dual Guidance for enhanced control |
+| `cfg_interval_start` | float | 0.0 | CFG interval start ratio (0.0-1.0) |
+| `cfg_interval_end` | float | 1.0 | CFG interval end ratio (0.0-1.0) |
+
+### Language Model (4B LM) Parameters
+
+AudioMusic V2 includes a 4B parameter language model that can auto-generate and refine metadata, captions, lyrics, and more.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `thinking` | bool | true | Enable Chain-of-Thought reasoning for higher quality |
+| `lm_temperature` | float | 0.85 | Sampling temperature (0.0-2.0). Lower = more deterministic |
+| `lm_cfg_scale` | float | 2.0 | LM classifier-free guidance (0.0-10.0) |
+| `lm_top_k` | int | 0 | Top-k sampling (0-100, 0 disables) |
+| `lm_top_p` | float | 0.9 | Nucleus sampling threshold (0.0-1.0) |
+| `lm_negative_prompt` | string | `"NO USER INPUT"` | Negative prompt for LM guidance |
+| `use_cot_metas` | bool | true | Auto-generate BPM, key, time signature via Chain-of-Thought |
+| `use_cot_caption` | bool | true | Refine caption/tags via Chain-of-Thought |
+| `use_cot_lyrics` | bool | false | Generate or refine lyrics via Chain-of-Thought |
+| `use_cot_language` | bool | true | Auto-detect vocal language via Chain-of-Thought |
+| `use_constrained_decoding` | bool | false | Enable structured LM output |
+
+### Music Metadata Parameters
+
+These are auto-detected by the 4B LM when `thinking: true`, but can be specified manually.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `bpm` | int | null | Beats per minute (30-300). Auto-detected if null |
+| `keyscale` | string | null | Musical key, e.g. `"C Major"`, `"Am"`. Auto-detected if null |
+| `timesignature` | string | null | Time signature: `"2/4"`, `"3/4"`, `"4/4"`, `"6/8"`. Auto-detected if null |
+| `vocal_language` | string | `"unknown"` | ISO 639-1 language code (e.g. `"en"`, `"zh"`, `"ja"`). Use `"unknown"` for auto-detection |
+
+### Output & Quality Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `generate_lrc` | bool | false | Generate synchronized LRC lyric timestamps |
+| `calculate_quality` | bool | true | Calculate quality score (0.0-1.0) for the output |
+| `thumbnail_url` | string | null | URL for custom track thumbnail image |
+
+### LoRA Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `lora_name_or_path` | string | null | Path to LoRA adapter for fine-tuned styles |
+| `lora_weight` | float | 1.0 | LoRA adapter weight (-3.0 to 3.0) |
+
+## Genre Presets
+
+Pre-configured genre settings for quick generation:
+
+| Preset | Description |
+|--------|-------------|
+| `Modern Pop` | Contemporary pop with electronic elements |
+| `Rock` | Guitar-driven rock music |
+| `Hip Hop` | Modern hip hop beats and production |
+| `Jazz` | Jazz compositions with improvisation |
+| `Classical` | Orchestral and classical arrangements |
+| `Electronic` | EDM, synth-driven electronic music |
+| `Country` | Country music with acoustic instruments |
+| `Folk` | Folk music with traditional elements |
+| `Blues` | Blues with soulful expression |
+| `Reggae` | Reggae with Caribbean rhythms |
+| `Latin` | Latin music styles |
+| `R&B` | Rhythm and blues |
+| `Metal` | Heavy metal and rock subgenres |
+| `Custom` | Custom genre (specify in caption/prompt) |
+
+## Output Formats
+
+| Format | Extension | Quality | Use Case |
+|--------|-----------|---------|----------|
+| FLAC | `.flac` | Lossless | Default. Best quality, larger files |
+| WAV | `.wav` | Lossless | Uncompressed, maximum compatibility |
+| MP3 | `.mp3` | Lossy | Smaller files, streaming |
+| OGG | `.ogg` | Lossy | Open format, good compression |
+
+## Job Lifecycle
+
+All music generation is asynchronous:
+
+1. **Submit** a generation request → receive a job with `status: "PENDING"`
+2. **Poll** the job status endpoint → `"PROCESSING"` while generating
+3. **Complete** → `status: "COMPLETED"` with `output_url` and `output_urls` (multiple formats)
+4. **Failed** → `status: "FAILED"` with `error_message` (use retry endpoint to re-queue)
+
+## Pricing
+
+Music generation is billed per minute of audio generated:
+
+| Duration | Credits |
+|----------|---------|
+| Up to 30s | 5 credits |
+| 30s - 60s | 10 credits |
+| 60s - 120s | 15 credits |
+| 120s - 300s | 25 credits |
+| 300s - 600s | 40 credits |
+
+Credits are reserved when the job is created and refunded if generation fails.
+
+## Best Practices
+
+1. **Use Simple Mode for quick results** — describe what you want in natural language and let the 4B LM handle the details
+2. **Enable `thinking: true`** (default) for best quality — Chain-of-Thought reasoning significantly improves output
+3. **Use `caption` over `prompt`** — AudioMusic V2 uses `caption` internally; `prompt` is a legacy alias
+4. **Set `inference_steps: 64`** for production quality. Use 32 for fast drafts, 8 for turbo previews
+5. **Default `guidance_scale: 7.0`** works well for most cases. Increase to 10-15 for stronger prompt adherence
+6. **Use structure tags in lyrics** — `[verse]`, `[chorus]`, `[bridge]`, `[intro]`, `[outro]`, `[Instrumental]`
+7. **Use `batch_size > 1`** to generate multiple variations and pick the best one
+8. **Enable `generate_lrc: true`** when you need synchronized lyric timestamps
+
+## Error Handling
+
+| Status Code | Description |
+|-------------|-------------|
+| 200 | Success |
+| 400 | Invalid parameters (check error message for details) |
+| 401 | Authentication required |
+| 402 | Insufficient credits |
+| 404 | Job or resource not found |
+| 429 | Rate limit exceeded (wait and retry) |
+| 500 | Internal server error |
+
+<Accordion title="Common Errors">
+  **"Insufficient credits"** — Your wallet balance is too low. Top up at [Dashboard](https://www.audiopod.ai/dashboard/account).
+
+  **"Job must be completed"** — You tried to retake/extend/edit a job that hasn't finished yet. Wait for completion first.
+
+  **"Original music job not found"** — The source job ID doesn't exist or doesn't belong to your account.
+
+  **"Rate limit exceeded"** — You've exceeded the rate limit. Wait a moment and try again.
+</Accordion>
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Music Generation" icon="music" href="/api-reference/music/generation">
+    Text-to-Music, Instrumental, Rap, Vocals, Samples, Simple Mode
+  </Card>
+  <Card title="Audio Tools" icon="wand-magic-sparkles" href="/api-reference/music/audio-tools">
+    Cover, Reference Audio, Analysis, Stem Extraction, Edit, Extend
+  </Card>
+  <Card title="Job Management" icon="list-check" href="/api-reference/music/jobs">
+    Job status, listing, filtering, retry, presets
+  </Card>
+  <Card title="Social & Sharing" icon="share-nodes" href="/api-reference/music/social">
+    Like, share, comments, featured tracks, Music Radio
+  </Card>
+</Columns>
