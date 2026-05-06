@@ -1,179 +1,256 @@
 ---
-title: "MCP Integration"
-description: "Connect AI coding assistants to AudioPod documentation using Model Context Protocol"
+title: "MCP Server"
+description: "Connect any agent to AudioPod via Model Context Protocol — music generation, TTS, voice cloning, transcription, and more from one endpoint."
 ---
 
 <Info>
-**What is MCP?** Model Context Protocol is an open standard that lets AI assistants (Cursor, Claude, etc.) access external documentation directly—enabling smarter code suggestions and instant API lookups.
+**What is MCP?** [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that lets AI assistants (Claude Desktop, Cursor, Continue, Cline, Goose, Codex…) call external tools through a single transport. AudioPod publishes a Streamable-HTTP MCP server that exposes nine audio AI tools.
 </Info>
 
-## Why Use AudioPod MCP?
+## Endpoint
 
-When you connect the AudioPod MCP server to your AI coding assistant:
+| Field | Value |
+|------|-------|
+| URL  | `https://mcp.audiopod.ai` |
+| Transport | `streamable-http` (MCP 2025-06-18) |
+| Auth | `X-API-Key: ap_*` (from your dashboard) **or** `Authorization: Bearer <jwt>` |
+| Discovery | [`/.well-known/mcp/server-card.json`](https://audiopod.ai/.well-known/mcp/server-card.json) and [`/.well-known/oauth-protected-resource`](https://audiopod.ai/.well-known/oauth-protected-resource) |
 
-- **Accurate API calls** — AI knows exact parameters, modes, and response formats
-- **Instant documentation** — No switching to browser to look up APIs
-- **Real examples** — AI can reference working Python & Node.js code
-- **Up-to-date** — Always uses current documentation from docs.audiopod.ai
+Need a key? [Create one in your dashboard](https://www.audiopod.ai/dashboard/account/api-keys). Free tier credits unlock the full tool surface — no card required.
 
 ---
 
-## Setup for Cursor IDE
+## Tools exposed
 
-### Step 1: Open MCP Settings
+The server advertises nine tools. Schemas are returned by `tools/list` — these are the names and one-liners:
 
-In Cursor, open settings:
+| Tool | Description | Required scope |
+|------|-------------|----------------|
+| `generate_music` | Songs, instrumentals, rap, vocal stems from a text prompt. | `music:generate` |
+| `text_to_speech` | TTS in 85+ languages with 500+ voices and custom clones. | `voice:synthesize` |
+| `clone_voice` | Clone a voice from a 5–30s reference clip. | `voice:clone` |
+| `separate_stems` | Up to 16 stems (vocals, drums, bass, guitar, piano, other…). | `stems:separate` |
+| `transcribe_audio` | Word-level timestamps, speaker diarization, SRT/VTT/JSON. | `transcribe` |
+| `denoise_audio` | Remove background noise while preserving voice character. | `audio:write` |
+| `translate_audio` | Dub speech across 85+ languages, keep the speaker's voice. | `audio:write` |
+| `generate_karaoke` | Vocal-stripped instrumental + synced lyric file. | `audio:write` |
+| `convert_media` | MP3 / WAV / FLAC / OGG / M4A / MP4 / MOV conversion. | `audio:write` |
 
-- **macOS**: `Cmd + ,` → Search "MCP"
-- **Windows/Linux**: `Ctrl + ,` → Search "MCP"
+Scopes are enforced when authenticating with an API key. JWT-based auth implies full user privileges.
 
-Or use the command palette: `Cmd/Ctrl + Shift + P` → "Cursor: Open MCP Settings"
+---
 
-### Step 2: Add AudioPod MCP Server
+## Setup
 
-Add the following to your MCP configuration:
+<Tabs>
+
+<Tab title="Claude Desktop">
+
+Edit `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
 
 ```json
 {
   "mcpServers": {
-    "audiopod-docs": {
-      "url": "https://docs.audiopod.ai/mcp"
+    "audiopod": {
+      "url": "https://mcp.audiopod.ai",
+      "headers": {
+        "X-API-Key": "ap_YOUR_KEY"
+      }
     }
   }
 }
 ```
 
-### Step 3: Restart Cursor
+Restart Claude Desktop. Try: *"Generate a 30-second lo-fi instrumental for studying."*
 
-Restart Cursor for the changes to take effect.
+</Tab>
 
-### Step 4: Verify It Works
+<Tab title="Cursor">
 
-Ask your AI assistant:
+Edit `~/.cursor/mcp.json`:
 
-> "Search AudioPod docs for stem separation API"
+```json
+{
+  "mcpServers": {
+    "audiopod": {
+      "url": "https://mcp.audiopod.ai",
+      "headers": { "X-API-Key": "ap_YOUR_KEY" }
+    }
+  }
+}
+```
 
-If configured correctly, you'll see documentation results with API details, code examples, and pricing.
+Reload Cursor. Try: *"Use audiopod to generate a 60s upbeat intro track and download it."*
 
----
+</Tab>
 
-## Usage Examples
+<Tab title="Continue">
 
-Once connected, ask your AI assistant questions like:
+Edit `~/.continue/config.json`:
 
-<AccordionGroup>
-  <Accordion title="API Usage">
-    - "How do I use the AudioPod stem splitter API?"
-    - "What stem separation modes are available?"
-    - "Show me the transcription API parameters"
-  </Accordion>
-  <Accordion title="SDK Examples">
-    - "Give me Python code to separate stems"
-    - "How do I handle errors in the Node.js SDK?"
-    - "Show me voice cloning examples"
-  </Accordion>
-  <Accordion title="Pricing & Account">
-    - "What does AudioPod charge for stem separation?"
-    - "How do I check my wallet balance?"
-    - "How do I create an API key?"
-  </Accordion>
-</AccordionGroup>
+```json
+{
+  "experimental": {
+    "modelContextProtocolServers": [
+      {
+        "transport": {
+          "type": "streamable-http",
+          "url": "https://mcp.audiopod.ai",
+          "headers": { "X-API-Key": "ap_YOUR_KEY" }
+        }
+      }
+    ]
+  }
+}
+```
 
----
+</Tab>
 
-## Available Tool
+<Tab title="Cline">
 
-The MCP server provides one powerful tool:
+Edit `~/.config/cline/cline_mcp_settings.json`:
 
-| Tool | Description |
-|------|-------------|
-| `SearchAudioPodAi` | Semantic search across all AudioPod documentation |
+```json
+{
+  "mcpServers": {
+    "audiopod": {
+      "url": "https://mcp.audiopod.ai",
+      "transport": "streamable-http",
+      "headers": { "X-API-Key": "ap_YOUR_KEY" }
+    }
+  }
+}
+```
 
-### What It Searches
+</Tab>
 
-- **API Reference** — All endpoints, parameters, responses
-- **SDK Documentation** — Python & Node.js examples
-- **Pricing** — Service rates and cost estimation
-- **Authentication** — API keys, tokens, scopes
-- **Error Handling** — Exception types and recovery
+<Tab title="Goose">
 
----
-
-## Sample Query Response
-
-When you search for "stem splitter API", the MCP returns:
+Run `goose configure` and add a Streamable-HTTP extension:
 
 ```
-Title: Stem Separation
-Link: https://docs.audiopod.ai/api-reference/stem-splitter
-
-Extract individual audio components from mixed recordings 
-using AI-powered audio source separation.
-
-Modes:
-  • four - vocals, drums, bass, other
-  • six - vocals, drums, bass, guitar, piano, other  
-  • two - vocals, instrumental (karaoke)
-  • single - extract one specific stem
-
-Python Example:
-  result = client.stems.separate(
-      url="https://youtube.com/watch?v=VIDEO_ID",
-      mode="six"
-  )
+Type:   streamable-http
+URL:    https://mcp.audiopod.ai
+Header: X-API-Key=ap_YOUR_KEY
 ```
+
+</Tab>
+
+<Tab title="cURL">
+
+Probe the server directly to confirm your key works:
+
+```bash
+curl https://mcp.audiopod.ai \
+  -H "X-API-Key: ap_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list"
+  }'
+```
+
+</Tab>
+
+</Tabs>
+
+---
+
+## JSON-RPC examples
+
+### Initialize
+
+```json
+POST https://mcp.audiopod.ai
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2025-06-18",
+    "clientInfo": { "name": "my-agent", "version": "0.1.0" }
+  }
+}
+```
+
+### List tools
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/list"
+}
+```
+
+### Call a tool
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 3,
+  "method": "tools/call",
+  "params": {
+    "name": "generate_music",
+    "arguments": {
+      "prompt": "lo-fi rainy 90 BPM, soft pads",
+      "duration": 60,
+      "task_type": "text2music"
+    }
+  }
+}
+```
+
+The response includes a `structuredContent.job_id` — long-running tools return a job id immediately. Poll the matching `/api/v1/<service>/jobs/<id>` endpoint, or call `tools/call` again with the `jobs` lookup tool wired into your CLI.
+
+---
+
+## Auth flow
+
+AudioPod publishes RFC 9728 OAuth Protected Resource Metadata so clients can discover how to authenticate:
+
+```bash
+curl https://audiopod.ai/.well-known/oauth-protected-resource
+```
+
+Returns the issuer, supported scopes, and the bearer-token pattern. Most agent clients use a simple `X-API-Key: ap_*` header — get your key in the [dashboard](https://www.audiopod.ai/dashboard/account/api-keys).
 
 ---
 
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="MCP Not Responding">
-    1. Check your internet connection
-    2. Verify URL is exactly: `https://docs.audiopod.ai/mcp`
-    3. Restart Cursor IDE
-    4. Check Cursor's MCP logs for errors
+  <Accordion title="Tools don't appear in my client">
+    1. Re-check your config file path — most agents won't reload after edits without a restart.
+    2. Confirm the URL is exactly `https://mcp.audiopod.ai` (no trailing slash, no `/sse`).
+    3. Hit the discovery URL: `curl https://mcp.audiopod.ai` returns a small JSON descriptor when the proxy is healthy.
   </Accordion>
-  <Accordion title="No Search Results">
-    - Try more specific queries (e.g., "stem separation modes" vs "stems")
-    - Use different keywords
-    - Check if the topic is covered in our docs
+  <Accordion title="401 Unauthorized">
+    - Verify your key starts with `ap_`.
+    - Check the key's scopes — the [dashboard](https://www.audiopod.ai/dashboard/account/api-keys) shows the per-tool scopes granted.
+    - For wildcard access use scope `*`.
   </Accordion>
-  <Accordion title="Connection Errors">
-    Test the endpoint directly:
-    ```bash
-    curl -I https://docs.audiopod.ai/mcp
-    ```
+  <Accordion title="Tool calls hang">
+    Music and stem extraction return job ids immediately and resolve over the next 30–180 seconds. Most clients display the partial result; if yours doesn't, fall back to the [REST API](/api-reference/music/jobs) to poll for completion.
   </Accordion>
 </AccordionGroup>
 
 ---
 
-## Alternative Access
-
-If MCP isn't available, access documentation directly:
-
-<Columns cols={3}>
-  <Card title="Documentation" icon="book" href="https://docs.audiopod.ai">
-    Full documentation site
-  </Card>
-  <Card title="API Reference" icon="code" href="/api-reference/stem-splitter">
-    Endpoint documentation
-  </Card>
-  <Card title="SDKs" icon="rectangle-code" href="/sdks/overview">
-    Python & Node.js SDKs
-  </Card>
-</Columns>
-
----
-
-## Next Steps
+## Next steps
 
 <Columns cols={2}>
-  <Card title="Quick Start" icon="rocket" href="/quickstart">
-    Make your first API call
+  <Card title="Use the CLI" icon="terminal" href="/sdks/cli">
+    Same nine tools, terminal-first.
   </Card>
-  <Card title="Get API Key" icon="key" href="https://www.audiopod.ai/dashboard/account/api-keys">
-    Generate your API key
+  <Card title="For Agents landing" icon="robot" href="https://audiopod.ai/for-agents">
+    Single-pane overview of every developer surface.
+  </Card>
+  <Card title="Get an API key" icon="key" href="https://www.audiopod.ai/dashboard/account/api-keys">
+    Free credits, no card required.
+  </Card>
+  <Card title="Read the spec" icon="book" href="https://modelcontextprotocol.io">
+    Model Context Protocol reference.
   </Card>
 </Columns>
