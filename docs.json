@@ -31,7 +31,7 @@
           {
             "group": "Official SDKs",
             "icon": "code",
-            "pages": ["sdks/overview", "sdks/python", "sdks/nodejs"]
+            "pages": ["sdks/overview", "sdks/python", "sdks/nodejs", "sdks/cli"]
           },
           {
             "group": "AI Integration",

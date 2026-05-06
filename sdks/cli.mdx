@@ -1,0 +1,187 @@
+---
+title: "CLI"
+description: "Generate music, voiceover, transcribe, separate stems, and clone voices from your terminal."
+---
+
+<Info>
+The `audiopod` CLI ships bundled with both SDKs. Same commands, same flags whether you `pip install audiopod` or `npm install -g audiopod`.
+</Info>
+
+## Install
+
+<Tabs>
+  <Tab title="Python (pip)">
+    ```bash
+    pip install audiopod
+    ```
+    Requires Python 3.8+.
+  </Tab>
+  <Tab title="Node (npm)">
+    ```bash
+    npm install -g audiopod
+    ```
+    Requires Node 16+.
+  </Tab>
+  <Tab title="Node (pnpm)">
+    ```bash
+    pnpm add -g audiopod
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Authenticate
+
+Get an API key from [your dashboard](https://www.audiopod.ai/dashboard/account/api-keys), then either:
+
+```bash
+audiopod login
+# Paste ap_*  → stored at ~/.audiopod/config.json (mode 600)
+```
+
+…or set the environment variable:
+
+```bash
+export AUDIOPOD_API_KEY=ap_YOUR_KEY
+```
+
+Per-call override:
+
+```bash
+audiopod --api-key ap_OTHER_KEY music "test"
+```
+
+---
+
+## Commands
+
+### `audiopod music`
+
+Generate a song, instrumental, rap, or vocal stem.
+
+```bash
+audiopod music "lo-fi rainy 90 BPM" --duration 60 --out song.wav
+audiopod music "intro for podcast about climate" --kind instrumental --out intro.wav
+audiopod music "uplifting wedding ballad" --lyrics "We met..." --kind song
+```
+
+**Flags**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--kind` | `song` | One of `song`, `instrumental`, `rap`, `vocals`. |
+| `--duration` | `60` | Seconds (10–600). |
+| `--lyrics` | — | Optional lyric text for vocal modes. |
+| `--out` | — | If set, the CLI waits for completion and downloads to this path. |
+| `--timeout` | `600` | Max seconds to wait when `--out` is given. |
+
+### `audiopod tts`
+
+Synthesize speech.
+
+```bash
+audiopod tts "Welcome to AudioPod." --voice 368 --out hello.mp3
+audiopod tts "Bienvenue à AudioPod." --voice 368 --lang fr --out hello-fr.mp3
+```
+
+**Flags**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--voice` | `368` | AudioPod voice ID (integer) or public catalog name. |
+| `--lang` | `en` | ISO language code. |
+| `--speed` | `1.0` | Multiplier (0.25–4.0). |
+| `--format` | `mp3` | `mp3`, `wav`, or `ogg`. |
+| `--out` | — | If set, downloads on completion. |
+
+### `audiopod transcribe`
+
+Transcribe a local file or URL.
+
+```bash
+audiopod transcribe meeting.mp3 --diarize --format srt > meeting.srt
+audiopod transcribe https://example.com/podcast.mp3 --lang en --format json
+```
+
+| Flag | Description |
+|------|-------------|
+| `--lang` | Force a language (auto-detected if omitted). |
+| `--diarize` | Emit speaker labels. |
+| `--format` | `text`, `srt`, `vtt`, `json`. |
+| `--out` | Write the transcript to a file. |
+
+### `audiopod stems`
+
+Separate audio into stems.
+
+```bash
+audiopod stems track.wav --mode six
+audiopod stems https://example.com/song.mp3 --mode two
+```
+
+| Flag | Description |
+|------|-------------|
+| `--mode` | `two` (vocal+instr), `four` (vocals/drums/bass/other), `six` (+guitar+piano), `sixteen`. |
+
+### `audiopod clone`
+
+Train a voice from a 5–30s reference clip.
+
+```bash
+audiopod clone reference.wav --name "Narrator" --description "Calm narrator voice"
+```
+
+| Flag | Description |
+|------|-------------|
+| `--name` (required) | Display name for the cloned voice. |
+| `--description` | Optional voice characteristics description. |
+
+### `audiopod jobs`
+
+Look up any async job by id.
+
+```bash
+audiopod jobs job_abc123
+audiopod jobs job_abc123 --json | jq .output_url
+```
+
+---
+
+## Output
+
+Human-readable by default; pass `--json` for scripting:
+
+```bash
+audiopod tts "hi" --voice 368 --json | jq -r '.id'
+```
+
+---
+
+## Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | API or runtime error |
+| 2 | Bad arguments / missing API key |
+| 130 | Interrupted (Ctrl-C) |
+
+---
+
+## See also
+
+<Columns cols={2}>
+  <Card title="MCP Server" icon="plug" href="/sdks/mcp">
+    Wire AudioPod into any agent.
+  </Card>
+  <Card title="Python SDK" icon="python" href="/sdks/python">
+    Programmatic access from Python.
+  </Card>
+  <Card title="Node.js SDK" icon="square-js" href="/sdks/nodejs">
+    Programmatic access from Node.js / TypeScript.
+  </Card>
+  <Card title="For Agents landing" icon="robot" href="https://audiopod.ai/for-agents">
+    Every developer surface in one page.
+  </Card>
+</Columns>
