@@ -42,6 +42,51 @@ Scopes are enforced when authenticating with an API key. JWT-based auth implies 
 
 ## Setup
 
+### One-line install (recommended)
+
+Most modern MCP hosts now register an HTTP MCP server with a single command — no manual JSON edit, no restart needed beyond the host's normal config reload. Pick the one that matches your tool:
+
+<Tabs>
+
+<Tab title="Claude Code">
+
+```bash
+claude mcp add --transport http audiopod https://mcp.audiopod.ai \
+  --header "X-API-Key: ap_YOUR_KEY" --scope user
+```
+
+The `--scope user` flag installs at the user level so every Claude Code project picks up the server. Run `claude mcp list` to verify, then `/mcp` inside the TUI to see the nine tools.
+
+</Tab>
+
+<Tab title="Codex CLI">
+
+```bash
+codex mcp add audiopod --url https://mcp.audiopod.ai \
+  --header "X-API-Key: ap_YOUR_KEY"
+```
+
+Verify with `codex mcp list`. Inside the Codex TUI, `/mcp` shows the connected servers and their tools.
+
+</Tab>
+
+<Tab title="Universal (mcp-remote)">
+
+For any MCP client that only speaks stdio (older Claude Desktop builds, Continue, Cline before they ship native HTTP support, etc.), the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) bridge spawns a stdio process that proxies to our HTTP endpoint:
+
+```bash
+npx -y mcp-remote https://mcp.audiopod.ai \
+  --header "X-API-Key: ap_YOUR_KEY"
+```
+
+Wire it in as a stdio server in your client's config. Useful when manual JSON is too fiddly.
+
+</Tab>
+
+</Tabs>
+
+### Manual config (for desktop apps without a CLI)
+
 <Tabs>
 
 <Tab title="Claude Desktop">
