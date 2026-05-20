@@ -1155,21 +1155,21 @@ except Exception as e:
 
 ## Pricing
 
-Text to Speech pricing is based on audio duration:
+Text to Speech pricing is based on the number of characters in your input text:
 
-- **330 credits per minute** of generated audio
-- Pricing is calculated on the actual audio output duration
+- **0.5 credits per character** of input text
+- Pricing is calculated on the character count before synthesis
 - All voice types (standard and custom) use the same rate
 - Quality settings don't affect pricing
 
 ### Cost Examples
 
-| Audio Duration | Credits Used | USD Cost |
-| -------------- | ------------ | -------- |
-| 30 seconds     | 165 credits  | $0.022   |
-| 1 minute       | 330 credits  | $0.044   |
-| 2 minutes      | 660 credits  | $0.088   |
-| 5 minutes      | 1,650 credits| $0.220   |
+| Text Length | Credits Used | USD Cost |
+| ----------- | ------------ | -------- |
+| 100 characters | 50 credits | $0.007 |
+| 500 characters | 250 credits | $0.033 |
+| 1,000 characters | 500 credits | $0.067 |
+| 5,000 characters | 2,500 credits | $0.33 |
 
 ## Next Steps
 
