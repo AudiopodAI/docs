@@ -148,7 +148,7 @@ Extract comprehensive video metadata with full format information.
   "thumbnail_url": "https://img.youtube.com/vi/example123/maxresdefault.jpg",
   "platform": "youtube",
   "video_id": "example123",
-  "estimated_credits": 25,
+  "estimated_credits": 102,
   "formats": [
     {
       "format_id": "22",
@@ -288,7 +288,7 @@ Download videos with full features and no restrictions.
     "created_at": "2024-01-15T10:30:00Z",
     "task_id": "celery_task_uuid_here"
   },
-  "estimated_credits": 25,
+  "estimated_credits": 102,
   "message": "Download job created successfully"
 }
 ```
@@ -425,7 +425,7 @@ Monitor the progress of download jobs.
   "fps": 30,
   "audio_codec": "aac",
   "video_codec": "h264",
-  "credits_used": 25,
+  "credits_used": 102,
   "processing_time": 195.2
 }
 ```
@@ -1122,22 +1122,24 @@ def optimize_batch_downloads(urls, api_key, max_concurrent=5):
 
 ## Pricing
 
-Media extraction pricing based on actual credit costs:
+Media extraction is billed by input duration. Two billing paths apply
+depending on whether you authenticate with a JWT (subscription credits) or an
+API key (API wallet, USD-denominated):
 
-| Service | Cost | Description |
-|---------|------|-------------|
-| Video Info | Free | Get metadata without downloading |
-| Video Download (All Formats) | 6 credits/minute | Download audio/video in any quality |
-| Thumbnail Extraction | 1 credit | Download video thumbnail |
+| Service | Account credits | API wallet (USD) | Description |
+|---------|-----------------|------------------|-------------|
+| Video Info | Free | Free | Get metadata without downloading |
+| Video Download (All Formats) | 33 credits/minute | $0.01/minute | Download audio/video in any quality |
+| Thumbnail Extraction | 1 credit | n/a | Download video thumbnail |
 
 ### Cost Examples
 
-| Duration | Service | Quality | Credits | USD Cost |
-|----------|---------|---------|---------|----------|
-| 5 minutes | Audio Only | 320kbps | 30 | $0.004 |
-| 10 minutes | Video | 720p | 60 | $0.008 |
-| 30 minutes | Video | 1080p | 180 | $0.024 |
-| 2 hours | Audio Only | 192kbps | 720 | $0.096 |
+| Duration | Service | Quality | Credits | API wallet (USD) |
+|----------|---------|---------|---------|------------------|
+| 5 minutes | Audio Only | 320kbps | 165 | $0.05 |
+| 10 minutes | Video | 720p | 330 | $0.10 |
+| 30 minutes | Video | 1080p | 990 | $0.30 |
+| 2 hours | Audio Only | 192kbps | 3,960 | $1.20 |
 
 ### Cost Optimization Tips
 

@@ -552,14 +552,26 @@ For more control, use `extract()` and `wait_for_completion()` separately:
 
 ## Pricing
 
-**Rate:** $0.10 per minute of audio processed (all modes)
+**Base rate:** $0.10 per minute of audio processed for standard modes (`2stem`,
+`4stem`, `6stem`, `16stem`).
 
-| Duration | Cost |
-|----------|------|
-| 3 minutes | $0.31 |
+| Duration | Cost (standard modes) |
+|----------|-----------------------|
+| 3 minutes | $0.30 |
 | 5 minutes | $0.50 |
 | 10 minutes | $1.00 |
 | 1 hour | $6.00 |
+
+### Premium packages
+
+Premium separation packages route through a higher-fidelity engine and bill at
+a multiplier of the base rate:
+
+| Package | Multiplier | Effective rate |
+|---------|------------|----------------|
+| `karaoke` (lead vocal + backing vocal + instrumental) | **1.5×** | $0.15/min |
+| `vocal_gender` (male + female + instrumental) | **1.5×** | $0.15/min |
+| `instrument_isolator` (any single instrument + everything-else) | **2.0×** | $0.20/min |
 
 <Info>
 Check your balance and usage at [API Wallet](/account/api-wallet).

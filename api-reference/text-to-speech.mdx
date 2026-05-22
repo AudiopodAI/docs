@@ -1155,21 +1155,33 @@ except Exception as e:
 
 ## Pricing
 
-Text to Speech pricing is based on the number of characters in your input text:
+Text to Speech is billed differently depending on how you authenticate:
 
-- **0.5 credits per character** of input text
-- Pricing is calculated on the character count before synthesis
-- All voice types (standard and custom) use the same rate
-- Quality settings don't affect pricing
+| Path | Rate | Basis |
+|------|------|-------|
+| **Account credits** (subscription / JWT) | **0.5 credits per character** | Input character count, charged before synthesis |
+| **API wallet** (API key, USD) | **$0.04 per minute** | Duration of the generated audio |
 
-### Cost Examples
+All voice types (standard and custom) use the same rate. Quality settings do
+not affect pricing.
 
-| Text Length | Credits Used | USD Cost |
-| ----------- | ------------ | -------- |
-| 100 characters | 50 credits | $0.007 |
-| 500 characters | 250 credits | $0.033 |
-| 1,000 characters | 500 credits | $0.067 |
-| 5,000 characters | 2,500 credits | $0.33 |
+### Cost Examples — account credits (per character)
+
+| Text Length | Credits Used |
+| ----------- | ------------ |
+| 100 characters | 50 credits |
+| 500 characters | 250 credits |
+| 1,000 characters | 500 credits |
+| 5,000 characters | 2,500 credits |
+
+### Cost Examples — API wallet (per minute of output)
+
+| Output Duration | USD Cost |
+| --------------- | -------- |
+| 30 seconds | $0.02 |
+| 1 minute | $0.04 |
+| 5 minutes | $0.20 |
+| 30 minutes | $1.20 |
 
 ## Next Steps
 
