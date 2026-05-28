@@ -1,6 +1,9 @@
 # AudioPod AI Developer Documentation
 
-This is the developer documentation for AudioPod AI, built with [Mintlify](https://mintlify.com).
+The public developer documentation for AudioPod AI's **Platform (API + Agent)**
+surface — the REST API, the Python and Node.js SDKs, the CLI, and the MCP server
+for AI integrations. Built with [Mintlify](https://mintlify.com) and served at
+[docs.audiopod.ai](https://docs.audiopod.ai).
 
 ## Structure
 
@@ -28,8 +31,9 @@ mintlify dev
 ## Key Features
 
 - **CLI-first onboarding**: Developers can register, verify, and create API keys entirely via cURL
-- **Pay-as-you-go pricing**: No subscriptions required for API access
-- **LLM integration**: Code blocks can be copied directly to ChatGPT, Claude, Cursor, etc.
+- **Pay-as-you-go pricing**: $1 = 7,500 credits, no subscription required for API access
+- **SDKs + MCP**: Python, Node.js, a CLI, and an MCP server for AI agent integrations
+- **LLM integration**: Code blocks can be copied directly into any AI coding assistant
 - **Interactive API playground**: Test endpoints directly in the docs
 
 ## CLI Registration Flow
