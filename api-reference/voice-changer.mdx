@@ -292,7 +292,7 @@ def convert_podcast_guest_to_host_voice(guest_audio, host_voice_uuid, api_key):
     import time
     while True:
         status_response = requests.get(
-            f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+            f"https://api.audiopod.ai/api/v1/voice/convert/{job_id}/status",
             headers={"X-API-Key": api_key}
         )
         
@@ -371,7 +371,7 @@ def localize_content_voice(source_audio, target_locale_voices, api_key):
                 continue
             
             status_response = requests.get(
-                f"https://api.audiopod.ai/api/v1/voice/conversions/{job_info['job_id']}",
+                f"https://api.audiopod.ai/api/v1/voice/convert/{job_info['job_id']}/status",
                 headers={"X-API-Key": api_key}
             )
             
@@ -437,7 +437,7 @@ def anonymize_voice_recording(source_audio, api_key):
     # Wait for completion
     while True:
         status_response = requests.get(
-            f"https://api.audiopod.ai/api/v1/voice/conversions/{job_id}",
+            f"https://api.audiopod.ai/api/v1/voice/convert/{job_id}/status",
             headers={"X-API-Key": api_key}
         )
         
