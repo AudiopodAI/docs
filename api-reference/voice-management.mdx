@@ -15,7 +15,6 @@ AudioPod AI's Voice Management API provides comprehensive tools for managing cus
 - **Voice Collections**: Group voices into organized collections
 - **Voice Preview**: Generate preview samples to test voices
 - **Metadata Management**: Update voice names, descriptions, and tags
-- **Voice Analytics**: Track usage and performance metrics
 - **Batch Operations**: Manage multiple voices efficiently
 
 ## Authentication
@@ -340,55 +339,6 @@ Create a preview sample to test how a voice sounds.
   </Tab>
 </Tabs>
 
-### Batch Preview Generation
-
-Generate previews for multiple voices with the same text.
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/voice/preview/batch
-    X-API-Key: {api_key}
-    Content-Type: application/json
-    
-    {
-      "voice_ids": ["voice_abc123", "voice_def456", "voice_ghi789"],
-      "text": "Compare how different voices sound with this text.",
-      "speed": 1.0
-    }
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    batch_preview_data = {
-        "voice_ids": ["voice_abc123", "voice_def456", "voice_ghi789"],
-        "text": "Compare how different voices sound with this text.",
-        "speed": 1.0,
-        "pitch": 0.0,
-        "format": "mp3"
-    }
-    
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/voice/preview/batch",
-        headers={
-            "X-API-Key": api_key,
-            "Content-Type": "application/json"
-        },
-        json=batch_preview_data
-    )
-    
-    if response.status_code == 200:
-        batch_result = response.json()
-        print(f"Generated {len(batch_result['previews'])} voice previews")
-        
-        for i, preview in enumerate(batch_result["previews"]):
-            print(f"Voice {i+1}: {preview['voice_name']}")
-            print(f"  URL: {preview['audio_url']}")
-            print(f"  Duration: {preview['duration']}s")
-    ```
-  </Tab>
-</Tabs>
-
 ## Custom Voice Management
 
 ### List Custom Voices
@@ -622,47 +572,6 @@ Add voices to an existing collection.
   </Tab>
 </Tabs>
 
-## Voice Analytics
-
-### Get Voice Usage Statistics
-
-Retrieve usage statistics for voices.
-
-<Tabs>
-  <Tab title="GET">
-    ```http
-    GET /api/v1/voice/analytics/usage?voice_id=voice_abc123&period=30d
-    X-API-Key: {api_key}
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    voice_id = "voice_abc123"
-    response = requests.get(
-        "https://api.audiopod.ai/api/v1/voice/analytics/usage",
-        headers={"X-API-Key": api_key},
-        params={
-            "voice_id": voice_id,
-            "period": "30d",        # 7d, 30d, 90d, 1y
-            "breakdown": "daily"    # daily, weekly, monthly
-        }
-    )
-    
-    if response.status_code == 200:
-        analytics = response.json()
-        print(f"Usage for voice {voice_id}:")
-        print(f"  Total generations: {analytics['total_generations']}")
-        print(f"  Total characters: {analytics['total_characters']}")
-        print(f"  Total duration: {analytics['total_duration']} seconds")
-        print(f"  Average rating: {analytics['avg_rating']:.2f}")
-        
-        # Daily breakdown
-        for day_data in analytics["daily_breakdown"]:
-            print(f"  {day_data['date']}: {day_data['generations']} generations")
-    ```
-  </Tab>
-</Tabs>
-
 ## Error Handling
 
 <AccordionGroup>
@@ -722,7 +631,7 @@ def find_best_voice_for_content(content_type, language, gender_preference, api_k
         params["style"] = criteria["style"]
     
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/voice/voices",
+        "https://api.audiopod.ai/api/v1/voice/voice-profiles",
         headers={"X-API-Key": api_key},
         params=params
     )

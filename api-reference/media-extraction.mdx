@@ -302,7 +302,7 @@ Download multiple videos in a single request.
 <Tabs>
   <Tab title="POST">
     ```http
-    POST /api/v1/video/bulk-download
+    POST /api/v1/video/video-download/bulk-download
     X-API-Key: {api_key}
     Content-Type: application/json
     
@@ -349,7 +349,7 @@ Download multiple videos in a single request.
     }
     
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/video/bulk-download",
+        "https://api.audiopod.ai/api/v1/video/video-download/bulk-download",
         headers={"X-API-Key": api_key},
         json=bulk_request
     )
@@ -372,7 +372,7 @@ Monitor the progress of download jobs.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/video/jobs/{job_id}
+    GET /api/v1/video/video-download/jobs/{job_id}
     X-API-Key: {api_key}
     ```
   </Tab>
@@ -380,7 +380,7 @@ Monitor the progress of download jobs.
     ```python
     job_id = 123
     response = requests.get(
-        f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+        f"https://api.audiopod.ai/api/v1/video/video-download/jobs/{job_id}",
         headers={"X-API-Key": api_key}
     )
     
@@ -437,14 +437,14 @@ Get all download jobs for the authenticated user.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/video/jobs?status=COMPLETED&platform=youtube&limit=50
+    GET /api/v1/video/video-download/jobs?status=COMPLETED&platform=youtube&limit=50
     X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/video/jobs",
+        "https://api.audiopod.ai/api/v1/video/video-download/jobs",
         headers={"X-API-Key": api_key"},
         params={
             "status": "COMPLETED",     # Filter by status
@@ -477,7 +477,7 @@ Download the extracted media files.
         
         # Get job details
         response = requests.get(
-            f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+            f"https://api.audiopod.ai/api/v1/video/video-download/jobs/{job_id}",
             headers={"X-API-Key": api_key}
         )
         
@@ -554,7 +554,7 @@ Update job metadata such as custom title.
 <Tabs>
   <Tab title="PUT">
     ```http
-    PUT /api/v1/video/jobs/{job_id}
+    PUT /api/v1/video/video-download/jobs/{job_id}
     X-API-Key: {api_key}
     Content-Type: application/json
     
@@ -571,7 +571,7 @@ Update job metadata such as custom title.
     }
     
     response = requests.put(
-        f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+        f"https://api.audiopod.ai/api/v1/video/video-download/jobs/{job_id}",
         headers={"X-API-Key": api_key},
         json=update_data
     )
@@ -590,7 +590,7 @@ Remove a download job and its associated files.
 <Tabs>
   <Tab title="DELETE">
     ```http
-    DELETE /api/v1/video/jobs/{job_id}
+    DELETE /api/v1/video/video-download/jobs/{job_id}
     X-API-Key: {api_key}
     ```
   </Tab>
@@ -598,7 +598,7 @@ Remove a download job and its associated files.
     ```python
     job_id = 123
     response = requests.delete(
-        f"https://api.audiopod.ai/api/v1/video/jobs/{job_id}",
+        f"https://api.audiopod.ai/api/v1/video/video-download/jobs/{job_id}",
         headers={"X-API-Key": api_key}
     )
     
@@ -616,14 +616,14 @@ Get comprehensive download statistics for the authenticated user.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/video/stats
+    GET /api/v1/video/video-download/stats
     X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/video/stats",
+        "https://api.audiopod.ai/api/v1/video/video-download/stats",
         headers={"X-API-Key": api_key}
     )
     
@@ -745,7 +745,7 @@ def extract_podcast_audio_from_videos(video_urls, api_key):
                 continue
             
             status_response = requests.get(
-                f"https://api.audiopod.ai/api/v1/video/jobs/{audio_job['job_id']}",
+                f"https://api.audiopod.ai/api/v1/video/video-download/jobs/{audio_job['job_id']}",
                 headers={"X-API-Key": api_key}
             )
             
@@ -966,13 +966,13 @@ Get formats available for public downloads (no authentication required).
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/video/public/formats
+    GET /api/v1/video/video-download/public/formats
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/video/public/formats"
+        "https://api.audiopod.ai/api/v1/video/video-download/public/formats"
     )
     
     if response.status_code == 200:
@@ -1007,14 +1007,14 @@ Get complete list of formats available for authenticated users.
 <Tabs>
   <Tab title="GET">
     ```http
-    GET /api/v1/video/formats
+    GET /api/v1/video/video-download/formats
     X-API-Key: {api_key}
     ```
   </Tab>
   <Tab title="Python">
     ```python
     response = requests.get(
-        "https://api.audiopod.ai/api/v1/video/formats",
+        "https://api.audiopod.ai/api/v1/video/video-download/formats",
         headers={"X-API-Key": api_key}
     )
     
