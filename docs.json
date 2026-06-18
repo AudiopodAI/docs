@@ -44,6 +44,13 @@
         "tab": "API Reference",
         "groups": [
           {
+            "group": "Audiobook",
+            "icon": "book-open",
+            "pages": [
+              "api-reference/audiobook"
+            ]
+          },
+          {
             "group": "Audio Processing",
             "icon": "waveform",
             "pages": [

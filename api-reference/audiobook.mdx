@@ -1,0 +1,220 @@
+---
+title: "Audiobook"
+description: "Turn a manuscript into a finished, ACX-compliant audiobook through a fully automated API: upload a PDF or EPUB, narrate it, and download a retail-ready package — with completion webhooks for hands-off, backlog-scale production."
+---
+
+## Overview
+
+The Audiobook API exposes the **complete production pipeline** end to end, so you can drop AI audiobook generation directly into your own platform or control panel: a file goes in, a finished, ACX-compliant package comes back, with no human in the loop.
+
+```
+create project → upload manuscript → parse into chapters → narrate → export ACX package → download
+                                                                  └── completion webhook ──┘
+```
+
+Every endpoint is API-key authenticated and asynchronous — submit a job, get an ID, and receive a signed webhook when it finishes. This is the same API surface our own Audiobook Studio runs on; nothing here is a private endpoint.
+
+### Key features
+
+- **Inputs**: PDF, EPUB, DOCX, or TXT (or paste raw text). Chapters are detected automatically.
+- **Voices**: 100+ languages with standard narration voices; custom voice cloning across 20+ languages.
+- **ACX-compliant export**: per-chapter MP3 at **192 kbps CBR / 44.1 kHz**, a retail sample, optional narrated opening/closing credits, a cover slot, and a `metadata.json` manifest — packaged as a single ZIP delivered via a presigned URL.
+- **Automatic compliance check**: file format, audio levels, silence, and per-chapter length are validated on export; a non-compliant book is rejected with the exact reason rather than shipped silently.
+- **Asynchronous + webhooks**: `job.completed` / `job.failed` callbacks so your control panel never blocks on a long render.
+- **White-label output**: delivered files carry the publisher's own title/author/narrator metadata — nothing points back at AudioPod.
+- **Prepaid usage pricing**: $0.04 per minute of output (~$24 for a 10-hour book). See [API Wallet](/account/api-wallet).
+
+## Authentication
+
+All endpoints require authentication. Use an API key (recommended for server-to-server integrations):
+
+- **API Key**: `X-API-Key: your_api_key` header — [create one in the dashboard](https://www.audiopod.ai/dashboard/account/api-keys).
+- **JWT Token**: `Authorization: Bearer your_jwt_token` (session-based auth).
+
+## API Endpoints Quick Reference
+
+| Operation | Method | Endpoint |
+|-----------|--------|----------|
+| Create project | POST | `/audiobook/projects` |
+| List projects | GET | `/audiobook/projects` |
+| Upload manuscript | POST | `/audiobook/projects/{project_id}/manuscript/upload` |
+| Parse into chapters | POST | `/audiobook/projects/{project_id}/manuscript/parse` |
+| List chapters | GET | `/audiobook/projects/{project_id}/chapters` |
+| List voices | GET | `/audiobook/voices/available` |
+| List languages | GET | `/audiobook/voices/languages` |
+| Cost estimate | GET | `/audiobook/projects/{project_id}/cost-estimate` |
+| Start narration | POST | `/audiobook/projects/{project_id}/narration/start` |
+| Narration progress | GET | `/audiobook/projects/{project_id}/narration/progress` |
+| Start ACX export | POST | `/audiobook/projects/{project_id}/export` |
+| Export status | GET | `/audiobook/projects/{project_id}/export/{job_id}/status` |
+| Download package | GET | `/audiobook/projects/{project_id}/export/{job_id}/download` |
+
+## The production flow
+
+<Steps>
+  <Step title="Create a project">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/audiobook/projects" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+      -d '{"title": "Book Title", "author": "Author Name"}'
+    # => { "id": "<project_id>", "status": "...", ... }
+    ```
+  </Step>
+  <Step title="Upload the manuscript">
+    Send the file as multipart form data. The response returns a `file_key` you pass to the parser.
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/manuscript/upload" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file=@book.epub"
+    # => { "file_key": "...", "upload_url": "...", "max_file_size": ... }
+    ```
+  </Step>
+  <Step title="Parse into chapters">
+    Parsing is asynchronous. Poll `GET .../chapters` until chapters appear.
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/manuscript/parse" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "file_key=$FILE_KEY" -F "filename=book.epub"
+    curl "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/chapters?limit=50" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Step>
+  <Step title="Narrate">
+    Pick a voice from `GET /audiobook/voices/available`, then narrate every chapter. Track progress (or wait for the webhook).
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/narration/start" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+      -d '{"voice_id": 387}'
+    curl "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/narration/progress" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    # => { "total_chapters": 2, "completed_chapters": 2, "failed_chapters": 0, ... }
+    ```
+  </Step>
+  <Step title="Export the ACX package and download">
+    Export runs an automatic ACX compliance check, then assembles the package. Poll status, then fetch a presigned download URL.
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/export" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" -d '{}'
+    # => { "job_id": 100, "compliance_check": { "is_compliant": true, ... }, ... }
+    curl "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/export/$JOB/download" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    # => { "download_url": "https://media.audiopod.ai/...zip?...", "file_size_bytes": ..., "chapter_count": ... }
+    ```
+  </Step>
+</Steps>
+
+### Narration request
+
+<ParamField body="voice_id" type="integer" required>
+  The voice to narrate with. Get IDs from `GET /audiobook/voices/available`.
+</ParamField>
+<ParamField body="chapter_ids" type="array">
+  Optional. Narrate only specific chapters; omit to narrate all.
+</ParamField>
+<ParamField body="narration_speed" type="number" default="1.0">
+  Playback speed multiplier.
+</ParamField>
+<ParamField body="narration_style" type="string" default="narrative">
+  Delivery style for the narration.
+</ParamField>
+
+## Completion webhooks
+
+Rather than poll, register an endpoint and receive a signed event the moment a job finishes — the recommended pattern for backlog-scale automation.
+
+| Operation | Method | Endpoint |
+|-----------|--------|----------|
+| Register endpoint | POST | `/webhooks/endpoints` |
+| List endpoints | GET | `/webhooks/endpoints` |
+| Send a test event | POST | `/webhooks/endpoints/{endpoint_id}/test` |
+| Delivery log | GET | `/webhooks/endpoints/{endpoint_id}/deliveries` |
+| Redeliver | POST | `/webhooks/deliveries/{delivery_id}/redeliver` |
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/webhooks/endpoints" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"url": "https://your-app.com/hooks/audiopod", "events": ["job.completed", "job.failed"]}'
+# => { "id": "...", "url": "...", "events": [...], "secret": "whsec_..." }   # secret shown ONCE
+```
+
+Every delivery carries these headers:
+
+| Header | Meaning |
+|--------|---------|
+| `X-AudioPod-Signature` | `sha256=<hex>` HMAC of the payload (see below) |
+| `X-AudioPod-Timestamp` | Unix seconds; part of the signed material (replay protection) |
+| `X-AudioPod-Event` | `job.completed` or `job.failed` |
+| `X-AudioPod-Event-Id` | Stable UUID per event — **dedupe on this** (delivery is at-least-once) |
+
+**Verify the signature** — HMAC-SHA256 over `"<timestamp>.<raw-body>"` with your endpoint secret as the key:
+
+```python
+import hmac, hashlib
+
+def verify(secret: str, raw_body: bytes, signature_header: str, timestamp_header: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        timestamp_header.encode() + b"." + raw_body,   # exact raw bytes received
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(f"sha256={expected}", signature_header)
+```
+
+Delivery is retried with exponential backoff and parked in a dead-letter queue after repeated failures; you can inspect and redeliver from the delivery log. Endpoints are SSRF-guarded (the resolved IP is re-checked at delivery time; https-only; private/internal ranges blocked).
+
+## The ACX package
+
+The download is a JSON manifest with a 7-day presigned `download_url` to a ZIP containing:
+
+| File | Contents |
+|------|----------|
+| `Chapter_NN.mp3` | One per chapter — MP3, **192 kbps CBR, 44.1 kHz** |
+| `00_retail_sample.mp3` | Retail/audition sample |
+| `Chapter_00/99_*_Credits.mp3` | Optional narrated opening/closing credits (when configured) |
+| `metadata.json` | Title, author, narrator, per-chapter durations, format spec |
+| `manifest.csv` | Flat file list |
+| `provenance.json` | Generation provenance |
+
+The export auto-checks ACX compliance (format, audio levels, silence, per-chapter length ≥ 30s). If a book is non-compliant, the export call returns the specific issues instead of producing an invalid package:
+
+```json
+{ "detail": { "message": "Project is not ACX-compliant. Fix these issues first.",
+              "issues": ["Chapter 3: 28s < ACX minimum 30s"], "warnings": [] } }
+```
+
+## Failure handling
+
+Jobs are prepaid: credits are reserved at job start, settled on success, and **released on failure** — so a failed narration or export never leaves a stranded charge. Narration and export are retried automatically; a `job.failed` webhook fires if a job ultimately can't complete, so an automated integrator can react deterministically.
+
+## End-to-end (Python)
+
+```python
+import time, requests
+
+AP, H = "https://api.audiopod.ai/api/v1", {"X-API-Key": "ap_..."}
+
+pid = requests.post(f"{AP}/audiobook/projects", headers=H,
+                    json={"title": "Book", "author": "Author"}).json()["id"]
+fk = requests.post(f"{AP}/audiobook/projects/{pid}/manuscript/upload", headers=H,
+                   files={"file": open("book.epub", "rb")}).json()["file_key"]
+requests.post(f"{AP}/audiobook/projects/{pid}/manuscript/parse", headers=H,
+              data={"file_key": fk, "filename": "book.epub"})
+while not requests.get(f"{AP}/audiobook/projects/{pid}/chapters?limit=50", headers=H).json().get("chapters"):
+    time.sleep(3)
+
+requests.post(f"{AP}/audiobook/projects/{pid}/narration/start", headers=H, json={"voice_id": 387})
+while True:
+    p = requests.get(f"{AP}/audiobook/projects/{pid}/narration/progress", headers=H).json()
+    if p["completed_chapters"] + p["failed_chapters"] >= p["total_chapters"]:
+        break
+    time.sleep(5)
+
+job = requests.post(f"{AP}/audiobook/projects/{pid}/export", headers=H, json={}).json()["job_id"]
+while requests.get(f"{AP}/audiobook/projects/{pid}/export/{job}/status", headers=H).json()["status"].upper() != "COMPLETED":
+    time.sleep(5)
+url = requests.get(f"{AP}/audiobook/projects/{pid}/export/{job}/download", headers=H).json()["download_url"]
+print("ACX package:", url)
+```
+
+<Card title="Full interactive reference" icon="code" href="https://api.audiopod.ai/api/v1/openapi.json">
+  Browse every audiobook endpoint with request/response schemas in the OpenAPI spec (Swagger UI at `/docs`).
+</Card>
