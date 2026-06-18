@@ -137,6 +137,25 @@ audiopod clone reference.wav --name "Narrator" --description "Calm narrator voic
 | `--name` (required) | Display name for the cloned voice. |
 | `--description` | Optional voice characteristics description. |
 
+### `audiopod audiobook`
+
+Produce a finished, ACX-compliant audiobook from a manuscript — upload, narrate, export, and (with `--out`) download the package in one command.
+
+```bash
+audiopod audiobook book.epub --title "The Lighthouse Keeper" --author "A. P. Tester" --voice 387 --out lighthouse-acx.zip
+audiopod audiobook --text "Once upon a time..." --title "A Short Tale" --voice 387
+```
+
+| Flag | Description |
+|------|-------------|
+| `<file>` | Manuscript file (PDF/EPUB/DOCX/TXT). Omit and use `--text` to narrate raw text. |
+| `--title` (required) | Audiobook title. |
+| `--author` | Author name (written into the package metadata). |
+| `--text` | Narrate this text instead of a file. |
+| `--voice` | Narration voice ID (default 387). |
+| `--out` | Download the ACX package ZIP to this path. |
+| `--timeout` | Max seconds to wait for the full pipeline (default 1800). |
+
 ### `audiopod jobs`
 
 Look up any async job by id.
