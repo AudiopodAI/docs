@@ -220,6 +220,47 @@ const ref = await client.music.reference({
 
 ---
 
+## Audiobook
+
+Turn a manuscript into a finished, ACX-compliant audiobook. Use `produce()` for the whole pipeline in one call, or drive each step. See the [Audiobook API reference](/api-reference/audiobook) for the full surface.
+
+```typescript
+// One call: manuscript in, ACX package out
+const result = await client.audiobook.produce({
+  title: 'The Lighthouse Keeper',
+  author: 'A. P. Tester',
+  file: 'book.epub',          // PDF / EPUB / DOCX / TXT  (or text: '...')
+  voiceId: 387,
+});
+console.log(result.download_url);              // presigned ACX package ZIP
+console.log(result.compliance_check.is_compliant);
+
+// Or drive each step
+const project = await client.audiobook.createProject({ title: 'My Book', author: 'Me' });
+const up = await client.audiobook.uploadManuscript(project.id, 'book.epub');
+await client.audiobook.parseManuscript(project.id, up.file_key, 'book.epub');
+
+const voices = await client.audiobook.listVoices();      // available / recommended / custom
+const estimate = await client.audiobook.costEstimate(project.id);
+
+await client.audiobook.narrate(project.id, { voiceId: 387 });   // waits for all chapters
+const exp = await client.audiobook.exportAndWait(project.id);   // waits; runs ACX compliance check
+const manifest = await client.audiobook.download(project.id, exp.job_id);
+console.log(manifest.download_url);
+```
+
+Generate an original book from a prompt instead of uploading:
+
+```typescript
+const project = await client.audiobook.createProject({ title: 'Bedtime Tales' });
+await client.audiobook.generateBook(project.id, {
+  prompt: 'Three calm bedtime stories about the sea', chapterCount: 3, wordsPerChapter: 500,
+});
+await client.audiobook.narrate(project.id, { voiceId: 387 });
+```
+
+---
+
 ## Noise Reduction
 
 Clean up audio by removing background noise.

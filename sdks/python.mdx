@@ -220,6 +220,46 @@ ref_song = client.music.reference(
 
 ---
 
+## Audiobook
+
+Turn a manuscript into a finished, ACX-compliant audiobook. Use `produce()` for the whole pipeline in one call, or drive each step. See the [Audiobook API reference](/api-reference/audiobook) for the full surface.
+
+```python
+# One call: manuscript in, ACX package out
+result = client.audiobook.produce(
+    title="The Lighthouse Keeper",
+    author="A. P. Tester",
+    file="book.epub",          # PDF / EPUB / DOCX / TXT  (or text="...")
+    voice_id=387,
+)
+print(result["download_url"])   # presigned ACX package ZIP
+print(result["compliance_check"]["is_compliant"])
+
+# Or drive each step
+project = client.audiobook.create_project(title="My Book", author="Me")
+up = client.audiobook.upload_manuscript(project["id"], file="book.epub")
+client.audiobook.parse_manuscript(project["id"], up["file_key"], "book.epub")
+
+voices = client.audiobook.list_voices()          # available / recommended / custom
+estimate = client.audiobook.cost_estimate(project["id"])
+
+client.audiobook.narrate(project["id"], voice_id=387)   # waits for all chapters
+export = client.audiobook.export(project["id"])         # waits; runs ACX compliance check
+manifest = client.audiobook.download(project["id"], export["job_id"])
+print(manifest["download_url"])
+```
+
+Generate an original book from a prompt instead of uploading:
+
+```python
+project = client.audiobook.create_project(title="Bedtime Tales")
+client.audiobook.generate_book(project["id"], prompt="Three calm bedtime stories about the sea",
+                               chapter_count=3, words_per_chapter=500)
+client.audiobook.narrate(project["id"], voice_id=387)
+```
+
+---
+
 ## Noise Reduction
 
 Clean up audio by removing background noise.
