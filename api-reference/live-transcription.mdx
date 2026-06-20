@@ -1,0 +1,226 @@
+---
+title: "Live Transcription (Streaming)"
+description: "Real-time speech-to-text over a WebSocket — stream microphone or system audio and receive interim and final transcripts with sub-second latency."
+---
+
+## Overview
+
+The Live Transcription API turns a stream of audio into text in real time over a
+single WebSocket connection. You send raw audio frames as you capture them and
+receive **interim** (partial) results immediately, followed by **final**,
+stabilized segments — ideal for live captions, voice agents, dictation, and
+meeting transcription.
+
+Live transcription runs on **Premium accuracy** (punctuation, per-word
+confidence, language detection, and optional speaker labels).
+
+### Key features
+
+- **Sub-second interim results** as the speaker talks
+- **Stabilized final segments** with word timestamps
+- **Optional speaker labels** (`diarize`)
+- **50+ languages** with auto-detect
+- **One artifact**: a finished session is saved as a normal transcription job you
+  can fetch, edit, and export (SRT/VTT/TXT/JSON) like any batch transcript
+
+## Endpoint
+
+```
+wss://api.audiopod.ai/api/v1/transcription/stream
+```
+
+## Authentication
+
+WebSocket handshakes can't carry custom headers from every client, so the API
+key travels as a query parameter:
+
+```
+wss://api.audiopod.ai/api/v1/transcription/stream?api_key=ap_your_key
+```
+
+Browser/session clients may instead pass a short-lived JWT as `?token=...`.
+
+## Protocol
+
+Messages are JSON text frames, except the audio you upload, which is **binary**.
+
+**Client → server**
+
+| Frame | Type | Payload |
+|---|---|---|
+| Start (first frame) | text | `{ "type": "start", "language": "en", "diarize": false, "sample_rate": 16000, "channels": 1 }` |
+| Audio | binary | Raw 16-bit little-endian PCM, 16 kHz, mono |
+| End | text | `{ "type": "end" }` |
+
+**Server → client**
+
+| `type` | Meaning |
+|---|---|
+| `ready` | Session accepted; you may start sending audio. Includes `job_id`, `session_id`, `taste`, `max_duration_seconds`. |
+| `partial` | Interim transcript (`text`) — will change as more audio arrives. |
+| `final` | Stabilized segment (`text`, `words[]`, `speech_final`). |
+| `usage` | Running credit usage (`credits_used`). |
+| `completed` | Session finished. Includes `job_id`, `credits_used`, `streamed_seconds`, `transcript_path`. |
+| `error` | Something went wrong (`code`, `message`). |
+
+The first server frame is always `ready`. Send audio in small chunks (e.g. 100 ms)
+for the lowest latency.
+
+## Audio format
+
+| Property | Value |
+|---|---|
+| Encoding | 16-bit signed PCM (little-endian) |
+| Sample rate | 16000 Hz |
+| Channels | 1 (mono) |
+
+Resample to 16 kHz mono before sending. Larger sample rates or stereo will be
+rejected with an `INVALID_CONFIG` error.
+
+<Note>
+**Prepaid billing.** Live transcription is prepaid at the standard transcription
+rate (220 credits/minute). Credits for the maximum session length are reserved
+up front and **settled to your actual streamed duration** when the session ends
+(the unused reservation is released). If you don't have enough credits to start,
+the session is rejected with `INSUFFICIENT_CREDITS` before any audio flows.
+</Note>
+
+## Quickstart
+
+<Tabs>
+  <Tab title="Node.js">
+    ```javascript
+    import AudioPod from "audiopod";
+
+    const client = new AudioPod({ apiKey: process.env.AUDIOPOD_API_KEY });
+
+    const stream = client.transcription.stream({ language: "en", diarize: true });
+
+    // Event style
+    stream.on("partial", (e) => process.stdout.write("\r" + e.text));
+    stream.on("final", (e) => console.log("\n" + e.text));
+    stream.on("completed", (e) =>
+      console.log(`done — ${e.credits_used} credits, ${e.streamed_seconds}s`),
+    );
+    stream.on("error", (e) => console.error(`${e.code}: ${e.message}`));
+
+    // Wait for the server `ready` frame, then stream 16-bit PCM (16 kHz, mono).
+    await stream.ready;
+    for (const chunk of pcmChunks) {
+      stream.sendAudio(chunk); // Buffer of Int16LE samples
+    }
+    stream.end(); // flush + finalize
+    ```
+
+    You can also consume events as an async iterable instead of with `.on()`:
+
+    ```javascript
+    for await (const event of stream) {
+      if (event.type === "final") console.log(event.text);
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import asyncio
+    from audiopod import AsyncClient
+
+    async def main():
+        async with AsyncClient() as client:
+            async with client.transcription.stream(language="en", diarize=True) as session:
+                # Feed audio and read events concurrently for true real-time.
+                async def feed():
+                    for chunk in pcm_chunks:          # 16-bit PCM, 16 kHz, mono
+                        await session.send_audio(chunk)
+                    await session.end()
+
+                asyncio.create_task(feed())
+                async for event in session:
+                    if event["type"] == "partial":
+                        print("\r" + event["text"], end="", flush=True)
+                    elif event["type"] == "final":
+                        print("\n" + event["text"])
+                    elif event["type"] == "completed":
+                        print(f"done — {event.get('credits_used')} credits")
+
+    asyncio.run(main())
+    ```
+
+    <Note>Streaming requires the async client (`AsyncClient`).</Note>
+  </Tab>
+  <Tab title="Raw WebSocket">
+    ```python
+    import asyncio, json, aiohttp
+
+    async def main():
+        url = "wss://api.audiopod.ai/api/v1/transcription/stream"
+        async with aiohttp.ClientSession() as s:
+            async with s.ws_connect(url, params={"api_key": API_KEY}) as ws:
+                await ws.send_str(json.dumps({
+                    "type": "start", "language": "en",
+                    "diarize": False, "sample_rate": 16000, "channels": 1,
+                }))
+
+                async def feed():
+                    for chunk in pcm_chunks:        # bytes of Int16LE PCM
+                        await ws.send_bytes(chunk)
+                    await ws.send_str(json.dumps({"type": "end"}))
+
+                asyncio.create_task(feed())
+                async for msg in ws:
+                    if msg.type == aiohttp.WSMsgType.TEXT:
+                        event = json.loads(msg.data)
+                        if event["type"] in ("final", "completed", "error"):
+                            print(event)
+                        if event["type"] in ("completed", "error"):
+                            break
+
+    asyncio.run(main())
+    ```
+  </Tab>
+</Tabs>
+
+## Capturing microphone audio in the browser
+
+Browsers capture at the hardware sample rate, so request a 16 kHz `AudioContext`
+and convert float samples to 16-bit PCM before sending:
+
+```javascript
+const ctx = new AudioContext({ sampleRate: 16000 });
+const source = ctx.createMediaStreamSource(
+  await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1 } }),
+);
+const proc = ctx.createScriptProcessor(4096, 1, 1);
+proc.onaudioprocess = (e) => {
+  const input = e.inputBuffer.getChannelData(0);
+  const pcm = new Int16Array(input.length);
+  for (let i = 0; i < input.length; i++) {
+    const s = Math.max(-1, Math.min(1, input[i]));
+    pcm[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+  }
+  ws.send(pcm.buffer); // send to the live endpoint
+};
+source.connect(proc);
+proc.connect(ctx.destination);
+```
+
+## Error codes
+
+| `code` | Meaning |
+|---|---|
+| `PREMIUM_TIER_REQUIRED` | Live transcription requires a paid plan (free sessions get a short preview). |
+| `INSUFFICIENT_CREDITS` | Not enough credits to reserve the session. Top up and retry. |
+| `MAX_DURATION_REACHED` | The session hit `max_duration_seconds`; it was finalized and saved. |
+| `INVALID_CONFIG` | The `start` frame was malformed (e.g. unsupported sample rate). |
+| `UPSTREAM_ERROR` | A transient error in the transcription engine — reconnect and retry. |
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Speech-to-Text (batch)" icon="microphone" href="/api-reference/speech-to-text">
+    Transcribe files and URLs, with Standard or Premium accuracy.
+  </Card>
+  <Card title="Authentication" icon="key" href="/api-reference/auth">
+    Create an API key to authenticate your streams.
+  </Card>
+</Columns>
