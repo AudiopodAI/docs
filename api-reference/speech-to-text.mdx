@@ -3,8 +3,6 @@ title: "Speech-to-Text"
 description: "Convert audio and video to accurate text transcriptions with speaker identification, timestamps, and multi-language support."
 ---
 
-{/* customer-comms-allow-file: whisperx, whisper-timestamped, faster-whisper, cloudflare-whisper, WhisperX, Whisper-Timestamped, Faster-Whisper */}
-
 ## Overview
 
 AudioPod AI's Speech-to-Text API converts audio and video content into accurate text transcriptions using AudioPod's transcription engine. Get detailed transcriptions with speaker diarization, word-level timestamps, and confidence scores.
@@ -54,7 +52,7 @@ Transcribe audio from YouTube or other video platforms.
     advanced_transcription = client.transcription.transcribe_from_url(
         url="https://youtube.com/watch?v=example123",
         language="en",  # Optional: auto-detect if not specified
-        model_type="whisperx",  # whisperx, whisper_timestamped, faster_whisper
+        model_type="premium",  # "premium" / "premium-diarized"; omit for Standard accuracy
         enable_speaker_diarization=True,
         min_speakers=2,
         max_speakers=5,
@@ -84,7 +82,7 @@ Transcribe audio from YouTube or other video platforms.
     batch_results = client.transcription.transcribe_batch_from_urls(
         urls=urls,
         enable_speaker_diarization=True,
-        model_type="whisperx",
+        model_type="premium",
         wait_for_completion=True
     )
 
@@ -118,7 +116,7 @@ Transcribe audio from YouTube or other video platforms.
         const advancedTranscription = await client.transcription.transcribeFromUrl({
           url: "https://youtube.com/watch?v=example123",
           language: "en",
-          modelType: "whisperx",
+          modelType: "premium",
           enableSpeakerDiarization: true,
           minSpeakers: 2,
           maxSpeakers: 5,
@@ -149,7 +147,7 @@ Transcribe audio from YouTube or other video platforms.
         const batchResults = await client.transcription.transcribeBatchFromUrls({
           urls: urls,
           enableSpeakerDiarization: true,
-          modelType: "whisperx",
+          modelType: "premium",
           waitForCompletion: true
         });
 
@@ -184,7 +182,7 @@ Transcribe audio from YouTube or other video platforms.
                 "https://vimeo.com/123456789"
             ],
             "language": "en",  # Optional: auto-detect if not specified
-            "model_type": "whisperx",
+            "model_type": "premium",
             "enable_speaker_diarization": True,
             "min_speakers": 2,
             "max_speakers": 5,
@@ -246,7 +244,7 @@ Transcribe audio from YouTube or other video platforms.
       -d '{
         "source_urls": ["https://youtube.com/watch?v=example123"],
         "language": "en",
-        "model_type": "whisperx",
+        "model_type": "premium",
         "enable_speaker_diarization": true,
         "enable_word_timestamps": true,
         "enable_confidence_scores": true
@@ -297,7 +295,7 @@ Transcribe from uploaded audio or video files.
     transcription = client.transcription.transcribe_from_file(
         audio_file="meeting_recording.mp3",
         language="en",
-        model_type="whisperx",
+        model_type="premium",
         enable_speaker_diarization=True,
         min_speakers=2,
         max_speakers=8,
@@ -333,7 +331,7 @@ Transcribe from uploaded audio or video files.
     batch_results = client.transcription.transcribe_batch_from_files(
         audio_files=audio_files,
         enable_speaker_diarization=True,
-        model_type="whisperx",
+        model_type="premium",
         enable_word_timestamps=True,
         chunk_duration=1800,  # 30 minutes per chunk
         wait_for_completion=True
@@ -360,7 +358,7 @@ Transcribe from uploaded audio or video files.
         
         transcription = client.transcription.transcribe_from_file(
             audio_file=file_path,
-            model_type="whisperx",  # Best for accuracy
+            model_type="premium",  # Premium accuracy
             enable_speaker_diarization=True,
             min_speakers=2,  # Interviewer + interviewee
             max_speakers=4,  # Allow for additional participants
@@ -406,7 +404,7 @@ Transcribe from uploaded audio or video files.
         const transcription = await client.transcription.transcribeFromFile({
           audioFile: fs.createReadStream('meeting_recording.mp3'),
           language: "en",
-          modelType: "whisperx",
+          modelType: "premium",
           enableSpeakerDiarization: true,
           minSpeakers: 2,
           maxSpeakers: 8,
@@ -448,7 +446,7 @@ Transcribe from uploaded audio or video files.
         const batchResults = await client.transcription.transcribeBatchFromFiles({
           audioFiles: fileStreams,
           enableSpeakerDiarization: true,
-          modelType: "whisperx",
+          modelType: "premium",
           enableWordTimestamps: true,
           chunkDuration: 1800,
           waitForCompletion: true
@@ -474,7 +472,7 @@ Transcribe from uploaded audio or video files.
         async function processInterviewFile(filePath) {
           const transcription = await client.transcription.transcribeFromFile({
             audioFile: fs.createReadStream(filePath),
-            modelType: "whisperx",
+            modelType: "premium",
             enableSpeakerDiarization: true,
             minSpeakers: 2,
             maxSpeakers: 4,
@@ -539,7 +537,7 @@ Transcribe from uploaded audio or video files.
         headers={"X-API-Key": api_key},
         data={
             "language": "en",
-            "model_type": "whisperx",
+            "model_type": "premium",
             "enable_speaker_diarization": True,
             "min_speakers": 1,
             "max_speakers": 10,
@@ -606,7 +604,7 @@ Transcribe from uploaded audio or video files.
       -F "files=@meeting_recording.mp3" \
       -F "files=@interview.wav" \
       -F "language=en" \
-      -F "model_type=whisperx" \
+      -F "model_type=premium" \
       -F "enable_speaker_diarization=true" \
       -F "enable_word_timestamps=true"
 
@@ -661,7 +659,7 @@ Check the progress and status of transcription jobs.
   "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "source_urls": ["https://youtube.com/watch?v=example123"],
   "language": "en",
-  "model_type": "whisperx",
+  "model_type": "premium",
   "enable_speaker_diarization": true,
   "min_speakers": 2,
   "max_speakers": 5,
@@ -1010,13 +1008,20 @@ AudioPod AI supports automatic language detection or manual specification for 50
 
 ## Model Comparison
 
-Choose the best model for your use case:
+Choose an accuracy tier for your use case. **Standard** is the default — just
+omit `model_type`. **Premium** unlocks our highest-accuracy engine (punctuation,
+per-word confidence, language detection, and native speaker labels).
 
-| Model | Speed | Accuracy | Speaker Diarization | Best For |
-|-------|-------|----------|-------------------|----------|
-| **whisperx** | Medium | Highest | Excellent | Production transcription |
-| **faster-whisper** | Fastest | High | Good | Real-time applications |
-| **whisper-timestamped** | Slow | High | Good | Detailed analysis |
+| Accuracy tier | `model_type` value | Speaker labels | Best for |
+|---|---|---|---|
+| **Standard** (default) | _omit `model_type`_ | set `enable_speaker_diarization: true` | Fast, low-cost transcription at scale |
+| **Premium** | `"premium"` | set `enable_speaker_diarization: true` | Highest accuracy, punctuation, confidence |
+| **Premium + speaker labels** | `"premium-diarized"` | built in | Interviews, meetings, podcasts |
+
+<Note>
+Premium accuracy is a paid feature (see [Pricing](#pricing)). Standard accuracy
+is available on every plan, including the free tier.
+</Note>
 
 ## Best Practices
 
@@ -1050,9 +1055,9 @@ chunking_strategy = {
 def transcribe_efficiently(audio_files, language="auto"):
     # Use appropriate model based on needs
     model_choice = {
-        "speed_priority": "faster-whisper",
-        "accuracy_priority": "whisperx", 
-        "analysis_priority": "whisper-timestamped"
+        "cost_priority": None,            # omit model_type -> Standard (lowest cost)
+        "accuracy_priority": "premium",
+        "speaker_priority": "premium-diarized",
     }
     
     # Batch similar files together

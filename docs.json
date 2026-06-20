@@ -64,6 +64,7 @@
             "icon": "microphone",
             "pages": [
               "api-reference/speech-to-text",
+              "api-reference/live-transcription",
               "api-reference/text-to-speech"
             ]
           },
