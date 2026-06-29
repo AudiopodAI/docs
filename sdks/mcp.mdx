@@ -4,7 +4,7 @@ description: "Connect any agent to AudioPod via Model Context Protocol — music
 ---
 
 <Info>
-**What is MCP?** [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that lets AI assistants (Claude Desktop, Cursor, Continue, Cline, Goose, Codex…) call external tools through a single transport. AudioPod publishes a Streamable-HTTP MCP server that exposes nine audio AI tools.
+**What is MCP?** [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that lets AI assistants (Claude Desktop, Cursor, Continue, Cline, Goose, Codex…) call external tools through a single transport. AudioPod publishes a Streamable-HTTP MCP server that exposes ten audio AI tools.
 </Info>
 
 ## Endpoint
@@ -22,19 +22,20 @@ Need a key? [Create one in your dashboard](https://www.audiopod.ai/dashboard/acc
 
 ## Tools exposed
 
-The server advertises nine tools. Schemas are returned by `tools/list` — these are the names and one-liners:
+The server advertises ten tools. Schemas are returned by `tools/list` — these are the names and one-liners:
 
 | Tool | Description | Required scope |
 |------|-------------|----------------|
 | `generate_music` | Songs, instrumentals, rap, vocal stems from a text prompt. | `music:generate` |
 | `text_to_speech` | TTS in 85+ languages with 500+ voices and custom clones. | `voice:synthesize` |
 | `clone_voice` | Clone a voice from a 5–30s reference clip. | `voice:clone` |
-| `separate_stems` | Up to 16 stems (vocals, drums, bass, guitar, piano, other…). | `stems:separate` |
+| `separate_stems` | Up to 16 stems (vocals, drums, bass, guitar, piano, other…). Two-stem mode returns a vocals/instrumental (karaoke) split. | `stems:separate` |
 | `transcribe_audio` | Word-level timestamps, speaker diarization, SRT/VTT/JSON. | `transcribe` |
 | `denoise_audio` | Remove background noise while preserving voice character. | `audio:write` |
-| `translate_audio` | Dub speech across 85+ languages, keep the speaker's voice. | `audio:write` |
-| `generate_karaoke` | Vocal-stripped instrumental + synced lyric file. | `audio:write` |
 | `convert_media` | MP3 / WAV / FLAC / OGG / M4A / MP4 / MOV conversion. | `audio:write` |
+| `separate_speakers` | Isolate each speaker into a separate track from multi-speaker audio. | `audio:write` |
+| `change_voice` | Convert a recording to a different target voice (voice-to-voice). | `voice:synthesize` |
+| `check_job_status` | Poll the status and result of a long-running job. | _none (free)_ |
 
 Scopes are enforced when authenticating with an API key. JWT-based auth implies full user privileges.
 
@@ -55,7 +56,7 @@ claude mcp add --transport http audiopod https://mcp.audiopod.ai \
   --header "X-API-Key: ap_YOUR_KEY" --scope user
 ```
 
-The `--scope user` flag installs at the user level so every Claude Code project picks up the server. Run `claude mcp list` to verify, then `/mcp` inside the TUI to see the nine tools.
+The `--scope user` flag installs at the user level so every Claude Code project picks up the server. Run `claude mcp list` to verify, then `/mcp` inside the TUI to see the ten tools.
 
 </Tab>
 
@@ -287,7 +288,7 @@ Returns the issuer, supported scopes, and the bearer-token pattern. Most agent c
 
 <Columns cols={2}>
   <Card title="Use the CLI" icon="terminal" href="/sdks/cli">
-    Same nine tools, terminal-first.
+    Same ten tools, terminal-first.
   </Card>
   <Card title="For Agents landing" icon="robot" href="https://audiopod.ai/for-agents">
     Single-pane overview of every developer surface.
