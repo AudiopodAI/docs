@@ -21,7 +21,7 @@
           {
             "group": "Account",
             "icon": "user",
-            "pages": ["account/api-keys", "account/api-wallet"]
+            "pages": ["account/api-keys", "account/api-wallet", "account/webhooks"]
           }
         ]
       },

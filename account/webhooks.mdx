@@ -1,0 +1,148 @@
+---
+title: "Webhooks"
+description: "Receive a signed HTTP callback the moment an AudioPod job finishes — no polling. Register an endpoint, verify the signature, and handle retries."
+---
+
+## Overview
+
+AudioPod processing is asynchronous: you create a job, it runs, and it finishes a few seconds to a few minutes later. Instead of polling the job status, register a **webhook** and AudioPod will `POST` a signed event to your server the moment the job completes or fails.
+
+Every delivery is **HMAC-signed**, retried with exponential backoff, and carries a unique event id so you can safely deduplicate.
+
+## Events
+
+| Event | When it fires |
+|---|---|
+| `job.completed` | A job finished successfully and its output is available. |
+| `job.failed` | A job failed. Credits reserved for the job are refunded automatically. |
+| `webhook.test` | A synthetic event you trigger yourself to confirm your endpoint works. |
+
+## Register an endpoint
+
+Create an endpoint with the URL to call and the events you want. The response includes a **signing secret** — it is shown **once**, so store it now.
+
+```bash
+curl -X POST https://api.audiopod.ai/api/v1/webhooks/endpoints \
+  -H "Authorization: Bearer $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-app.com/hooks/audiopod",
+    "events": ["job.completed", "job.failed"],
+    "description": "Production job notifications"
+  }'
+```
+
+```json
+{
+  "id": "a5500e11-2d26-4d87-a020-03b730dfa340",
+  "url": "https://your-app.com/hooks/audiopod",
+  "events": ["job.completed", "job.failed"],
+  "active": true,
+  "description": "Production job notifications",
+  "created_at": "2026-06-30T11:19:43Z",
+  "secret": "whsec_…"
+}
+```
+
+<Note>
+Your endpoint **must use HTTPS** and must resolve to a public address. AudioPod refuses URLs that resolve to private, loopback, or internal addresses (SSRF protection), re-checked at delivery time.
+</Note>
+
+## Event payload
+
+The body is JSON. Every event carries `event_id` and `event_type`; job events add the job context.
+
+```json
+{
+  "event_type": "job.completed",
+  "event_id": "f0a1…",
+  "job_id": 999001,
+  "job_type": "text_to_speech",
+  "status": "completed"
+}
+```
+
+A `job.failed` event adds `error_message` and `failure_reason`. The `job_type` field tells you which tool produced the job (for example `transcription`, `text_to_speech`, `voice_cloning`, `music_generation`, `stem_extraction`, `speaker_diarization`, `denoise`, `export_acx`).
+
+## HTTP headers
+
+| Header | Description |
+|---|---|
+| `Content-Type` | Always `application/json`. |
+| `X-AudioPod-Signature` | `sha256=<hex>` — the HMAC signature (see below). |
+| `X-AudioPod-Timestamp` | Unix seconds; part of the signed material. |
+| `X-AudioPod-Event` | The event type, e.g. `job.completed`. |
+| `X-AudioPod-Event-Id` | Unique id for this event — use it to deduplicate. |
+
+## Verify the signature
+
+The signature is `HMAC-SHA256(secret, "{timestamp}.{raw_request_body}")`, hex-encoded. Recompute it over the **raw** body bytes you received and the `X-AudioPod-Timestamp` header, then compare in constant time. Reject anything that doesn't match.
+
+<CodeGroup>
+
+```python Python
+import hmac, hashlib
+
+def verify(secret: str, raw_body: bytes, timestamp: str, header_sig: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        timestamp.encode() + b"." + raw_body,
+        hashlib.sha256,
+    ).hexdigest()
+    # header_sig looks like "sha256=<hex>"
+    received = header_sig.split("=", 1)[-1]
+    return hmac.compare_digest(expected, received)
+
+# FastAPI / Flask: read the RAW body, not a re-serialized dict.
+```
+
+```javascript Node.js
+import crypto from "crypto";
+
+function verify(secret, rawBody, timestamp, headerSig) {
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${timestamp}.${rawBody}`)
+    .digest("hex");
+  const received = headerSig.split("=")[1] || "";
+  return (
+    received.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(received))
+  );
+}
+// Express: use express.raw({ type: "application/json" }) so rawBody is the
+// exact bytes AudioPod signed.
+```
+
+</CodeGroup>
+
+<Warning>
+Sign over the **raw bytes** you received, not a parsed-then-re-serialized object. Re-serializing can reorder keys or change whitespace and break the comparison.
+</Warning>
+
+## Respond fast, deduplicate, and retry-proof
+
+- **Return `2xx` quickly.** Acknowledge within **10 seconds**, then do slow work asynchronously. Any non-`2xx` (or a timeout) is treated as a failed attempt.
+- **Deduplicate on `X-AudioPod-Event-Id`.** Retries reuse the same event id, so store processed ids and ignore repeats.
+- **Retries:** failed deliveries retry with exponential backoff — 1m, 2m, 4m, … capped at 1h — up to 5 attempts. After that the delivery is dead-lettered and can be replayed from the delivery log.
+
+## Manage endpoints
+
+| Action | Request |
+|---|---|
+| List endpoints | `GET /api/v1/webhooks/endpoints` |
+| Get one | `GET /api/v1/webhooks/endpoints/{id}` |
+| Update (url / events / active / description) | `PATCH /api/v1/webhooks/endpoints/{id}` |
+| Delete | `DELETE /api/v1/webhooks/endpoints/{id}` |
+| Send a test event | `POST /api/v1/webhooks/endpoints/{id}/test` |
+| View delivery log | `GET /api/v1/webhooks/endpoints/{id}/deliveries` |
+| Replay a delivery | `POST /api/v1/webhooks/deliveries/{id}/redeliver` |
+
+### Test your integration
+
+```bash
+curl -X POST https://api.audiopod.ai/api/v1/webhooks/endpoints/$ENDPOINT_ID/test \
+  -H "Authorization: Bearer $AUDIOPOD_API_KEY"
+```
+
+This delivers a `webhook.test` event so you can confirm your signature verification and `2xx` response before wiring it to real jobs. Check `GET …/deliveries` to see the recorded status and response code.
