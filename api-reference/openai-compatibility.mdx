@@ -1,0 +1,165 @@
+---
+title: "OpenAI Compatibility"
+description: "Point your existing OpenAI audio code at AudioPod by changing only the base URL and API key. Drop-in /v1/audio/speech, /v1/audio/transcriptions and /v1/audio/translations."
+---
+
+## Overview
+
+AudioPod exposes **OpenAI-compatible audio endpoints**, so code written for the
+OpenAI audio API runs against AudioPod with **two changes only**: the base URL
+and the API key. Use the official OpenAI SDKs — no AudioPod-specific client
+required.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /v1/audio/speech` | Text to speech — returns audio bytes |
+| `POST /v1/audio/transcriptions` | Speech to text (source language) |
+| `POST /v1/audio/translations` | Speech to text, translated to English |
+
+<Note>
+These three are the only audio shapes the OpenAI API defines. AudioPod's other
+capabilities — stem separation, music generation, speaker separation, voice
+cloning, noise reduction, media conversion — are available through the native
+[REST API](/api-reference/text-to-speech), [SDKs](/sdks/overview) and
+[MCP server](/sdks/mcp).
+</Note>
+
+## Configuration
+
+Set the base URL to `https://api.audiopod.ai/api/v1` and use your AudioPod API
+key (starts with `ap_`). Create one in your
+[dashboard](https://audiopod.ai/dashboard/account/api-keys).
+
+<CodeGroup>
+```python Python
+from openai import OpenAI
+
+client = OpenAI(
+    base_url="https://api.audiopod.ai/api/v1",
+    api_key="ap_your_api_key",
+)
+```
+
+```javascript Node.js
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  baseURL: "https://api.audiopod.ai/api/v1",
+  apiKey: "ap_your_api_key",
+});
+```
+</CodeGroup>
+
+Calls are billed to your [API wallet](/account/api-wallet) (prepaid, in USD).
+Nothing is charged for a request that fails — you're only billed once audio or
+a transcript is produced.
+
+## Text to speech
+
+`POST /v1/audio/speech` synthesizes `input` with the requested `voice` and
+returns the audio bytes.
+
+<CodeGroup>
+```python Python
+response = client.audio.speech.create(
+    model="tts-1",
+    voice="nova",
+    input="Hello from AudioPod.",
+    response_format="mp3",  # mp3 | opus | aac | flac | wav | pcm
+)
+response.stream_to_file("speech.mp3")
+```
+
+```bash cURL
+curl https://api.audiopod.ai/api/v1/audio/speech \
+  -H "Authorization: Bearer ap_your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"tts-1","voice":"nova","input":"Hello from AudioPod."}' \
+  --output speech.mp3
+```
+</CodeGroup>
+
+| Field | Notes |
+| --- | --- |
+| `input` | The text to synthesize (required). |
+| `voice` | A voice name (e.g. `nova`, `onyx`) or a voice ID. List options at `GET /api/v1/voice/voice-profiles`. |
+| `response_format` | `mp3` (default), `opus`, `aac`, `flac`, `wav`, `pcm`. |
+| `speed` | `0.25`–`4.0` (default `1.0`). |
+
+## Transcription
+
+`POST /v1/audio/transcriptions` converts speech to text in the source language.
+
+<CodeGroup>
+```python Python
+with open("audio.mp3", "rb") as f:
+    transcript = client.audio.transcriptions.create(
+        model="whisper-1",
+        file=f,
+        response_format="json",  # json | text | verbose_json | srt | vtt
+    )
+print(transcript.text)
+```
+
+```bash cURL
+curl https://api.audiopod.ai/api/v1/audio/transcriptions \
+  -H "Authorization: Bearer ap_your_api_key" \
+  -F file="@audio.mp3" \
+  -F model="whisper-1"
+```
+</CodeGroup>
+
+| Field | Notes |
+| --- | --- |
+| `file` | The audio file to transcribe (required). |
+| `language` | Optional ISO-639-1 hint (e.g. `en`); auto-detected when omitted. |
+| `prompt` | Optional text to guide the transcription. |
+| `response_format` | `json` (default), `text`, `verbose_json`, `srt`, `vtt`. |
+
+`verbose_json` includes the detected `language`, `duration`, and segment-level
+timestamps.
+
+## Translation
+
+`POST /v1/audio/translations` converts speech in any language to **English**
+text. The request shape matches transcription (the `language` field is not used
+— output is always English).
+
+<CodeGroup>
+```python Python
+with open("spanish.mp3", "rb") as f:
+    translation = client.audio.translations.create(
+        model="whisper-1",
+        file=f,
+    )
+print(translation.text)  # English
+```
+
+```bash cURL
+curl https://api.audiopod.ai/api/v1/audio/translations \
+  -H "Authorization: Bearer ap_your_api_key" \
+  -F file="@spanish.mp3" \
+  -F model="whisper-1"
+```
+</CodeGroup>
+
+## Notes & differences
+
+- **Auth**: pass your AudioPod API key as a Bearer token (the scheme the OpenAI
+  SDKs use). `X-API-Key` is also accepted.
+- **Models**: the `model` field is accepted for compatibility. AudioPod selects
+  the appropriate engine for each request; you don't need to change `model`
+  strings when migrating.
+- **Voices**: common OpenAI voice names map to AudioPod voices. Browse the full
+  catalog — including custom voice clones — at `GET /api/v1/voice/voice-profiles`
+  and pass any voice name or ID as `voice`.
+- **Errors** follow the OpenAI shape (`{ "error": { "message", "type", "param" } }`),
+  so existing OpenAI error handling works unchanged.
+
+## Beyond OpenAI
+
+Already migrated? AudioPod does more than the OpenAI audio API. Explore
+[stem separation](/api-reference/stem-splitter),
+[music generation](/api-reference/music/overview),
+[speaker separation](/api-reference/speaker-separation), and
+[voice cloning](/api-reference/voice-management) through the native API and SDKs.
