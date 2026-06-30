@@ -37,6 +37,11 @@
             "group": "AI Integration",
             "icon": "robot",
             "pages": ["sdks/mcp"]
+          },
+          {
+            "group": "OpenAI Compatibility",
+            "icon": "plug",
+            "pages": ["api-reference/openai-compatibility"]
           }
         ]
       },
