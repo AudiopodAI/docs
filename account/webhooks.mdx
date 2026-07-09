@@ -62,7 +62,7 @@ The body is JSON. Every event carries `event_id` and `event_type`; job events ad
 }
 ```
 
-A `job.failed` event adds `error_message` and `failure_reason`. The `job_type` field tells you which tool produced the job (for example `transcription`, `text_to_speech`, `voice_cloning`, `music_generation`, `stem_extraction`, `speaker_diarization`, `denoise`, `export_acx`).
+A `job.failed` event adds `error_message` and `failure_reason`. The `job_type` field tells you which tool produced the job. Completion webhooks now fire across the audio job types — for example `transcription`, `text_to_speech`, `voice_cloning`, `voice_conversion`, `music_generation`, `stem_extraction`, `speaker_diarization`, `denoise`, `reader`, `podcast`, `media_converter`, `audiobook`, and `export_acx`.
 
 ## HTTP headers
 

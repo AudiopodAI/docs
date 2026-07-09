@@ -7,6 +7,48 @@ description: "Go from zero to your first API call in under 5 minutes"
 **TL;DR:** Register → Verify email → Create API key → Add funds → Make API calls. 
 </Info>
 
+## Try it first — no signup
+
+Want to hear a result before creating an account? The **sandbox** issues a
+short-lived key (valid ~1 hour, small built-in credit balance) so you can make a
+real text-to-speech call in two requests.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # 1. Mint a sandbox key (no auth required)
+    SANDBOX_KEY=$(curl -s -X POST "https://api.audiopod.ai/api/v1/sandbox/key" | jq -r '.key')
+
+    # 2. Synthesize a short snippet (max 200 characters) — returns audio bytes
+    curl -s -X POST "https://api.audiopod.ai/api/v1/sandbox/tts" \
+      -H "Content-Type: application/json" \
+      -d "{\"key\": \"$SANDBOX_KEY\", \"text\": \"Hello from the AudioPod sandbox!\"}" \
+      --output sandbox.mp3
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    # 1. Mint a sandbox key (no auth required)
+    key = requests.post("https://api.audiopod.ai/api/v1/sandbox/key").json()["key"]
+
+    # 2. Synthesize a short snippet (max 200 characters)
+    audio = requests.post(
+        "https://api.audiopod.ai/api/v1/sandbox/tts",
+        json={"key": key, "text": "Hello from the AudioPod sandbox!"},
+    )
+    with open("sandbox.mp3", "wb") as f:
+        f.write(audio.content)
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+The sandbox is rate-limited and capped at 200 characters per call — it's for a
+first taste, not production. Ready for the full API? Continue below.
+</Note>
+
 ## Choose Your Path
 
 <Tabs>
@@ -334,6 +376,12 @@ curl -s "https://api.audiopod.ai/api/v1/api-wallet/usage" \
 </AccordionGroup>
 
 ---
+
+## Building a startup?
+
+**AudioPod for Startups** gives eligible early-stage teams free Pro access plus
+API credits to build on. Apply at
+[audiopod.ai/startups](https://www.audiopod.ai/startups).
 
 ## Next Steps
 

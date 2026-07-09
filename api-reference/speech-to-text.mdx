@@ -1023,6 +1023,22 @@ Premium accuracy is a paid feature (see [Pricing](#pricing)). Standard accuracy
 is available on every plan, including the free tier.
 </Note>
 
+## Real-Time Streaming
+
+Need captions as the speaker talks? Stream audio over a WebSocket and receive
+**interim** (partial) results within a fraction of a second, followed by
+**final**, stabilized segments with word timestamps and optional speaker labels.
+
+```
+wss://api.audiopod.ai/api/v1/transcription/stream?api_key=ap_your_key
+```
+
+Live sessions run on **Premium accuracy** and, when finished, are saved as a
+normal transcription job you can fetch, edit, and export like any batch
+transcript. See the full protocol, audio-format requirements, and browser
+capture example in the [Live Transcription](/api-reference/live-transcription)
+guide.
+
 ## Best Practices
 
 ### Audio Quality Guidelines
@@ -1120,6 +1136,9 @@ Transcription pricing is based on audio duration:
 ## Next Steps
 
 <Columns cols={2}>
+  <Card title="Live Transcription" icon="waveform-lines" href="/api-reference/live-transcription">
+    Stream audio for real-time interim + final transcripts.
+  </Card>
   <Card title="Speaker Separation" icon="users" href="/api-reference/speaker-separation">
     Identify and separate individual speakers from audio.
   </Card>

@@ -299,6 +299,172 @@ For best voice creation results:
 - **Content**: Natural speech with varied intonation
 - **Multiple Samples**: 2-5 samples recommended for higher quality
 
+## Instant Voice Cloning (IVC)
+
+Cloning is **instant** — a custom voice is ready to use in **seconds** from a
+single short reference clip. Provide **5–30 seconds** of clean speech and the
+returned voice can be used immediately for text-to-speech and voice conversion.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/voice-clone
+    X-API-Key: {api_key}
+    Content-Type: multipart/form-data
+
+    name: My Instant Clone
+    file: (5-30s reference audio)
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    with open("reference_5s.wav", "rb") as audio_file:
+        response = requests.post(
+            "https://api.audiopod.ai/api/v1/voice/voice-clone",
+            headers={"X-API-Key": api_key},
+            data={"name": "My Instant Clone"},
+            files={"file": audio_file},
+        )
+
+    voice = response.json()
+    print(f"Voice ready: {voice['id']} — status {voice['status']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-clone" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "name=My Instant Clone" \
+      -F "file=@reference_5s.wav"
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+For the highest fidelity, provide a clean 5–30s clip of a single speaker with
+minimal background noise. Once created, use the voice with
+[Text to Speech](/api-reference/text-to-speech) or
+[Voice Changer](/api-reference/voice-changer).
+</Note>
+
+## Design a Voice
+
+Don't have a reference recording? **Design a voice from a text description.**
+Describe the voice you want and get back audition-ready candidate previews, then
+publish the one you like into a durable custom voice.
+
+<Note>
+Voice Design is a **paid-tier feature** (Creator and above). Each generated
+preview costs **250 credits**; publishing a chosen preview is free.
+</Note>
+
+### Generate previews
+
+`POST /api/v1/voice/design` describes a voice and returns short presigned
+previews to audition.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/design
+    X-API-Key: {api_key}
+    Content-Type: application/json
+
+    {
+      "design_prompt": "A warm, middle-aged British narrator with a calm, unhurried delivery",
+      "preview_text": "This is a preview of the voice you just designed.",
+      "num_samples": 3
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/design",
+        headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+        json={
+            "design_prompt": "A warm, middle-aged British narrator with a calm, unhurried delivery",
+            "preview_text": "This is a preview of the voice you just designed.",
+            "num_samples": 3,
+        },
+    )
+
+    data = response.json()
+    print(f"Charged {data['credits_charged']} credits")
+    for preview in data["previews"]:
+        print(f"{preview['preview_id']}: {preview['audio_url']}")
+    ```
+  </Tab>
+</Tabs>
+
+**Body:**
+- `design_prompt` (required): Natural-language description of the voice (30–250 characters)
+- `preview_text` (optional): The line the previews speak (20–300 characters)
+- `num_samples` (optional): Number of candidate previews to generate, 1–3 (default 3). Each preview costs 250 credits
+- `language` (optional): BCP-47 language code; auto-detected if omitted
+
+**Response:**
+
+```json
+{
+  "previews": [
+    {
+      "preview_id": "b1f2c3d4-....",
+      "audio_url": "https://presigned-url-to-preview.mp3",
+      "expires_at": "2026-07-09T12:00:00Z",
+      "preview_text": "This is a preview of the voice you just designed."
+    }
+  ],
+  "credits_charged": 750
+}
+```
+
+### Publish a preview
+
+Turn a chosen preview into a permanent custom voice with
+`POST /api/v1/voice/design/publish`. Publishing is free and the resulting voice
+works everywhere a cloned voice does.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/voice/design/publish
+    X-API-Key: {api_key}
+    Content-Type: application/json
+
+    {
+      "preview_id": "b1f2c3d4-....",
+      "name": "Calm British Narrator",
+      "description": "Designed voice for long-form narration"
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/design/publish",
+        headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+        json={
+            "preview_id": "b1f2c3d4-....",
+            "name": "Calm British Narrator",
+            "description": "Designed voice for long-form narration",
+        },
+    )
+    voice = response.json()
+    print(f"Published voice: {voice['id']} ({voice['name']})")
+    ```
+  </Tab>
+</Tabs>
+
+**Body:**
+- `preview_id` (required): The `preview_id` of the preview you want to keep
+- `name` (required): Display name for the new voice (1–100 characters)
+- `description` (optional): Notes about the voice
+
 ## Voice Preview
 
 ### Generate Voice Preview

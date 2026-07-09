@@ -5,7 +5,7 @@ description: "Generate natural-sounding speech from text using AudioPod AI's uni
 
 ## Overview
 
-AudioPod AI's Text to Speech service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Generate speech with any voice in 60+ supported languages using our advanced AI models.
+AudioPod AI's Text to Speech service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Generate speech with any of **500+ voices** across **85+ languages** using our advanced audio AI stack.
 
 ### Supported Voice Types
 
@@ -15,7 +15,9 @@ AudioPod AI's Text to Speech service provides unified text-to-speech capabilitie
 
 ### Key Features
 
-- **50+ Premium Voices**: Pre-built voices with unique characteristics
+- **500+ Voices**: Pre-built voices with unique characteristics, plus your own custom clones
+- **Inline Directing (TTS-2)**: Steer emotion, delivery, non-verbal sounds, pauses, and pronunciation right inside the text — on every plan
+- **Word / Character Timestamps**: Follow-along timing sidecar for captions and highlighting
 - **Custom Voice Support**: Use your own voice clones and collections
 - **Variable Speed Control**: Adjust speech speed from 0.25x to 4.0x
 - **Multiple Formats**: MP3, WAV, OGG audio formats
@@ -272,12 +274,13 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
   </Tab>
 </Tabs>
 
-**Parameters:**
-- `voice_id` (required): Voice UUID, ID, or name from your voice collection
-- `text` (required): Text to convert to speech (max 5000 characters)
+**Parameters** (submit as `application/x-www-form-urlencoded` form fields):
+- `voice_id` (required): Voice UUID, ID, or name from your voice collection (path parameter)
+- `input_text` (required): Text to convert to speech (max **20,000 characters** per request; may include inline directing — see below)
 - `audio_format` (optional): Output format - mp3, wav, ogg (default: mp3)
 - `speed` (optional): Speech speed 0.25-4.0 (default: 1.0)
 - `language` (optional): Language code - auto-detected if not provided
+- `generation_params` (optional): JSON string of TTS-2 controls — `delivery_mode`, `timestamp_type`, `text_normalization` (see [Delivery & timestamp controls](#delivery-timestamp-controls))
 
 **Response:**
 
@@ -289,6 +292,127 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
   "voice_id": 123,
   "estimated_duration": 30,
   "credits_reserved": 25
+}
+```
+
+## Inline Directing (TTS-2)
+
+Steer the performance directly inside `input_text` — no separate parameters
+needed. Inline directing is available on **every plan**, including the free tier.
+
+### Emotion & delivery cues
+
+Lead a segment with a bracketed direction of one or two words. It sets the mood
+for the text that follows, until the next cue.
+
+```text
+[whispering, tense] Did you hear that? [excited] It's finally here!
+```
+
+### Non-verbal sounds
+
+Drop a bracketed tag where you want a natural, non-verbal sound:
+
+```text
+That's hilarious [laugh]. Okay [sigh], let's get back to it.
+```
+
+Supported tags: `[laugh]` `[sigh]` `[clear throat]` `[breathe]` `[cough]`
+`[yawn]` `[chuckle]` `[gasp]` `[groan]`.
+
+### Pauses
+
+Insert a timed silence with a self-closing break tag. Each pause is capped at
+**10 seconds**, and you can use up to **20 breaks per request**.
+
+```text
+Let me think about that <break time="500ms"/> yes, that works.
+```
+
+### Pronunciation (inline IPA)
+
+Wrap a word's [IPA](https://en.wikipedia.org/wiki/International_Phonetic_Alphabet)
+pronunciation in forward slashes to override how it's spoken:
+
+```text
+Welcome to /ˈwʊstər/ — you'd never guess it from the spelling.
+```
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/VOICE_UUID/generate" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      --data-urlencode 'input_text=[warm] Hello there [laugh]. Welcome to /ˈwʊstər/ <break time="600ms"/> let'\''s begin.' \
+      -d 'audio_format=mp3'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    directed_text = (
+        "[warm] Hello there [laugh]. "
+        'Welcome to /ˈwʊstər/ <break time="600ms"/> '
+        "let's begin."
+    )
+
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/VOICE_UUID/generate",
+        headers={"X-API-Key": api_key},
+        data={"input_text": directed_text, "audio_format": "mp3"},
+    )
+    print(response.json()["job_id"])
+    ```
+  </Tab>
+</Tabs>
+
+## Delivery & timestamp controls
+
+Pass a JSON string in the `generation_params` form field to tune delivery and
+request a timestamp sidecar.
+
+| Key | Values | Description |
+|-----|--------|-------------|
+| `delivery_mode` | `stable`, `balanced`, `creative` | How expressive vs. consistent the read is. `stable` hugs the text closely; `creative` gives the voice more range. |
+| `timestamp_type` | `word`, `character` | Emit follow-along timestamps at word or character granularity. |
+| `text_normalization` | `true`, `false` | Expand numbers, dates, and abbreviations into spoken form. |
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/voice/voices/VOICE_UUID/generate" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode 'input_text=The meeting is at 3:30 on 04/09.' \
+  --data-urlencode 'generation_params={"delivery_mode":"balanced","timestamp_type":"word","text_normalization":true}'
+```
+
+### Timestamps
+
+When you request `timestamp_type`, the completed job response includes a
+`timestamps_url` — a short-lived presigned URL to a sidecar file with per-word
+(or per-character) timing. Use it to drive live captions, karaoke-style
+highlighting, or word-accurate video alignment.
+
+```json
+{
+  "id": 12345,
+  "status": "completed",
+  "output_url": "https://presigned-url-to-audio-file",
+  "timestamps_url": "https://presigned-url-to-timestamps-sidecar.json",
+  "total_duration": 4.2
+}
+```
+
+Each entry pairs a token with its `start`/`end` time in seconds:
+
+```json
+{
+  "type": "word",
+  "tokens": [
+    { "text": "The", "start": 0.00, "end": 0.18 },
+    { "text": "meeting", "start": 0.18, "end": 0.61 }
+  ]
 }
 ```
 
@@ -576,7 +700,7 @@ job2 = client.voice.generate_speech(
 
 ### Language Codes
 
-AudioPod AI supports 60+ languages with automatic detection and consistent quality across all supported languages:
+AudioPod AI supports 85+ languages with automatic detection and consistent quality across all supported languages:
 
 | Language             | Code    | Description                    |
 | -------------------- | ------- | ------------------------------ |
@@ -1045,9 +1169,9 @@ def get_cached_audio(text, voice_identifier, cache_dir="audio_cache"):
 
 <AccordionGroup>
   <Accordion title="400 Bad Request - Invalid Text">
-    **Causes:** - Text too long (>5000 characters) - Invalid characters or
-    encoding - Empty text field **Solutions:** - Split long text into chunks -
-    Check text encoding (UTF-8) - Validate text is not empty
+    **Causes:** - Text too long (>20,000 characters) - Invalid characters or
+    encoding - Empty text field - Malformed `generation_params` JSON **Solutions:** - Split long text into chunks -
+    Check text encoding (UTF-8) - Validate text is not empty - Verify `generation_params` is a valid JSON object
   </Accordion>
 
   <Accordion title="404 Not Found - Invalid Voice">

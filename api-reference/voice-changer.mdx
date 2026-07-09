@@ -1,18 +1,18 @@
 ---
 title: "Voice Changer"
-description: "Transform voice characteristics in audio recordings using AudioPod AI's advanced voice conversion technology powered by OpenVoice v2."
+description: "Transform voice characteristics in audio recordings using AudioPod AI's advanced voice-to-voice conversion technology."
 ---
 
 ## Overview
 
-AudioPod AI's Voice Changer API uses OpenVoice v2 technology to convert source audio to match target voice characteristics. Transform any speech recording to sound like a different voice while preserving the original speech content, timing, and emotional expression.
+AudioPod AI's Voice Changer API converts source audio to match target voice characteristics. Transform any speech recording to sound like a different voice while preserving the original speech content, timing, and emotional expression.
 
 ### Key Features
 
 - **Voice Conversion**: Transform source audio to match target voice characteristics
 - **Content Preservation**: Maintains original speech content, timing, and emotional expression
 - **Multiple Voice Sources**: Use any completed voice profile as a target voice
-- **High Quality Processing**: Advanced OpenVoice v2 technology for natural-sounding results
+- **High Quality Processing**: Advanced voice-to-voice conversion for natural-sounding results
 - **Public Voice Support**: Access to both user-owned and public voice profiles
 - **Flexible Input**: Support for various audio formats (WAV, MP3, M4A, etc.)
 - **Real-time Processing**: Fast conversion for production workflows
@@ -92,7 +92,6 @@ Transform the voice characteristics in a source audio file to match a target voi
   "original_filename": "source_speech.wav",
   "target_voice_uuid": "550e8400-e29b-41d4-a716-446655440000",
   "target_voice_name": "Professional Speaker Voice",
-  "conversion_method": "openvoice_v2",
   "created_at": "2024-01-15T10:30:00Z",
   "task_id": "celery_task_uuid_here",
   "user_id": "user_abc123def456"
@@ -556,20 +555,21 @@ def choose_optimal_target_voice(source_characteristics, available_voices):
 
 ## Pricing
 
-Voice conversion pricing is based on audio duration:
+Voice conversion is billed by audio duration:
 
-| Service | Cost | Description |
-|---------|------|-------------|
-| Voice Conversion | 990 credits/minute | Transform voice characteristics using OpenVoice v2 |
+| Path | Rate | Basis |
+|------|------|-------|
+| **API wallet** (API key, USD) | **$0.13 per minute** | Duration of the source audio |
+| **Account credits** (subscription / JWT) | **990 credits per minute** | Duration of the source audio |
 
-### Cost Examples
+### Cost Examples — API wallet (per minute)
 
-| Duration | Credits | USD Cost |
-|----------|---------|----------|
-| 30 seconds | 495 | $0.0659 |
-| 2 minutes | 1980 | $0.2634 |
-| 5 minutes | 4950 | $0.6584 |
-| 10 minutes | 9900 | $1.3167 |
+| Duration | USD Cost |
+|----------|----------|
+| 30 seconds | $0.07 |
+| 2 minutes | $0.26 |
+| 5 minutes | $0.65 |
+| 10 minutes | $1.30 |
 
 ### Cost Optimization Tips
 

@@ -9,7 +9,8 @@ AudioPod AI's Stem Separation API uses state-of-the-art AI models to separate mi
 
 ### Key Features
 
-- **Granular Separation**: Single, two, four, six, eight(producer), twelve(studio), sixteen(mastering)
+- **Granular Separation**: two, four, six, producer (8), studio (12), mastering (16) — plus single-instrument isolation from an expanded catalog of up to ~45 individual stems
+- **Single-Instrument Isolation**: Pull out one specific instrument (or vocals) and everything-else from the advanced catalog
 - **File Upload & URL Support**: Process local files or YouTube/SoundCloud URLs
 - **Quality Scores**: Get AI-assessed quality metrics for each stem
 - **Presigned Downloads**: Direct S3 URLs for fast stem downloads
@@ -69,6 +70,14 @@ Get your API key from the [API Keys Dashboard](https://www.audiopod.ai/dashboard
 | `producer` | 8 | + kick, snare, hihat | Beat production |
 | `studio` | 12 | + cymbals, sub_bass, synth | Professional mixing |
 | `mastering` | 16 | Maximum detail | Forensic analysis |
+
+<Info>
+**Expanded catalog.** Beyond the fixed modes above, single-instrument isolation
+can target one specific instrument from an advanced catalog of up to ~45
+individual stems (e.g. lead vocal, backing vocal, electric guitar, acoustic
+guitar, strings, brass, and more). Use `mode="single"` with the `stem` you want;
+the response returns that stem plus an everything-else track.
+</Info>
 
 ---
 
