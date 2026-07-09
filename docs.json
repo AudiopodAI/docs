@@ -56,6 +56,13 @@
             ]
           },
           {
+            "group": "Podcast",
+            "icon": "podcast",
+            "pages": [
+              "api-reference/podcast"
+            ]
+          },
+          {
             "group": "Audio Processing",
             "icon": "waveform",
             "pages": [
@@ -70,7 +77,8 @@
             "pages": [
               "api-reference/speech-to-text",
               "api-reference/live-transcription",
-              "api-reference/text-to-speech"
+              "api-reference/text-to-speech",
+              "api-reference/reader"
             ]
           },
           {

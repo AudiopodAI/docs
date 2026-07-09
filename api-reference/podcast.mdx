@@ -1,0 +1,164 @@
+---
+title: "Podcast"
+description: "Generate multi-speaker podcast episodes from your source material — outline, transcript, and narrated audio — then publish a public RSS feed."
+---
+
+## Overview
+
+The Podcast API turns your topic and source material into a finished,
+multi-speaker episode. A project moves through a simple lifecycle: create the
+project and its speakers, add sources, generate an outline, generate the
+transcript, then render the narrated audio. Finished episodes can be published
+to a public RSS feed for Apple Podcasts and Spotify.
+
+## Authentication
+
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Lifecycle at a glance
+
+| Step | Endpoint |
+|------|----------|
+| 1. Create a project (+ speakers) | `POST /api/v1/podcast/projects` |
+| 2. Add source material | `POST /api/v1/podcast/projects/{id}/sources` |
+| 3. Generate the outline | `POST /api/v1/podcast/projects/{id}/outline/generate` |
+| 4. Generate the transcript | `POST /api/v1/podcast/projects/{id}/transcript/generate` |
+| 5. Estimate + render audio | `GET /api/v1/podcast/projects/{id}/audio/estimate` · `POST /api/v1/podcast/projects/{id}/audio/generate` |
+| 6. Track progress | `GET /api/v1/podcast/projects/{id}/progress` |
+| 7. Publish an RSS feed | `POST /api/v1/podcast/feed` |
+
+## Create a Project
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/podcast/projects
+    X-API-Key: {api_key}
+    Content-Type: application/json
+
+    {
+      "title": "The Future of Audio AI",
+      "topic": "How on-device audio models change creator workflows",
+      "briefing": "Keep it upbeat and accessible for a general audience.",
+      "language": "en",
+      "target_duration_minutes": 15,
+      "speakers": [
+        { "name": "Host", "voice": "aura" },
+        { "name": "Guest", "voice": "sage" }
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    project = requests.post(
+        "https://api.audiopod.ai/api/v1/podcast/projects",
+        headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+        json={
+            "title": "The Future of Audio AI",
+            "topic": "How on-device audio models change creator workflows",
+            "language": "en",
+            "target_duration_minutes": 15,
+            "speakers": [
+                {"name": "Host", "voice": "aura"},
+                {"name": "Guest", "voice": "sage"},
+            ],
+        },
+    ).json()
+
+    print(f"Project {project['id']} created")
+    ```
+  </Tab>
+</Tabs>
+
+**Key fields:**
+- `title` (required): Episode title (1–200 characters)
+- `topic` (required): Main topic (1–500 characters)
+- `briefing` (optional): Extra context / tone guidance
+- `key_points` (optional): List of points to cover
+- `language` (optional): Primary language code (default `en`)
+- `target_duration_minutes` (optional): Target length, 5–60
+- `speakers` (required): 1–4 initial speakers
+
+## Manage Projects
+
+| Action | Request |
+|--------|---------|
+| List projects | `GET /api/v1/podcast/projects` |
+| Get one | `GET /api/v1/podcast/projects/{id}` |
+| Update | `PUT /api/v1/podcast/projects/{id}` |
+| Delete | `DELETE /api/v1/podcast/projects/{id}` |
+
+## Update a Speaker
+
+Change a speaker's name or assigned voice on a project.
+
+```http
+PUT /api/v1/podcast/projects/{project_id}/speakers/{speaker_id}
+X-API-Key: {api_key}
+Content-Type: application/json
+
+{
+  "name": "Co-Host",
+  "voice": "willow"
+}
+```
+
+## Generate Audio
+
+Preview the cost, then render. Audio generation follows the prepaid model —
+credits are reserved up front and refunded automatically on failure.
+
+```bash
+# Estimate
+curl -s "https://api.audiopod.ai/api/v1/podcast/projects/$PROJECT_ID/audio/estimate" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+
+# Render
+curl -X POST "https://api.audiopod.ai/api/v1/podcast/projects/$PROJECT_ID/audio/generate" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+Poll `GET /api/v1/podcast/projects/{id}/progress` until generation completes.
+
+## Publish an RSS Feed
+
+Turn your completed episodes into a public podcast feed you can submit to
+directories. The feed URL carries a signed, feed-scoped token.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/podcast/feed
+    X-API-Key: {api_key}
+    ```
+  </Tab>
+  <Tab title="Response">
+    ```json
+    {
+      "feed_url": "https://api.audiopod.ai/api/v1/podcast/feed/<token>.xml",
+      "submit_to": ["Apple Podcasts Connect", "Spotify for Podcasters"]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The feed itself is fetched anonymously by podcast players:
+
+```http
+GET /api/v1/podcast/feed/{token}.xml
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Audio Reader" icon="book-open" href="/api-reference/reader">
+    Narrate a single article or block of text.
+  </Card>
+  <Card title="Voice Management" icon="users" href="/api-reference/voice-management">
+    Browse voices or design a custom one for your hosts.
+  </Card>
+</Columns>

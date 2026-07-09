@@ -1,0 +1,189 @@
+---
+title: "Audio Reader"
+description: "Turn any article, blog post, or pasted text into natural-sounding narrated audio — from a URL or raw content — and share it with a public link."
+---
+
+## Overview
+
+The Audio Reader converts a web article or pasted text into a narrated audio
+track. Give it a URL (AudioPod extracts the readable article) or raw `content`,
+pick a voice, and get back a hosted audio file plus an optional public
+share/embed page.
+
+### Key features
+
+- **URL or pasted text**: Point at an article URL or send `content` directly
+- **Any voice**: Free standard narration, or a premium/custom voice from your catalog
+- **Cost preview**: Estimate credits before you commit
+- **Public share + embed**: Each job can expose a minimal public page and embed HTML
+
+## Authentication
+
+- **API Key (Recommended)**: `X-API-Key: your_api_key` header
+- **JWT Token**: `Authorization: Bearer your_jwt_token`
+
+## Estimate Cost
+
+Preview the cost before generating. No charge is incurred for an estimate.
+
+```http
+POST /api/v1/reader/estimate
+X-API-Key: {api_key}
+Content-Type: application/json
+
+{
+  "url": "https://example.com/blog/my-article",
+  "voice": "aura"
+}
+```
+
+**Body:**
+- `url` (optional): Article URL to read (provide `url` **or** `content`)
+- `content` (optional): Raw text to narrate
+- `voice` (optional): Voice name or ID from `GET /api/v1/voice/voice-profiles`
+
+**Response:**
+
+```json
+{
+  "is_premium": true,
+  "estimated_credits": 1840,
+  "word_count": 920,
+  "char_count": 5230,
+  "measured": true,
+  "title": "My Article",
+  "note": null
+}
+```
+
+When `is_premium` is `false`, standard narration is used at no credit cost. When
+`measured` is `false`, the article couldn't be scraped ahead of time, so
+`estimated_credits` is a baseline and you're billed for the actual length.
+
+## Generate
+
+Create a reader job. Billing follows the standard prepaid model — credits are
+reserved on creation and refunded automatically if processing fails.
+
+<Tabs>
+  <Tab title="POST">
+    ```http
+    POST /api/v1/reader/generate
+    X-API-Key: {api_key}
+    Content-Type: application/json
+
+    {
+      "url": "https://example.com/blog/my-article",
+      "voice": "aura",
+      "show_branding": true
+    }
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    import requests
+
+    job = requests.post(
+        "https://api.audiopod.ai/api/v1/reader/generate",
+        headers={"X-API-Key": api_key, "Content-Type": "application/json"},
+        json={"url": "https://example.com/blog/my-article", "voice": "aura"},
+    ).json()
+
+    print(f"Reader job {job['id']} — {job['status']}")
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/reader/generate" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"url": "https://example.com/blog/my-article", "voice": "aura"}'
+    ```
+  </Tab>
+</Tabs>
+
+**Body:**
+- `url` (optional): Article URL to read (provide `url` **or** `content`)
+- `content` (optional): Raw text to narrate
+- `title` (optional): Override the detected title
+- `voice` (optional): Voice name or ID; defaults to a standard narration voice
+- `webhook_url` (optional): Receive a callback when the job finishes
+- `show_branding` (optional): Show AudioPod branding on the public page (default `true`)
+
+**Response:**
+
+```json
+{
+  "id": 4210,
+  "status": "processing",
+  "progress": 0,
+  "title": "My Article",
+  "word_count": 920,
+  "audio_url": null,
+  "embed_url": null,
+  "embed_html": null,
+  "audio_duration_seconds": null,
+  "created_at": "2026-07-09T10:30:00Z",
+  "completed_at": null
+}
+```
+
+## Get a Job
+
+```http
+GET /api/v1/reader/{job_id}
+X-API-Key: {api_key}
+```
+
+Poll until `status` is `completed`; the response then carries `audio_url`,
+`audio_duration_seconds`, and `embed_url` / `embed_html` for embedding.
+
+## List Jobs
+
+```http
+GET /api/v1/reader/
+X-API-Key: {api_key}
+```
+
+Returns a paginated list of your reader jobs.
+
+## Public Share Page
+
+Fetch the minimal, unauthenticated view for a shared job — safe to call without
+a key. It exposes only what the share link already implies (title, audio URL,
+duration), never the source URL, content, or any internals.
+
+```http
+GET /api/v1/reader/public/{job_id}
+```
+
+**Response:**
+
+```json
+{
+  "id": 4210,
+  "status": "completed",
+  "title": "My Article",
+  "audio_url": "https://media.audiopod.ai/...",
+  "audio_duration_seconds": 372,
+  "show_branding": true
+}
+```
+
+## Delete a Job
+
+```http
+DELETE /api/v1/reader/{job_id}
+X-API-Key: {api_key}
+```
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Text to Speech" icon="waveform-lines" href="/api-reference/text-to-speech">
+    Fine-grained control over voice, directing, and timestamps.
+  </Card>
+  <Card title="Podcast" icon="podcast" href="/api-reference/podcast">
+    Turn source material into a multi-speaker episode.
+  </Card>
+</Columns>
