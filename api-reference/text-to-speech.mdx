@@ -5,7 +5,7 @@ description: "Generate natural-sounding speech from text using AudioPod AI's uni
 
 ## Overview
 
-AudioPod AI's Text to Speech service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Generate speech with any of **500+ voices** across **85+ languages** using our advanced audio AI stack.
+AudioPod AI's Text to Speech service provides unified text-to-speech capabilities for both **standard pre-built voices** and **custom voice clones**. Generate speech with any of **500+ voices** across **100+ languages** using our advanced audio AI stack.
 
 ### Supported Voice Types
 
@@ -700,7 +700,7 @@ job2 = client.voice.generate_speech(
 
 ### Language Codes
 
-AudioPod AI supports 85+ languages with automatic detection and consistent quality across all supported languages:
+AudioPod AI supports 100+ languages with automatic detection and consistent quality across all supported languages:
 
 | Language             | Code    | Description                    |
 | -------------------- | ------- | ------------------------------ |
@@ -1012,48 +1012,50 @@ for code, name in supported_languages.items():
 
 ### Podcast Introduction
 
-```python
-intro_script = '''
-<speak>
-    <p><emphasis level="strong">Welcome back to the Tech Talk Podcast!</emphasis></p>
-    <break time="1s"/>
-    <p>I'm your host, and today we're diving deep into
-    <emphasis>artificial intelligence</emphasis> and its impact on content creation.</p>
-    <break time="0.5s"/>
-    <p>Let's get started!</p>
-</speak>
-'''
+Direct the delivery with **inline markup** — a leading `[direction]`, timed
+`<break/>` pauses, and (optionally) `generation_params`. No SSML.
 
-intro_audio = client.text_to_speech.create(
-    text=intro_script,
-    voice_id="ava",
-    text_format="ssml",
-    emotion="professional",
-    quality="high"
+```python
+intro_script = (
+    "[speak with warm upbeat energy] Welcome back to the Tech Talk Podcast! "
+    '<break time="1s"/> '
+    "Today we're diving deep into artificial intelligence and its impact on "
+    'content creation. <break time="0.5s"/> Let\'s get started!'
 )
+
+response = requests.post(
+    "https://api.audiopod.ai/api/v1/voice/voices/ava/generate",
+    headers={"Authorization": f"Bearer {API_KEY}"},
+    data={
+        "input_text": intro_script,
+        "audio_format": "mp3",
+        # Expressive read; see "Delivery & timestamp controls" above.
+        "generation_params": '{"delivery_mode":"creative"}',
+    },
+)
+job_id = response.json()["job_id"]  # poll to COMPLETED, then download audio_url
 ```
 
 ### E-Learning Content
 
 ```python
 def create_lesson_audio(lesson_content):
-    # Add natural pauses for learning
-    formatted_content = f'''
-    <speak>
-        <p>Lesson begins now.</p>
-        <break time="1s"/>
-        {lesson_content}
-        <break time="2s"/>
-        <p>That concludes this lesson. Take a moment to review what you've learned.</p>
-    </speak>
-    '''
-
-    return client.text_to_speech.create(
-        text=formatted_content,
-        voice_id="sage",  # Educational voice
-        text_format="ssml",
-        speed=0.9,  # Slower for learning
-        quality="high"
+    # Direct the pacing with a leading note + timed pauses (not SSML).
+    directed = (
+        "[speak clearly and calmly at a measured pace] Lesson begins now. "
+        '<break time="1s"/> '
+        f"{lesson_content} "
+        '<break time="2s"/> '
+        "That concludes this lesson. Take a moment to review what you've learned."
+    )
+    return requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/sage/generate",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        data={
+            "input_text": directed,
+            "audio_format": "mp3",
+            "generation_params": '{"delivery_mode":"stable"}',
+        },
     )
 ```
 
@@ -1063,20 +1065,16 @@ def create_lesson_audio(lesson_content):
 ivr_prompts = {
     "welcome": "Thank you for calling AudioPod AI. Your call is important to us.",
     "menu": "Press 1 for sales, 2 for support, or 3 for billing.",
-    "hold": "Please hold while we connect you to the next available agent."
+    "hold": "Please hold while we connect you to the next available agent.",
 }
 
 for prompt_name, text in ivr_prompts.items():
-    audio = client.text_to_speech.create(
-        text=text,
-        voice_id="ava",  # Professional voice for business
-        quality="standard",  # Lower quality for phone systems
-        sample_rate=8000,   # Phone quality
-        output_format="wav"
+    response = requests.post(
+        "https://api.audiopod.ai/api/v1/voice/voices/ava/generate",
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        data={"input_text": text, "audio_format": "wav"},
     )
-
-    with open(f"ivr_{prompt_name}.wav", "wb") as f:
-        f.write(audio.audio_data)
+    # Poll response.json()["job_id"] to COMPLETED, then download its audio_url.
 ```
 
 ## Best Practices
