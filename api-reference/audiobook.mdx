@@ -174,9 +174,15 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/upload" \
 
 ### Parse the uploaded file into chapters
 
-`POST /audiobook/projects/{project_id}/manuscript/parse` — form fields `file_key` and `filename`. Parsing is asynchronous and returns a `job_id`; poll `GET .../chapters` until chapters appear.
+`POST /audiobook/projects/{project_id}/manuscript/parse` — pass `file_key` (from the upload response) and `filename`. The endpoint accepts a **JSON body** or **form fields** (`multipart/form-data` or `application/x-www-form-urlencoded`) — use whichever your HTTP client makes easiest. Parsing is asynchronous and returns a `job_id`; poll `GET .../chapters` until chapters appear.
 
 ```bash
+# JSON body
+curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"file_key\": \"$FILE_KEY\", \"filename\": \"book.epub\"}"
+
+# ...or form fields (equivalent)
 curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file_key=$FILE_KEY" -F "filename=book.epub"
 # => { "job_id": 99, "estimated_completion_time": "under 2 minutes" }
