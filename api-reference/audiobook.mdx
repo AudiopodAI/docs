@@ -20,7 +20,7 @@ Every endpoint is API-key authenticated and asynchronous: submit a job, get an I
 - **Voices**: 100+ languages with standard narration voices; custom voice cloning across 20+ languages.
 - **ACX-compliant export**: per-chapter MP3 at **192 kbps CBR / 44.1 kHz**, a retail sample, optional narrated opening/closing credits, a cover slot, and a `metadata.json` manifest — packaged as a single ZIP via a presigned URL.
 - **Automatic compliance check**: file format, audio levels, silence, and per-chapter length are validated on export; a non-compliant book is rejected with the exact reason rather than shipped silently.
-- **Asynchronous + webhooks**: `job.completed` / `job.failed` callbacks for backlog-scale automation.
+- **Asynchronous + webhooks**: `job.completed` / `job.failed` / `job.cancelled` callbacks for backlog-scale automation.
 - **White-label output**: delivered files carry the publisher's own title/author/narrator metadata — nothing points back at AudioPod.
 - **Prepaid usage pricing**: $0.04 per minute of output (~$24 for a 10-hour book). See [API Wallet](/account/api-wallet).
 
@@ -80,6 +80,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | **Narrate (batch — the billed path)** | POST | `/audiobook/projects/{project_id}/narration/batch` |
 | Narrate a single paragraph | POST | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}/narrate` |
 | Narration progress | GET | `/audiobook/projects/{project_id}/narration/progress` |
+| Cancel narration | POST | `/audiobook/projects/{project_id}/narration/cancel` |
 | Regenerate a chapter | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/regenerate` |
 | Retry a chapter's failed paragraphs | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs` |
 | Production music/credits | GET·PUT | `/audiobook/projects/{project_id}/music-settings` |
@@ -362,7 +363,7 @@ The `paste` and `generate` endpoints return a `ManuscriptIntakeResponse` with `t
 <Warning>
 `manuscript/parse`, `manuscript/paste`, and `manuscript/generate` **replace the project's entire chapter/paragraph structure** — any existing narration is discarded. Parse once per manuscript; re-parse only if the manuscript file itself changed.
 
-While narration, another parse, mixing, or an export is already running for the project, these endpoints return `409 Conflict` — poll `GET .../narration/progress` and retry once it finishes.
+While narration, another parse, mixing, or an export is already running for the project, these endpoints return `409 Conflict` — poll `GET .../narration/progress` and retry once it finishes. If you don't want to wait for a narration run to finish, stop it first with [`POST .../narration/cancel`](#cancel-a-narration-run); already-narrated paragraphs are kept.
 
 If the project already has completed narration, these endpoints instead return `409` with a structured body: `detail.code = "completed_narration_exists"` and `detail.completed_paragraphs = N`. To proceed anyway, pass `force=true` (accepted as a JSON field, form field, or query parameter). **Do not hard-code `force=true` in your integration** — treat this `409` as a stop-and-confirm; forcing permanently deletes the `N` narrated paragraphs.
 
@@ -574,6 +575,29 @@ Narration is complete when `completed_chapters + failed_chapters >= total_chapte
 
 For a single line, use [`POST .../paragraphs/{paragraph_id}/narrate`](#narrate-a-single-paragraph). To re-render a whole chapter after an edit, `POST .../projects/{project_id}/chapters/{chapter_id}/regenerate` (optional `?voice_id=` query parameter). To re-queue only the paragraphs of a chapter whose status is `failed`, `POST .../projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs`.
 
+### Cancel a narration run
+
+`POST /audiobook/projects/{project_id}/narration/cancel` stops a narration run that is still in progress. No request body is required.
+
+Cancelling is **resume-friendly, not destructive**:
+
+- Paragraphs that already finished keep their audio — nothing you have paid for is discarded.
+- Paragraphs that had not produced audio yet are returned to a re-narratable state, and the charges held for them are released.
+- To carry on later, call `POST .../narration/batch` again: it skips the paragraphs that are already done and picks up only what is left.
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/audiobook/projects/{project_id}/narration/cancel" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+If no narration is running, the endpoint returns `404` with `detail.error_code = "no_narration_running"`. That is also what a **repeat** cancel returns — so a client that retries after a network timeout can treat this as confirmation that the earlier cancel succeeded, not as an error.
+
+If you have a webhook endpoint registered, cancelling emits a [`job.cancelled`](#completion-webhooks) event, so an integration waiting on a narration job learns it has stopped instead of polling until it times out.
+
+<Note>
+Existing webhook endpoints only receive the events they were registered with. If yours was created before `job.cancelled` existed, re-register it (or add the event) to receive cancellations.
+</Note>
+
 ### Regenerate a completed chapter
 
 By default, `POST .../narration/batch` **skips** paragraphs that already have completed narration — that's the `"No eligible paragraphs to narrate"` response. To re-narrate them, pass `"include_completed": true`:
@@ -660,7 +684,7 @@ Rather than poll, register an endpoint and receive a signed event the moment a j
 ```bash
 curl -X POST "$AP/webhooks/endpoints" -H "X-API-Key: $AUDIOPOD_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"url":"https://your-app.com/hooks/audiopod","events":["job.completed","job.failed"]}'
+  -d '{"url":"https://your-app.com/hooks/audiopod","events":["job.completed","job.failed","job.cancelled"]}'
 # => { "id": "...", "url": "...", "events": [...], "secret": "whsec_..." }   # secret shown ONCE
 ```
 
@@ -670,7 +694,7 @@ Every delivery carries these headers:
 |--------|---------|
 | `X-AudioPod-Signature` | `sha256=<hex>` HMAC of the payload (see below) |
 | `X-AudioPod-Timestamp` | Unix seconds; part of the signed material (replay protection) |
-| `X-AudioPod-Event` | `job.completed` or `job.failed` |
+| `X-AudioPod-Event` | `job.completed`, `job.failed`, or `job.cancelled` |
 | `X-AudioPod-Event-Id` | Stable UUID per event — **dedupe on this** (delivery is at-least-once) |
 
 **Verify the signature** — HMAC-SHA256 over `"<timestamp>.<raw-body>"` with your endpoint secret as the key:
