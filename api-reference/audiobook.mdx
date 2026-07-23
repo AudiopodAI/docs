@@ -208,6 +208,16 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
 
 The `paste` and `generate` endpoints return a `ManuscriptIntakeResponse` with `total_chapters`, `total_words`, and `estimated_duration_minutes`.
 
+<Warning>
+`manuscript/parse`, `manuscript/paste`, and `manuscript/generate` **replace the project's entire chapter/paragraph structure** — any existing narration is discarded. Parse once per manuscript; re-parse only if the manuscript file itself changed.
+
+While narration, another parse, mixing, or an export is already running for the project, these endpoints return `409 Conflict` — poll `GET .../narration/progress` and retry once it finishes.
+
+If the project already has completed narration, these endpoints instead return `409` with a structured body: `detail.code = "completed_narration_exists"` and `detail.completed_paragraphs = N`. To proceed anyway, pass `force=true` (accepted as a JSON field, form field, or query parameter). **Do not hard-code `force=true` in your integration** — treat this `409` as a stop-and-confirm; forcing permanently deletes the `N` narrated paragraphs.
+
+`manuscript/append` is the exception: it's additive (appends chapters after the existing ones) and never deletes narration.
+</Warning>
+
 ## 3. Chapters
 
 List chapters with `GET /audiobook/projects/{project_id}/chapters?skip=0&limit=50`, or fetch one with `GET .../chapters/{chapter_id}`.
@@ -282,6 +292,20 @@ Narration is complete when `completed_chapters + failed_chapters >= total_chapte
 ### Paragraph-level & regeneration
 
 For fine-grained control, `POST .../narration/batch` narrates specific paragraphs (`BatchNarrationRequest`: optional `voice_id`, `chapter_ids`, `paragraph_ids`, `include_completed/locked/skipped`). To re-render a single chapter — e.g. after an edit — `POST .../chapters/{chapter_id}/regenerate`.
+
+### Regenerate a completed chapter
+
+By default, `POST .../narration/batch` **skips** paragraphs that already have completed narration — that's the `"No eligible paragraphs to narrate"` response. To re-narrate them, pass `"include_completed": true`:
+
+```json
+{
+  "voice_id": 389,
+  "chapter_ids": ["<chapter-uuid>"],
+  "include_completed": true
+}
+```
+
+Alternatively, `POST .../projects/{project_id}/chapters/{chapter_id}/regenerate` re-renders a single chapter in one call.
 
 ## 6. Production extras (optional)
 
