@@ -15,6 +15,7 @@ Every delivery is **HMAC-signed**, retried with exponential backoff, and carries
 |---|---|
 | `job.completed` | A job finished successfully and its output is available. |
 | `job.failed` | A job failed. Credits reserved for the job are refunded automatically. |
+| `job.cancelled` | A job was stopped on request (e.g. `POST .../narration/cancel`). Charges held for work that did not complete are released; output already produced is kept. |
 | `webhook.test` | A synthetic event you trigger yourself to confirm your endpoint works. |
 
 ## Register an endpoint
