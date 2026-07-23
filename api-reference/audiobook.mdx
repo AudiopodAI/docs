@@ -31,31 +31,67 @@ All endpoints require authentication. Use an API key (recommended for server-to-
 - **API Key (Recommended)**: `X-API-Key: your_api_key` header — [create one in the dashboard](https://www.audiopod.ai/dashboard/account/api-keys).
 - **JWT Token**: `Authorization: Bearer your_jwt_token` (session-based auth).
 
+## Getting the IDs
+
+Almost every call below is addressed by an ID, and how you obtain them is the first thing to get right.
+
+<Info>
+**Every audiobook identifier is a UUID string**, and in every response body the field is called **`id`** — not `project_id` or `chapter_id`. Those names appear only as *path parameters* (`/projects/{project_id}/chapters/{chapter_id}`) and as *back-references* on child objects (a chapter carries `project_id`; a paragraph carries both `chapter_id` and `project_id`). So you read `id` from the object you just created, and you *write* it into the next request's path.
+</Info>
+
+<Warning>
+`GET /audiobook/projects/{project_id}` does **not** return chapters by default — the project body carries `total_chapters` (a count) and `chapters: null`. To get the chapter objects (and therefore their `id`s) you must either pass **`?include_chapters=true`** on the project read, or call `GET /audiobook/projects/{project_id}/chapters` separately.
+</Warning>
+
+The full call chain, with the ID each step produces:
+
+| # | Call | Gives you |
+|---|------|-----------|
+| 1 | `POST /audiobook/projects` | `id` → your **project_id** |
+| 2 | `POST /audiobook/projects/{project_id}/manuscript/upload` | `file_key` |
+| 3 | `POST /audiobook/projects/{project_id}/manuscript/parse` | `job_id` (parsing runs in the background) |
+| 4 | `GET /audiobook/projects/{project_id}?include_chapters=true` | poll until parsing finishes — see [Poll for parse completion](#poll-for-parse-completion) |
+| 5 | `GET /audiobook/projects/{project_id}/chapters` (or the `chapters` array from step 4) | each chapter's `id` → **chapter_id** |
+| 6 | `GET /audiobook/projects/{project_id}/chapters/{chapter_id}/paragraphs` | each paragraph's `id` → **paragraph_id** |
+| 7 | `POST /audiobook/projects/{project_id}/narration/batch` (whole book / chapters) or `POST /audiobook/projects/{project_id}/paragraphs/{paragraph_id}/narrate` (one paragraph) | a narration job |
+
+Chapters are the unit you *organise* by; **paragraphs are the unit that is actually narrated, billed, and re-recorded**. If you only ever need whole-book narration you can stop at step 5 — `POST .../narration/batch` with no `chapter_ids` or `paragraph_ids` narrates the entire project.
+
 ## API Endpoints Quick Reference
 
 | Operation | Method | Endpoint |
 |-----------|--------|----------|
 | Create project | POST | `/audiobook/projects` |
-| List projects | GET | `/audiobook/projects` |
-| Get / update / delete project | GET·PUT·DELETE | `/audiobook/projects/{project_id}` |
+| List projects (`page`, `per_page`) | GET | `/audiobook/projects` |
+| Get project (`?include_chapters=true`) | GET | `/audiobook/projects/{project_id}` |
+| Update / delete project | PUT·DELETE | `/audiobook/projects/{project_id}` |
 | Upload manuscript | POST | `/audiobook/projects/{project_id}/manuscript/upload` |
 | Parse manuscript | POST | `/audiobook/projects/{project_id}/manuscript/parse` |
+| Append another manuscript file | POST | `/audiobook/projects/{project_id}/manuscript/append` |
 | Paste text | POST | `/audiobook/projects/{project_id}/manuscript/paste` |
 | Generate book | POST | `/audiobook/projects/{project_id}/manuscript/generate` |
-| List / get chapters | GET | `/audiobook/projects/{project_id}/chapters` |
+| List chapters (`page`, `per_page`) | GET | `/audiobook/projects/{project_id}/chapters` |
+| Get / update / delete a chapter | GET·PUT·DELETE | `/audiobook/projects/{project_id}/chapters/{chapter_id}` |
+| List paragraphs in a chapter | GET | `/audiobook/projects/{project_id}/chapters/{chapter_id}/paragraphs` |
+| Get / update a paragraph | GET·PUT | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}` |
 | List voices | GET | `/audiobook/voices/available` |
 | List languages | GET | `/audiobook/voices/languages` |
 | Cost estimate | GET | `/audiobook/projects/{project_id}/cost-estimate` |
-| Start narration | POST | `/audiobook/projects/{project_id}/narration/start` |
-| Batch narration | POST | `/audiobook/projects/{project_id}/narration/batch` |
+| **Narrate (batch — the billed path)** | POST | `/audiobook/projects/{project_id}/narration/batch` |
+| Narrate a single paragraph | POST | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}/narrate` |
 | Narration progress | GET | `/audiobook/projects/{project_id}/narration/progress` |
 | Regenerate a chapter | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/regenerate` |
+| Retry a chapter's failed paragraphs | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs` |
 | Production music/credits | GET·PUT | `/audiobook/projects/{project_id}/music-settings` |
 | Upload media (cover/music) | POST | `/audiobook/projects/{project_id}/media/upload` |
 | Start ACX export | POST | `/audiobook/projects/{project_id}/export` |
 | Export status | GET | `/audiobook/projects/{project_id}/export/{job_id}/status` |
 | Download package | GET | `/audiobook/projects/{project_id}/export/{job_id}/download` |
 | Dashboard stats | GET | `/audiobook/dashboard` |
+
+<Warning>
+`POST /audiobook/projects/{project_id}/narration/start` is **removed** and now returns **`410 Gone`**. It predates per-paragraph billing and bypassed metering entirely. Use `POST /audiobook/projects/{project_id}/narration/batch` — with no `chapter_ids` and no `paragraph_ids` it narrates the whole project, which is exactly what `narration/start` used to do.
+</Warning>
 
 ## Quick Start (cURL)
 
@@ -72,12 +108,22 @@ PID=$(curl -s -X POST "$AP/audiobook/projects" -H "X-API-Key: $AUDIOPOD_API_KEY"
 FILE_KEY=$(curl -s -X POST "$AP/audiobook/projects/$PID/manuscript/upload" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file=@book.epub" | jq -r .file_key)
 
-# 3. Parse into chapters (async — poll chapters until they appear)
+# 3. Parse into chapters (async)
 curl -s -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file_key=$FILE_KEY" -F "filename=book.epub"
 
-# 4. Narrate all chapters with a voice
-curl -s -X POST "$AP/audiobook/projects/$PID/narration/start" \
+# 3b. Poll the PROJECT until parsing finishes — status tells you which way it went
+while :; do
+  P=$(curl -s "$AP/audiobook/projects/$PID?include_chapters=true" -H "X-API-Key: $AUDIOPOD_API_KEY")
+  S=$(echo "$P" | jq -r .status)
+  [ "$S" = "failed" ] && { echo "parse failed: $(echo "$P" | jq -r .error_message)"; exit 1; }
+  [ "$(echo "$P" | jq -r .parsing_completed_at)" != "null" ] && break
+  sleep 5
+done
+echo "$P" | jq '.chapters[] | {id, chapter_number, title}'
+
+# 4. Narrate the whole project with a voice (omit chapter_ids/paragraph_ids = everything)
+curl -s -X POST "$AP/audiobook/projects/$PID/narration/batch" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
   -d '{"voice_id":387}'
 
@@ -145,15 +191,64 @@ A project is the container for a single audiobook. Create it first, then attach 
 
 **Response** (`AudiobookProjectResponse`):
 
-<ResponseField name="id" type="string">Project UUID.</ResponseField>
+<ResponseField name="id" type="string">Project UUID — **this is your `project_id`** for every subsequent call.</ResponseField>
 <ResponseField name="status" type="string">Lifecycle state (see [Status values](#status-values)).</ResponseField>
-<ResponseField name="total_chapters" type="integer">Number of chapters once parsed.</ResponseField>
+<ResponseField name="total_chapters" type="integer">Number of chapters once parsed. This is a *count* — the chapter objects are not in this response unless you ask for them.</ResponseField>
 <ResponseField name="estimated_duration_minutes" type="number">Estimated finished runtime.</ResponseField>
 <ResponseField name="manuscript_filename" type="string">Uploaded filename, once attached.</ResponseField>
 <ResponseField name="manuscript_format" type="string">`pdf` · `epub` · `docx` · `txt`.</ResponseField>
 <ResponseField name="manuscript_word_count" type="integer">Total words after parsing.</ResponseField>
+<ResponseField name="parsing_completed_at" type="string">ISO timestamp set when a manuscript parse finished successfully; `null` until then.</ResponseField>
+<ResponseField name="narration_started_at" type="string">ISO timestamp of the first narration job.</ResponseField>
+<ResponseField name="narration_completed_at" type="string">ISO timestamp when narration finished.</ResponseField>
+<ResponseField name="production_completed_at" type="string">ISO timestamp when production/export finished.</ResponseField>
+<ResponseField name="error_message" type="string">Sanitized failure reason when a stage failed; `null` otherwise.</ResponseField>
+<ResponseField name="selected_voice_id" type="integer">Project default narration voice.</ResponseField>
+<ResponseField name="narration_speed" type="number">Speed multiplier (0.5–2.0).</ResponseField>
+<ResponseField name="narration_style" type="string">Delivery style.</ResponseField>
+<ResponseField name="export_format" type="string">Export format (`acx`).</ResponseField>
+<ResponseField name="target_platform" type="string">Target distribution platform.</ResponseField>
+<ResponseField name="created_at" type="string">Creation timestamp.</ResponseField>
+<ResponseField name="updated_at" type="string">Last-modified timestamp.</ResponseField>
 
-List existing projects with `GET /audiobook/projects?skip=0&limit=20` (paginated).
+### Read one project
+
+`GET /audiobook/projects/{project_id}` returns the same body, plus a `chapters` field:
+
+<ParamField query="include_chapters" type="boolean" default="false">
+  When `true`, the response carries the project's full `chapters` array inline, saving a second round-trip. When omitted or `false`, `chapters` is `null` — the chapter objects (and their `id`s) are simply not there.
+</ParamField>
+
+```bash
+curl -s "$AP/audiobook/projects/$PID?include_chapters=true" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => { "id": "...", "status": "ready_for_narration", "total_chapters": 12,
+#      "parsing_completed_at": "2026-07-23T09:14:02", "error_message": null,
+#      "chapters": [ { "id": "...", "chapter_number": 1, "title": "...", ... } ] }
+```
+
+### List projects
+
+`GET /audiobook/projects` is paginated with **`page`** and **`per_page`** (not `skip`/`limit`):
+
+<ParamField query="page" type="integer" default="1">1-based page number (minimum `1`).</ParamField>
+<ParamField query="per_page" type="integer" default="20">Projects per page, `1`–`100`.</ParamField>
+<ParamField query="status_filter" type="string">Return only projects in this [status](#status-values).</ParamField>
+<ParamField query="search" type="string">Case-insensitive substring match on title or author.</ParamField>
+
+```bash
+curl -s "$AP/audiobook/projects?page=2&per_page=50" -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+<ResponseField name="projects" type="array">The page of projects (each an `AudiobookProjectResponse`).</ResponseField>
+<ResponseField name="total" type="integer">Total projects matching the filters, across all pages.</ResponseField>
+<ResponseField name="page" type="integer">Echo of the requested page.</ResponseField>
+<ResponseField name="per_page" type="integer">Echo of the requested page size.</ResponseField>
+<ResponseField name="has_next" type="boolean">Whether another page follows.</ResponseField>
+<ResponseField name="has_prev" type="boolean">Whether a previous page exists.</ResponseField>
+
+<Warning>
+Unknown query parameters are **ignored, not rejected**. Sending `?skip=0&limit=20` returns a `200` with the *first* page every time — so a paging loop built on `skip`/`limit` never advances and silently re-reads page 1 forever. Use `page` / `per_page`, and drive your loop off `has_next`.
+</Warning>
 
 ## 2. Add the manuscript
 
@@ -163,7 +258,7 @@ Three ways to get text into a project — pick one.
 
 `POST /audiobook/projects/{project_id}/manuscript/upload` — multipart form field `file` (PDF, EPUB, DOCX, or TXT). Returns a `file_key` to hand to the parser.
 
-<ResponseField name="file_key" type="string">S3 key of the stored manuscript.</ResponseField>
+<ResponseField name="file_key" type="string">Storage key of the uploaded manuscript — pass this to the parser.</ResponseField>
 <ResponseField name="upload_url" type="string">Reference URL for the stored file.</ResponseField>
 <ResponseField name="max_file_size" type="integer">Maximum accepted size in bytes.</ResponseField>
 
@@ -174,7 +269,7 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/upload" \
 
 ### Parse the uploaded file into chapters
 
-`POST /audiobook/projects/{project_id}/manuscript/parse` — pass `file_key` (from the upload response) and `filename`. The endpoint accepts a **JSON body** or **form fields** (`multipart/form-data` or `application/x-www-form-urlencoded`) — use whichever your HTTP client makes easiest. Parsing is asynchronous and returns a `job_id`; poll `GET .../chapters` until chapters appear.
+`POST /audiobook/projects/{project_id}/manuscript/parse` — pass `file_key` (from the upload response) and `filename`. The endpoint accepts a **JSON body** or **form fields** (`multipart/form-data` or `application/x-www-form-urlencoded`) — use whichever your HTTP client makes easiest. Parsing is asynchronous and returns a `job_id` immediately — see [Poll for parse completion](#poll-for-parse-completion) for how to wait on it.
 
 ```bash
 # JSON body
@@ -187,6 +282,62 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file_key=$FILE_KEY" -F "filename=book.epub"
 # => { "job_id": 99, "estimated_completion_time": "under 2 minutes" }
 ```
+
+### Poll for parse completion
+
+<Warning>
+There is **no parse-status endpoint**, and polling `GET .../chapters` "until chapters appear" is not a safe wait — a *failed* parse produces no chapters, so that loop never terminates. Poll the **project** instead: it is the object that carries the parse outcome.
+</Warning>
+
+Poll `GET /audiobook/projects/{project_id}?include_chapters=true` — one call returns both the parse state and, on success, the chapters — and branch on these three fields:
+
+<ResponseField name="status" type="string">
+  `parsing` while the job is running. On success it becomes `ready_for_narration`. On a failed **first** parse it becomes `failed`.
+</ResponseField>
+<ResponseField name="parsing_completed_at" type="string | null">
+  `null` until a parse has completed successfully; an ISO timestamp afterwards. **This is the success signal.**
+</ResponseField>
+<ResponseField name="error_message" type="string | null">
+  The sanitized failure reason, set when the parse fails (e.g. an unreadable or over-length manuscript). Read it to report *why* to your user.
+</ResponseField>
+
+Decision table — evaluate in this order:
+
+| Condition | Meaning | Do |
+|---|---|---|
+| `status == "failed"` | **Terminal failure.** | Stop. Surface `error_message`; fix or re-upload the manuscript. |
+| `parsing_completed_at != null` | **Success.** | Stop. Read `chapters` (or call the chapters endpoint). |
+| `status == "parsing"` | Still working. | Sleep and poll again. |
+| Neither, after your timeout | Treat as failed. | Give up after a bounded number of attempts. |
+
+<Note>
+Check `status` **before** `error_message`. `error_message` is not cleared when you retry a parse, so a leftover value from an earlier failure can persist on a project that has since parsed fine. `status` (plus `parsing_completed_at`) is the authoritative state; `error_message` is the *reason* to display once `status` says `failed`.
+
+One nuance for `manuscript/append`: if an append-parse fails on a project that **already** has chapters, the project is returned to `ready_for_narration` rather than `failed`, so the existing book is not destroyed. In that case compare `total_chapters` before and after to detect that nothing was added.
+</Note>
+
+```python
+import time, requests
+
+AP, H = "https://api.audiopod.ai/api/v1", {"X-API-Key": "ap_..."}
+
+def wait_for_parse(pid: str, timeout_s: int = 900, interval_s: int = 5) -> list[dict]:
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        p = requests.get(f"{AP}/audiobook/projects/{pid}",
+                         params={"include_chapters": "true"}, headers=H).json()
+        if p["status"] == "failed":                       # terminal failure
+            raise RuntimeError(p.get("error_message") or "Manuscript parsing failed")
+        if p.get("parsing_completed_at"):                 # terminal success
+            return p["chapters"] or []
+        time.sleep(interval_s)                            # still parsing
+    raise TimeoutError("Manuscript parsing did not finish in time")
+
+chapters = wait_for_parse(pid)
+chapter_ids = [c["id"] for c in chapters]
+```
+
+Parses typically finish in under two minutes for EPUB/DOCX/TXT and in 2–10 minutes for large or scanned PDFs; the `estimated_completion_time` string in the parse response reflects the format you submitted. A 15-minute poll ceiling is a safe default.
 
 ### Paste text directly
 
@@ -220,24 +371,126 @@ If the project already has completed narration, these endpoints instead return `
 
 ## 3. Chapters
 
-List chapters with `GET /audiobook/projects/{project_id}/chapters?skip=0&limit=50`, or fetch one with `GET .../chapters/{chapter_id}`.
+List chapters with `GET /audiobook/projects/{project_id}/chapters`, or fetch one with `GET .../chapters/{chapter_id}`.
+
+<ParamField query="page" type="integer" default="1">1-based page number (minimum `1`).</ParamField>
+<ParamField query="per_page" type="integer" default="50">Chapters per page, `1`–`500`.</ParamField>
+
+The response is the same paginated envelope as the project list — `chapters`, `total`, `page`, `per_page`, `has_next`, `has_prev` — with chapters ordered by `chapter_number`. As with projects, `skip`/`limit` are **not** recognised and are silently ignored.
+
+```bash
+curl -s "$AP/audiobook/projects/$PID/chapters?page=1&per_page=100" -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
 
 **Chapter** (`AudiobookChapterResponse`):
 
-<ResponseField name="id" type="string">Chapter UUID.</ResponseField>
+<ResponseField name="id" type="string">Chapter UUID — **this is your `chapter_id`**.</ResponseField>
+<ResponseField name="project_id" type="string">Back-reference to the owning project.</ResponseField>
 <ResponseField name="chapter_number" type="integer">Order in the book.</ResponseField>
 <ResponseField name="title" type="string">Chapter title.</ResponseField>
 <ResponseField name="content" type="string">Chapter text.</ResponseField>
 <ResponseField name="word_count" type="integer">Words in the chapter.</ResponseField>
 <ResponseField name="character_count" type="integer">Characters in the chapter.</ResponseField>
 <ResponseField name="duration_seconds" type="number">Narrated length, once generated.</ResponseField>
-<ResponseField name="status" type="string">`pending` · `processing` · `completed` · `failed`.</ResponseField>
+<ResponseField name="status" type="string">`pending` · `queued` · `narrating` · `completed` · `failed`.</ResponseField>
 <ResponseField name="audio_file_path" type="string">Stored audio key, once narrated.</ResponseField>
 <ResponseField name="error_message" type="string">Reason a chapter failed (e.g. content too short for narration).</ResponseField>
 <ResponseField name="skip_narration" type="boolean">If true, the chapter is excluded from narration and export.</ResponseField>
 <ResponseField name="voice_id" type="integer">Per-chapter voice override.</ResponseField>
+<ResponseField name="narration_notes" type="string">Free-text narration instructions stored on the chapter.</ResponseField>
+<ResponseField name="estimated_duration_minutes" type="number">Estimated narrated length before rendering.</ResponseField>
+<ResponseField name="retry_count" type="integer">Number of narration retries so far.</ResponseField>
 
 You can edit a chapter (title, content, `skip_narration`, per-chapter `voice_id`, narration notes) with `PUT .../chapters/{chapter_id}` before narrating.
+
+## 3b. Paragraphs
+
+Chapters are containers; **paragraphs are the atomic unit of narration**. Each paragraph is narrated, billed, re-recorded, and version-tracked (as "takes") independently, so paragraph-level access is what you want for fine-grained control — fixing one mispronounced sentence without re-rendering a 40-minute chapter.
+
+### List a chapter's paragraphs
+
+`GET /audiobook/projects/{project_id}/chapters/{chapter_id}/paragraphs` — returned in `position` order.
+
+<ParamField query="page" type="integer">1-based page number. **Optional.**</ParamField>
+<ParamField query="per_page" type="integer">Paragraphs per page, `1`–`200`. **Optional**; defaults to 50 when only `page` is given.</ParamField>
+
+<Note>
+Pagination here is **opt-in**: omit *both* `page` and `per_page` and you get every paragraph in the chapter in a single response. Supply either one and paging switches on. `total` is always the chapter's full paragraph count, never the length of the page you received.
+</Note>
+
+**Response** (`PaginatedParagraphsResponse`):
+
+<ResponseField name="paragraphs" type="array">The paragraphs, ordered by `position`.</ResponseField>
+<ResponseField name="total" type="integer">Total paragraphs in the chapter.</ResponseField>
+<ResponseField name="page" type="integer | null">Echo of the requested page; `null` in unpaginated mode.</ResponseField>
+<ResponseField name="per_page" type="integer | null">Echo of the requested page size; `null` in unpaginated mode.</ResponseField>
+<ResponseField name="has_next" type="boolean">Whether another page follows (`false` in unpaginated mode).</ResponseField>
+<ResponseField name="has_prev" type="boolean">Whether a previous page exists (`false` in unpaginated mode).</ResponseField>
+
+**Paragraph** (`AudiobookParagraphResponse`):
+
+<ResponseField name="id" type="string">Paragraph UUID — **this is your `paragraph_id`**.</ResponseField>
+<ResponseField name="chapter_id" type="string">Back-reference to the owning chapter.</ResponseField>
+<ResponseField name="project_id" type="string">Back-reference to the owning project.</ResponseField>
+<ResponseField name="position" type="integer">Order within the chapter (the sort key).</ResponseField>
+<ResponseField name="text" type="string">The text that will be narrated.</ResponseField>
+<ResponseField name="word_count" type="integer">Words in the paragraph.</ResponseField>
+<ResponseField name="character_count" type="integer">Characters in the paragraph (narration is metered per character).</ResponseField>
+<ResponseField name="voice_id" type="integer">Per-paragraph voice override, if set.</ResponseField>
+<ResponseField name="narration_speed" type="number">Per-paragraph speed override.</ResponseField>
+<ResponseField name="narration_style" type="string">Per-paragraph delivery style.</ResponseField>
+<ResponseField name="emotion" type="string">Emotional direction for this paragraph.</ResponseField>
+<ResponseField name="character_name" type="string">Speaking character, when the book is cast.</ResponseField>
+<ResponseField name="direction" type="string">Screenplay-style direction applied to this line.</ResponseField>
+<ResponseField name="pause_after_ms" type="integer">Silence appended after this paragraph, in milliseconds.</ResponseField>
+<ResponseField name="audio_file_path" type="string">Stored audio key, once narrated.</ResponseField>
+<ResponseField name="duration_seconds" type="number">Narrated length, once generated.</ResponseField>
+<ResponseField name="status" type="string">`pending` · `queued` · `narrating` · `completed` · `failed`.</ResponseField>
+<ResponseField name="locked" type="boolean">A locked paragraph is protected: edits and regeneration are refused with `409` until it is unlocked.</ResponseField>
+<ResponseField name="skip_narration" type="boolean">If true, the paragraph is excluded from narration and export.</ResponseField>
+<ResponseField name="error_message" type="string">Sanitized reason this paragraph failed.</ResponseField>
+<ResponseField name="retry_count" type="integer">Narration retries so far.</ResponseField>
+
+```bash
+# every paragraph in the chapter
+curl -s "$AP/audiobook/projects/$PID/chapters/$CHAPTER_ID/paragraphs" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq '.paragraphs[] | {id, position, status}'
+
+# or a page at a time
+curl -s "$AP/audiobook/projects/$PID/chapters/$CHAPTER_ID/paragraphs?page=1&per_page=50" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+Read one paragraph with `GET .../projects/{project_id}/paragraphs/{paragraph_id}` (handy for status polling) and edit one with `PUT .../projects/{project_id}/paragraphs/{paragraph_id}`.
+
+### Narrate a single paragraph
+
+`POST /audiobook/projects/{project_id}/paragraphs/{paragraph_id}/narrate` generates — or regenerates — audio for exactly one paragraph and records a new *take*. The body is optional; send `{}` to narrate with the paragraph's existing settings.
+
+<ParamField body="voice_id" type="integer">Voice for this take; falls back to the paragraph's, then the project's, voice.</ParamField>
+<ParamField body="text_override" type="string">Narrate this text instead of the stored paragraph text (the stored text is unchanged).</ParamField>
+<ParamField body="narration_speed" type="number">Speed multiplier for this take, `0.5`–`2.0`.</ParamField>
+<ParamField body="narration_style" type="string">Delivery style for this take.</ParamField>
+<ParamField body="emotion" type="string">Emotional direction for this take.</ParamField>
+<ParamField body="character_name" type="string">Speaking character (max 120 chars).</ParamField>
+<ParamField body="direction" type="string">Screenplay-style direction (max 500 chars); takes precedence over `narration_style` for this take.</ParamField>
+
+**Response:**
+
+<ResponseField name="task_id" type="string">Background task identifier for this narration.</ResponseField>
+<ResponseField name="paragraph_id" type="string">The paragraph being narrated.</ResponseField>
+<ResponseField name="status" type="string">`queued` — the paragraph's status is set to `queued` immediately.</ResponseField>
+<ResponseField name="billing" type="object">`is_free_regen`, `estimated_credits`, `estimated_chars`, `estimated_seconds`, `take_number_after`.</ResponseField>
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID/narrate" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"voice_id":387,"emotion":"wistful"}'
+# => { "task_id": "...", "paragraph_id": "...", "status": "queued",
+#      "billing": { "is_free_regen": true, "estimated_credits": 0, "take_number_after": 2 } }
+```
+
+Poll `GET .../projects/{project_id}/paragraphs/{paragraph_id}` until `status` is `completed` (or `failed`, with `error_message`). The first take of a paragraph is billed, the **first regeneration is free**, and subsequent regenerations are billed again — `billing.is_free_regen` tells you which case you are in *before* the work runs. A `409` means the paragraph is locked; unlock it with `PUT .../paragraphs/{paragraph_id}` first.
 
 ## 4. Choose a voice
 
@@ -251,31 +504,59 @@ You can edit a chapter (title, content, `skip_narration`, per-chapter `voice_id`
 
 ## 5. Narrate
 
-### Narrate every chapter
+### Narrate the book — `narration/batch`
 
-`POST /audiobook/projects/{project_id}/narration/start` queues narration for all chapters with the selected voice.
+`POST /audiobook/projects/{project_id}/narration/batch` is **the** narration endpoint. It queues one job that narrates the selected paragraphs in order. Scope is chosen by what you send:
 
-<ParamField body="voice_id" type="integer" required>Voice to narrate with (from `voices/available`).</ParamField>
-<ParamField body="chapter_ids" type="array">Optional — narrate only these chapters; omit for all.</ParamField>
-<ParamField body="narration_speed" type="number" default="1.0">Speed multiplier.</ParamField>
-<ParamField body="narration_style" type="string" default="narrative">Delivery style.</ParamField>
+- **omit both `chapter_ids` and `paragraph_ids`** → narrate the entire project;
+- **`chapter_ids`** → narrate only those chapters;
+- **`paragraph_ids`** → narrate only those paragraphs.
+
+<ParamField body="voice_id" type="integer">Voice to narrate with (from `voices/available`). Optional — omit to use each paragraph's/chapter's assigned voice, falling back to the project's `selected_voice_id`.</ParamField>
+<ParamField body="chapter_ids" type="array">Optional — UUIDs of chapters to narrate.</ParamField>
+<ParamField body="paragraph_ids" type="array">Optional — UUIDs of individual paragraphs to narrate.</ParamField>
+<ParamField body="include_completed" type="boolean" default="false">Re-narrate paragraphs that already have finished audio.</ParamField>
+<ParamField body="include_locked" type="boolean" default="false">Include locked paragraphs.</ParamField>
+<ParamField body="include_skipped" type="boolean" default="false">Include paragraphs marked `skip_narration`.</ParamField>
+<ParamField body="narration_settings" type="object" default="{}">Free-form per-run narration settings.</ParamField>
+
+**Response** (`BatchNarrationResponse`):
+
+<ResponseField name="job_id" type="integer">The narration job.</ResponseField>
+<ResponseField name="total_paragraphs" type="integer">Paragraphs queued for this run.</ResponseField>
+<ResponseField name="skipped_paragraphs" type="integer">Paragraphs excluded by the `include_*` rules above (already completed, locked, or skipped).</ResponseField>
+<ResponseField name="estimated_completion_time" type="string">Human-readable estimate.</ResponseField>
 
 <Tabs>
   <Tab title="cURL">
     ```bash
-    curl -X POST "$AP/audiobook/projects/$PID/narration/start" \
+    # whole project
+    curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
       -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
       -d '{"voice_id":387}'
-    # => {"success": true, "queued_chapters": 2, "total_chapters": 2, "project_status": "narrating"}
+    # => {"job_id": 1042, "total_paragraphs": 318, "skipped_paragraphs": 0,
+    #     "estimated_completion_time": "Queued"}
+
+    # just two chapters
+    curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+      -d '{"voice_id":387,"chapter_ids":["<chapter-uuid>","<chapter-uuid>"]}'
     ```
   </Tab>
   <Tab title="Python">
     ```python
-    requests.post(f"{AP}/audiobook/projects/{pid}/narration/start",
+    # whole project
+    requests.post(f"{AP}/audiobook/projects/{pid}/narration/batch",
                   headers=H, json={"voice_id": 387})
+
+    # or a specific chapter
+    requests.post(f"{AP}/audiobook/projects/{pid}/narration/batch",
+                  headers=H, json={"voice_id": 387, "chapter_ids": [chapter_id]})
     ```
   </Tab>
 </Tabs>
+
+Common non-200s: **`402`** insufficient balance (nothing is queued or charged), **`409`** another narration/parse/mix/export is already live for this project, **`503`** the job could not be queued (nothing charged — retry).
 
 ### Track progress
 
@@ -291,7 +572,7 @@ Narration is complete when `completed_chapters + failed_chapters >= total_chapte
 
 ### Paragraph-level & regeneration
 
-For fine-grained control, `POST .../narration/batch` narrates specific paragraphs (`BatchNarrationRequest`: optional `voice_id`, `chapter_ids`, `paragraph_ids`, `include_completed/locked/skipped`). To re-render a single chapter — e.g. after an edit — `POST .../chapters/{chapter_id}/regenerate`.
+For a single line, use [`POST .../paragraphs/{paragraph_id}/narrate`](#narrate-a-single-paragraph). To re-render a whole chapter after an edit, `POST .../projects/{project_id}/chapters/{chapter_id}/regenerate` (optional `?voice_id=` query parameter). To re-queue only the paragraphs of a chapter whose status is `failed`, `POST .../projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs`.
 
 ### Regenerate a completed chapter
 
@@ -411,10 +692,12 @@ Delivery is retried with exponential backoff and parked in a dead-letter queue a
 ## Status values
 
 <ResponseField name="Project status" type="string">
-  `draft` → `parsing` → `narrating` → `producing` → `completed`. `failed` if a stage cannot complete.
+  `draft` → `parsing` → `ready_for_narration` → `narrating` → `ready_for_production` → `mixing` → `ready_for_export` → `exporting` → `completed`. `failed` if a stage cannot complete (with the reason in `error_message`).
+
+  Note that the state *after a successful parse* is `ready_for_narration`, not `parsing` or `completed` — pair it with `parsing_completed_at` when waiting on a parse.
 </ResponseField>
-<ResponseField name="Chapter / job status" type="string">
-  `pending` → `processing` → `completed`, or `failed` with an `error_message`.
+<ResponseField name="Chapter / paragraph status" type="string">
+  `pending` → `queued` → `narrating` → `completed`, or `failed` with an `error_message`.
 </ResponseField>
 
 Jobs are prepaid: credits are reserved at job start, settled on success, and **released on failure** — a failed narration or export never leaves a stranded charge. Narration and export retry automatically; a `job.failed` webhook fires if a job ultimately can't complete, so an automated integrator can react deterministically.
@@ -430,6 +713,15 @@ Jobs are prepaid: credits are reserved at job start, settled on success, and **r
   </Accordion>
   <Accordion title="402 — Insufficient balance">
     Narration/export draws from your prepaid balance. Top up the [API Wallet](/account/api-wallet) and retry; reserved credits for a failed job are released automatically.
+  </Accordion>
+  <Accordion title="409 — Something else is already running for this project">
+    Parsing, narration, mixing, and export are mutually exclusive per project — each would rewrite structure the other is reading. Poll `GET .../narration/progress` (or the project's `status`) and retry once the live job finishes. A `409` on a single paragraph means it is `locked`; unlock it via `PUT .../paragraphs/{paragraph_id}` first.
+  </Accordion>
+  <Accordion title="410 — narration/start is gone">
+    `POST .../narration/start` has been removed because it bypassed metering. Send `POST .../narration/batch` instead — with no `chapter_ids` and no `paragraph_ids` it narrates the whole project.
+  </Accordion>
+  <Accordion title="Pagination appears stuck on page 1">
+    You are probably sending `skip`/`limit`. Unknown query parameters are ignored rather than rejected, so the request still returns `200` — with the first page, every time. The project and chapter list endpoints page with `page` and `per_page`; loop on `has_next`.
   </Accordion>
   <Accordion title="401 — Not authenticated">
     Send a valid `X-API-Key` header. Keys are created in the [dashboard](https://www.audiopod.ai/dashboard/account/api-keys) and can expire — check the key's status if previously working calls start returning 401.
