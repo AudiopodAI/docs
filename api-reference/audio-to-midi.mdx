@@ -5,18 +5,21 @@ description: "Convert audio — or stems you already separated — into MIDI usi
 
 ## Overview
 
-AudioPod's audio-to-MIDI engine transcribes pitched instruments in a
-recording into note-level MIDI. Use it **standalone** on a full mix (we split
-it into stems first, then transcribe each pitched stem) or as an **add-on**
-to a stem-separation job you already ran (transcribe-only, no re-split).
+AudioPod's audio-to-MIDI engine transcribes bass, vocals, and piano in a
+recording into note-level MIDI — bass is the strongest instrument. Guitar is
+supported too but is opt-in/experimental. Use it **standalone** on a full mix
+(we split it into stems first, then transcribe each requested stem) or as an
+**add-on** to a stem-separation job you already ran (transcribe-only, no
+re-split).
 
 <Note>
-**This is a starting-point transcription, not a note-perfect one.** Expect to
-tidy timing and note lengths by ear. Drums aren't transcribed yet — a
-requested `drums` stem is accepted but comes back in `skipped_stems`.
-Dynamics (velocity) are approximate. Quality is best on clean, well-separated
-recordings — dense mixes and heavily processed "other" stems transcribe less
-cleanly.
+**This is a starting-point transcription, not a note-perfect one.** Bass is
+the strongest instrument; expect to tidy timing and note lengths by ear in
+your DAW. Dynamics (velocity) are approximate. Drums aren't transcribed
+yet — a requested `drums` (or `other`) stem is accepted but comes back in
+`skipped_stems`. Guitar is opt-in and experimental — it over-detects on busy
+mixes, so it isn't requested by default. Detected tempo is surfaced as
+`detected_tempo_bpm`.
 </Note>
 
 ### Key Features
@@ -78,25 +81,27 @@ Get your API key from the [API Keys Dashboard](https://www.audiopod.ai/dashboard
 ## Convert From a File or URL
 
 Standalone conversion splits the mix into stems, then transcribes each
-requested pitched stem. Provide either `file` or `url` — not both. `stems`
-defaults to all pitched stems (`vocals`, `bass`, `guitar`, `piano`, `other`)
-when omitted.
+requested stem. Provide either `file` or `url` — not both. `stems` defaults
+to `["bass", "vocals", "piano"]` — the strongest instruments — when omitted.
+`guitar` is supported but opt-in/experimental (it over-detects on busy
+mixes), so pass it explicitly if you want it. `drums` and `other` are
+accepted but are never transcribed — they always come back in
+`skipped_stems`.
 
 <Tabs>
   <Tab title="cURL (file)">
     ```bash
     curl -X POST "https://api.audiopod.ai/api/v1/midi/convert" \
       -H "X-API-Key: $AUDIOPOD_API_KEY" \
-      -F "file=@/path/to/song.mp3" \
-      -F 'stems=["vocals","bass","piano"]'
+      -F "file=@/path/to/song.mp3"
     ```
   </Tab>
-  <Tab title="cURL (URL)">
+  <Tab title="cURL (URL, with guitar opt-in)">
     ```bash
     curl -X POST "https://api.audiopod.ai/api/v1/midi/convert" \
       -H "X-API-Key: $AUDIOPOD_API_KEY" \
       -F "url=https://youtube.com/watch?v=VIDEO_ID" \
-      -F 'stems=["vocals","bass","guitar","piano","other"]'
+      -F 'stems=["bass","vocals","piano","guitar"]'
     ```
   </Tab>
   <Tab title="Python">
@@ -106,10 +111,8 @@ when omitted.
     client = AudioPod(api_key="ap_your_api_key")
 
     # From a local file (or pass url="https://.../song.mp3")
-    job = client.midi.convert(
-        file="/path/to/song.mp3",
-        stems=["vocals", "bass", "piano"],
-    )
+    # Default stems: bass, vocals, piano
+    job = client.midi.convert(file="/path/to/song.mp3")
 
     print(f"Multitrack: {job['merged_midi_url']}")
     for stem, url in (job["midi_urls"] or {}).items():
@@ -123,10 +126,8 @@ when omitted.
     const client = new AudioPod({ apiKey: 'ap_your_api_key' });
 
     // From a local file (or pass { url: 'https://.../song.mp3' })
-    const job = await client.midi.transcribe({
-      file: '/path/to/song.mp3',
-      stems: ['vocals', 'bass', 'piano'],
-    });
+    // Default stems: bass, vocals, piano
+    const job = await client.midi.transcribe({ file: '/path/to/song.mp3' });
 
     console.log(`Multitrack: ${job.merged_midi_url}`);
     for (const [stem, url] of Object.entries(job.midi_urls ?? {})) {
@@ -146,14 +147,16 @@ object):
 | `onset_threshold` | float (0.05–0.95) | `0.5` | Note-onset detection sensitivity |
 | `frame_threshold` | float (0.05–0.95) | `0.3` | Frame-level pitch confidence threshold |
 | `min_note_len_ms` | float (10–2000) | `127.7` | Minimum note duration in milliseconds |
-| `use_piano_model` | bool | `false` | Route piano stems through the piano-specialized model |
 | `tempo_bpm` | float (30–300) or `null` | `null` (auto-detect) | Override the detected tempo |
 
 ## Convert From an Existing Stem-Separation Job
 
 If you already ran [stem separation](/api-reference/stem-splitter), transcribe
 its output directly — no re-split, so it bills the add-on rate only. `stems`
-must be a subset of the stems the source job produced.
+must be a subset of the stems the source job produced, and defaults to all
+of them when omitted — `drums`/`other` stems still come back in
+`skipped_stems` (never transcribed), and `guitar` remains
+opt-in/experimental.
 
 <Tabs>
   <Tab title="cURL">
@@ -252,19 +255,19 @@ curl -X DELETE "https://api.audiopod.ai/api/v1/midi/jobs/JOB_ID" \
   "stage": "merge",
   "mode": "standalone",
   "source_job_id": null,
-  "stems_requested": ["vocals", "bass", "guitar", "piano", "other"],
+  "stems_requested": ["bass", "vocals", "piano"],
   "midi_urls": {
-    "vocals": "https://media.audiopod.ai/...",
     "bass": "https://media.audiopod.ai/...",
+    "vocals": "https://media.audiopod.ai/...",
     "piano": "https://media.audiopod.ai/..."
   },
   "merged_midi_url": "https://media.audiopod.ai/...",
   "stem_urls": {
-    "vocals": "https://media.audiopod.ai/...",
-    "bass": "https://media.audiopod.ai/..."
+    "bass": "https://media.audiopod.ai/...",
+    "vocals": "https://media.audiopod.ai/..."
   },
   "detected_tempo_bpm": 118.0,
-  "skipped_stems": ["drums"],
+  "skipped_stems": [],
   "failed_stems": null,
   "duration": 214,
   "original_filename": "song.mp3",
@@ -278,8 +281,8 @@ curl -X DELETE "https://api.audiopod.ai/api/v1/midi/jobs/JOB_ID" \
   stems as separate tracks plus tempo metadata
 - **`stem_urls`** — the separated stem *audio* (standalone mode only, so you
   can preview what was transcribed)
-- **`skipped_stems`** — stems requested but not transcribed (currently always
-  `drums`, if requested)
+- **`skipped_stems`** — stems requested but not transcribed (always `drums`
+  and `other`, if requested — they're not part of the transcribable set)
 - **`failed_stems`** — `{stem: error_message}` for any stem the engine
   couldn't transcribe; the job still completes if at least one stem succeeded
 
