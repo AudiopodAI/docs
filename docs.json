@@ -67,6 +67,7 @@
             "icon": "waveform",
             "pages": [
               "api-reference/stem-splitter",
+              "api-reference/audio-to-midi",
               "api-reference/noise-reduction",
               "api-reference/speaker-separation"
             ]

@@ -1,0 +1,318 @@
+---
+title: "Audio to MIDI"
+description: "Convert audio — or stems you already separated — into MIDI using AudioPod's audio-to-MIDI engine."
+---
+
+## Overview
+
+AudioPod's audio-to-MIDI engine transcribes pitched instruments in a
+recording into note-level MIDI. Use it **standalone** on a full mix (we split
+it into stems first, then transcribe each pitched stem) or as an **add-on**
+to a stem-separation job you already ran (transcribe-only, no re-split).
+
+<Note>
+**This is a starting-point transcription, not a note-perfect one.** Expect to
+tidy timing and note lengths by ear. Drums aren't transcribed yet — a
+requested `drums` stem is accepted but comes back in `skipped_stems`.
+Dynamics (velocity) are approximate. Quality is best on clean, well-separated
+recordings — dense mixes and heavily processed "other" stems transcribe less
+cleanly.
+</Note>
+
+### Key Features
+
+- **Standalone or add-on**: convert a raw file/URL, or transcribe stems from
+  an existing [stem-separation](/api-reference/stem-splitter) job
+- **Per-stem + multitrack output**: individual `.mid` per stem, plus a merged
+  multitrack `.mid` with tempo metadata
+- **Tempo detection**: auto-detected via beat tracking, or pass an explicit
+  `tempo_bpm` override
+- **Presigned downloads**: direct URLs for every output file
+
+## Installation
+
+<Tabs>
+  <Tab title="Python">
+    ```bash
+    pip install audiopod
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```bash
+    npm install audiopod
+    ```
+  </Tab>
+</Tabs>
+
+## Authentication
+
+Get your API key from the [API Keys Dashboard](https://www.audiopod.ai/dashboard/account/api-keys).
+
+<Tabs>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+    # Or set AUDIOPOD_API_KEY environment variable
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+    // Or set AUDIOPOD_API_KEY environment variable
+    ```
+  </Tab>
+  <Tab title="cURL">
+    ```bash
+    export AUDIOPOD_API_KEY="ap_your_api_key"
+    # Use -H "X-API-Key: $AUDIOPOD_API_KEY" in requests
+    ```
+  </Tab>
+</Tabs>
+
+---
+
+## Convert From a File or URL
+
+Standalone conversion splits the mix into stems, then transcribes each
+requested pitched stem. Provide either `file` or `url` — not both. `stems`
+defaults to all pitched stems (`vocals`, `bass`, `guitar`, `piano`, `other`)
+when omitted.
+
+<Tabs>
+  <Tab title="cURL (file)">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/midi/convert" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "file=@/path/to/song.mp3" \
+      -F 'stems=["vocals","bass","piano"]'
+    ```
+  </Tab>
+  <Tab title="cURL (URL)">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/midi/convert" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F 'stems=["vocals","bass","guitar","piano","other"]'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    from audiopod import AudioPod
+
+    client = AudioPod(api_key="ap_your_api_key")
+
+    # From a local file (or pass url="https://.../song.mp3")
+    job = client.midi.convert(
+        file="/path/to/song.mp3",
+        stems=["vocals", "bass", "piano"],
+    )
+
+    print(f"Multitrack: {job['merged_midi_url']}")
+    for stem, url in (job["midi_urls"] or {}).items():
+        print(f"  {stem}: {url}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    import AudioPod from 'audiopod';
+
+    const client = new AudioPod({ apiKey: 'ap_your_api_key' });
+
+    // From a local file (or pass { url: 'https://.../song.mp3' })
+    const job = await client.midi.transcribe({
+      file: '/path/to/song.mp3',
+      stems: ['vocals', 'bass', 'piano'],
+    });
+
+    console.log(`Multitrack: ${job.merged_midi_url}`);
+    for (const [stem, url] of Object.entries(job.midi_urls ?? {})) {
+      console.log(`  ${stem}: ${url}`);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Options
+
+Tunables forwarded to the audio-to-MIDI engine, passed as `options` (a JSON
+object):
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `onset_threshold` | float (0.05–0.95) | `0.5` | Note-onset detection sensitivity |
+| `frame_threshold` | float (0.05–0.95) | `0.3` | Frame-level pitch confidence threshold |
+| `min_note_len_ms` | float (10–2000) | `127.7` | Minimum note duration in milliseconds |
+| `use_piano_model` | bool | `false` | Route piano stems through the piano-specialized model |
+| `tempo_bpm` | float (30–300) or `null` | `null` (auto-detect) | Override the detected tempo |
+
+## Convert From an Existing Stem-Separation Job
+
+If you already ran [stem separation](/api-reference/stem-splitter), transcribe
+its output directly — no re-split, so it bills the add-on rate only. `stems`
+must be a subset of the stems the source job produced.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X POST "https://api.audiopod.ai/api/v1/midi/convert/from-stems/5512" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"stems": ["vocals", "bass"]}'
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    stem_job = client.stems.separate(file="/path/to/song.mp3", mode="six")
+
+    job = client.midi.convert_from_stem_job(
+        stem_job_id=stem_job["id"],
+        stems=["vocals", "bass"],
+    )
+    print(job["merged_midi_url"])
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const stemJob = await client.stems.separate({ file: '/path/to/song.mp3', mode: 'six' });
+
+    const job = await client.midi.convertFromStemJob(stemJob.id, {
+      stems: ['vocals', 'bass'],
+    });
+    console.log(job.merged_midi_url);
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+If the source stem job's output has expired under your plan's [retention
+window](https://www.audiopod.ai/pricing), this returns `410 Gone` — re-run
+stem separation first.
+</Info>
+
+---
+
+## Job Status & Stages
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    curl -X GET "https://api.audiopod.ai/api/v1/midi/status/JOB_ID" \
+      -H "X-API-Key: $AUDIOPOD_API_KEY"
+    ```
+  </Tab>
+  <Tab title="Python">
+    ```python
+    status = client.midi.get_job(job_id)
+    print(f"Status: {status['status']}, stage: {status['stage']}")
+    ```
+  </Tab>
+  <Tab title="Node.js">
+    ```typescript
+    const status = await client.midi.status(jobId);
+    console.log(`Status: ${status.status}, stage: ${status.stage}`);
+    ```
+  </Tab>
+</Tabs>
+
+`stage` tracks pipeline progress for a `PROCESSING` job:
+
+| Stage | Description |
+|-------|-------------|
+| `split` | Separating the mix into stems (standalone mode only) |
+| `transcribe` | Running the audio-to-MIDI engine on each requested stem |
+| `merge` | Building the merged multitrack `.mid` |
+
+### Other Job Endpoints
+
+```bash
+# List jobs
+curl -X GET "https://api.audiopod.ai/api/v1/midi/jobs?skip=0&limit=50" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+
+# Delete a job (purges its outputs)
+curl -X DELETE "https://api.audiopod.ai/api/v1/midi/jobs/JOB_ID" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+---
+
+## Output Format
+
+**Completed Job Response:**
+
+```json
+{
+  "id": 5512,
+  "status": "COMPLETED",
+  "progress": 100,
+  "stage": "merge",
+  "mode": "standalone",
+  "source_job_id": null,
+  "stems_requested": ["vocals", "bass", "guitar", "piano", "other"],
+  "midi_urls": {
+    "vocals": "https://media.audiopod.ai/...",
+    "bass": "https://media.audiopod.ai/...",
+    "piano": "https://media.audiopod.ai/..."
+  },
+  "merged_midi_url": "https://media.audiopod.ai/...",
+  "stem_urls": {
+    "vocals": "https://media.audiopod.ai/...",
+    "bass": "https://media.audiopod.ai/..."
+  },
+  "detected_tempo_bpm": 118.0,
+  "skipped_stems": ["drums"],
+  "failed_stems": null,
+  "duration": 214,
+  "original_filename": "song.mp3",
+  "created_at": "2026-07-24T12:39:37.379848Z",
+  "completed_at": "2026-07-24T12:41:02.104213Z"
+}
+```
+
+- **`midi_urls`** — presigned download URL per transcribed stem's `.mid` file
+- **`merged_midi_url`** — a single multitrack `.mid` with all transcribed
+  stems as separate tracks plus tempo metadata
+- **`stem_urls`** — the separated stem *audio* (standalone mode only, so you
+  can preview what was transcribed)
+- **`skipped_stems`** — stems requested but not transcribed (currently always
+  `drums`, if requested)
+- **`failed_stems`** — `{stem: error_message}` for any stem the engine
+  couldn't transcribe; the job still completes if at least one stem succeeded
+
+All download URLs are presigned and expire — call the status endpoint again
+to mint fresh ones.
+
+---
+
+## Status Codes
+
+| Status | Description |
+|--------|-------------|
+| `PENDING` | Job queued, waiting for worker |
+| `PROCESSING` | Splitting and/or transcribing — see `stage` |
+| `COMPLETED` | At least one stem transcribed — download URLs available |
+| `FAILED` | No stem could be transcribed — check `error_message` |
+
+---
+
+## Pricing
+
+See [audiopod.ai/pricing](https://www.audiopod.ai/pricing) for current rates,
+or check your estimated cost before converting via the [API Wallet](/account/api-wallet).
+
+---
+
+## Next Steps
+
+<Columns cols={2}>
+  <Card title="Stem Separation" icon="waveform" href="/api-reference/stem-splitter">
+    Separate a mix into stems before (or instead of) converting to MIDI.
+  </Card>
+  <Card title="API Wallet" icon="wallet" href="/account/api-wallet">
+    Manage billing and view usage history.
+  </Card>
+</Columns>
