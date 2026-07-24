@@ -83,7 +83,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | Cancel narration | POST | `/audiobook/projects/{project_id}/narration/cancel` |
 | Regenerate a chapter | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/regenerate` |
 | Retry a chapter's failed paragraphs | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs` |
-| Production music/credits | GET·PUT | `/audiobook/projects/{project_id}/music-settings` |
+| Production settings — opening/closing announcement, music, cover | GET·PUT | `/audiobook/projects/{project_id}/production-settings` |
 | Upload media (cover/music) | POST | `/audiobook/projects/{project_id}/media/upload` |
 | Start ACX export | POST | `/audiobook/projects/{project_id}/export` |
 | Export status | GET | `/audiobook/projects/{project_id}/export/{job_id}/status` |
@@ -616,7 +616,16 @@ Alternatively, `POST .../projects/{project_id}/chapters/{chapter_id}/regenerate`
 
 Add intro/outro music, narrated opening/closing credits, or a cover before export:
 
-- `GET·PUT /audiobook/projects/{project_id}/music-settings` — `ProductionMusicSettings` (`intro`, `outro`, `credits`, `cover`). Narrated `Chapter_00/99_*_Credits.mp3` are produced only when opening/closing credit speech is configured here.
+- `GET·PUT /audiobook/projects/{project_id}/production-settings` — `ProductionMusicSettings` (`intro`, `outro`, `credits`, `cover`).
+
+  **This is where the spoken title/author announcement is configured.** Set `credits.narrator_name` (plus `include_opening` / `include_closing`, both default `true`) and the export produces narrated `Chapter_00_*_Credits.mp3` (title, subtitle, author, narrator) and `Chapter_99_*_Credits.mp3` as separate files in the ACX package — the opening announcement Audible/ACX expect. **No credits files are produced unless this is set.**
+
+  ```json
+  PUT /audiobook/projects/{project_id}/production-settings
+  {"credits": {"narrator_name": "Jane Doe", "include_opening": true, "include_closing": true}}
+  ```
+
+  <Note>Previously named `/music-settings`. That path still works and will keep working, but it only ever described 2 of the 4 fields — use `production-settings`.</Note>
 - `POST /audiobook/projects/{project_id}/media/upload` — upload a cover image or custom music track to reference from the settings above.
 
 ## 7. Export the ACX package
