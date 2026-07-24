@@ -616,7 +616,7 @@ Alternatively, `POST .../projects/{project_id}/chapters/{chapter_id}/regenerate`
 
 Add intro/outro music, narrated opening/closing credits, or a cover before export:
 
-- `GET·PUT /audiobook/projects/{project_id}/production-settings` — `ProductionMusicSettings` (`intro`, `outro`, `credits`, `cover`).
+- `GET·PUT /audiobook/projects/{project_id}/production-settings` — `ProductionMusicSettings` (`intro`, `outro`, `credits`, `cover`, `silence`).
 
   **This is where the spoken title/author announcement is configured.** Set `credits.narrator_name` (plus `include_opening` / `include_closing`, both default `true`) and the export produces narrated `Chapter_00_*_Credits.mp3` (title, subtitle, author, narrator) and `Chapter_99_*_Credits.mp3` as separate files in the ACX package — the opening announcement Audible/ACX expect. **No credits files are produced unless this is set.**
 
@@ -627,6 +627,45 @@ Add intro/outro music, narrated opening/closing credits, or a cover before expor
 
   <Note>Previously named `/music-settings`. That path still works and will keep working, but it only ever described 2 of the 4 fields — use `production-settings`.</Note>
 - `POST /audiobook/projects/{project_id}/media/upload` — upload a cover image or custom music track to reference from the settings above.
+
+### Chapter silence (room tone)
+
+Every exported chapter opens and closes with digital silence — this is why an
+exported MP3 has leading and trailing silence, and it is a retail requirement,
+not padding you should trim. The same values apply to the per-chapter download
+and to each chapter inside the ACX package, so an audition always matches what
+ships.
+
+Defaults are **750 ms head / 3000 ms tail** (mid-window for ACX). Override per
+project with `silence`:
+
+```json
+PUT /audiobook/projects/{project_id}/production-settings
+{"silence": {"head_ms": 2000, "tail_ms": 2000}}
+```
+
+<ResponseField name="silence.head_ms" type="integer" default="750">Leading silence, in milliseconds. Accepted range **0–5000**.</ResponseField>
+<ResponseField name="silence.tail_ms" type="integer" default="3000">Trailing silence, in milliseconds. Accepted range **0–10000**.</ResponseField>
+<ResponseField name="silence.acx_compliant" type="boolean">Read-only. `true` when `head_ms` is 500–1000 and `tail_ms` is 1000–5000 — the ACX opening/closing silence requirements.</ResponseField>
+
+`silence` is always returned, populated with the defaults when you have never
+set it, so you can read the effective values without knowing them.
+
+Values outside the **ACX** range are **accepted, not rejected** — plenty of
+deliveries are not Audible, and a house standard of 2 s/2 s is a legitimate
+choice. Each out-of-range field adds an entry to the response's `warnings`
+array naming the field and the ACX range, and `acx_compliant` flips to `false`:
+
+```json
+{ "silence": { "head_ms": 2000, "tail_ms": 2000, "acx_compliant": false },
+  "warnings": ["head_ms 2000 is outside the ACX range 500–1000 ms; files may be rejected by ACX QA."] }
+```
+
+Values outside the **accepted range** (a negative `head_ms`, a `tail_ms` above
+10000) are a `422`. Send `"silence": null` to reset both sides to the defaults;
+omit the field entirely to leave them unchanged.
+
+<Warning>If you are delivering to ACX/Audible, keep `acx_compliant` at `true`. Out-of-range silence is one of the most common causes of a retail QA rejection, and the rejection arrives after upload — not at export time.</Warning>
 
 ## 7. Export the ACX package
 
