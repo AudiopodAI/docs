@@ -2,6 +2,7 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "AudioPod AI",
+  "description": "AudioPod AI is an AI audio platform with an API and SDKs for audiobook production, stem separation (up to a 45-instrument catalog), voice cloning and design, transcription, speaker diarization, music generation, and text-to-speech. Free tier; pay-as-you-go and subscription plans.",
   "colors": {
     "primary": "#6366F1",
     "light": "#8B5CF6",
