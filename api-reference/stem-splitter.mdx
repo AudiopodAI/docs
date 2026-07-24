@@ -9,8 +9,8 @@ AudioPod AI's Stem Separation API uses state-of-the-art AI models to separate mi
 
 ### Key Features
 
-- **Granular Separation**: two, four, six, producer (8), studio (12), mastering (16) — plus single-instrument isolation from an expanded catalog of up to ~45 individual stems
-- **Single-Instrument Isolation**: Pull out one specific instrument (or vocals) and everything-else from the advanced catalog
+- **Granular Separation**: `two`, `four`, `six`, plus the detailed `producer`, `studio`, and `mastering` decompositions
+- **Single-Instrument Isolation**: Target one instrument from a 45-instrument catalog and get it back alongside an everything-else track
 - **File Upload & URL Support**: Process local files or YouTube/SoundCloud URLs
 - **Quality Scores**: Get AI-assessed quality metrics for each stem
 - **Presigned Downloads**: Direct S3 URLs for fast stem downloads
@@ -61,22 +61,113 @@ Get your API key from the [API Keys Dashboard](https://www.audiopod.ai/dashboard
 
 ## Separation Modes
 
-| Mode | Stems | Output | Use Case |
-|------|-------|--------|----------|
-| `single` | 1 | Specified stem only | Vocal isolation, drum extraction |
-| `two` | 2 | vocals + instrumental | Karaoke tracks |
-| `four` | 4 | vocals, drums, bass, other | Standard remixing |
-| `six` | 6 | + guitar, piano | Full instrument separation |
-| `producer` | 8 | + kick, snare, hihat | Beat production |
-| `studio` | 12 | + cymbals, sub_bass, synth | Professional mixing |
-| `mastering` | 16 | Maximum detail | Forensic analysis |
+Pass one of these as `mode` to `POST /api/v1/stem-extraction/api/extract`.
+
+| Mode | Output | Plan | Use Case |
+|------|--------|------|----------|
+| `single` | One named stem + everything-else | Basic | Vocal isolation, drum extraction |
+| `two` | vocals + instrumental | Basic | Karaoke tracks |
+| `four` | vocals, drums, bass, other | Basic | Standard remixing |
+| `six` | + guitar, piano | Basic | Full instrument separation |
+| `producer` | Drums split into kick, snare, hi-hat — up to 8 | Creator | Beat production |
+| `studio` | Full drum kit plus a bass frequency split — up to 12 | Pro | Professional mixing |
+| `mastering` | Full kit, bass split, and vocal stereo separation — up to 16 | Pro | Maximum detail |
 
 <Info>
-**Expanded catalog.** Beyond the fixed modes above, single-instrument isolation
-can target one specific instrument from an advanced catalog of up to ~45
-individual stems (e.g. lead vocal, backing vocal, electric guitar, acoustic
-guitar, strings, brass, and more). Use `mode="single"` with the `stem` you want;
-the response returns that stem plus an everything-else track.
+**Counts are a ceiling, not a promise.** `producer`, `studio`, and `mastering`
+decompose whatever is actually in the recording, so the stem count depends on
+the track — a song with no cymbals yields no cymbal stem. Plan for "up to N".
+</Info>
+
+<Warning>
+**Plan gating.** `producer` requires **Creator** or above; `studio` and
+`mastering` require **Pro** or above. A request from a lower plan is rejected —
+call `GET /api/v1/stem-extraction/packages/available` to see what the
+authenticated key can use before you dispatch a job.
+</Warning>
+
+For `mode="single"` this endpoint accepts the six core stems — `vocals`,
+`drums`, `bass`, `guitar`, `piano`, `other`. To reach the full instrument
+catalog, use the advanced endpoint below.
+
+---
+
+## The 45-Instrument Catalog
+
+Beyond the fixed modes, you can name **one** instrument out of a 45-entry
+catalog and get that instrument back plus an everything-else track. The 45 is
+the size of the menu you can choose from — not the number of files a job
+returns.
+
+Use `POST /api/v1/stem-extraction/extract/advanced` with `single_stem` set to a
+catalog id. The service resolves the right processing path and plan check for
+you, so you never pick an engine.
+
+<Tabs>
+  <Tab title="cURL">
+    ```bash
+    # Isolate the saxophone from a track
+    curl -X POST https://api.audiopod.ai/api/v1/stem-extraction/extract/advanced \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F "single_stem=saxophone"
+    ```
+  </Tab>
+  <Tab title="Exclude one instrument">
+    ```bash
+    # Everything EXCEPT the saxophone (JSON array, one id)
+    curl -X POST https://api.audiopod.ai/api/v1/stem-extraction/extract/advanced \
+      -H "X-API-Key: $AUDIOPOD_API_KEY" \
+      -F "url=https://youtube.com/watch?v=VIDEO_ID" \
+      -F 'exclude_stems=["saxophone"]'
+    ```
+  </Tab>
+</Tabs>
+
+### Discover the catalog at runtime
+
+Don't hard-code the list — plan gating and catalog contents change. `GET
+/api/v1/stem-extraction/catalog` returns every stem with the plan it needs and
+whether the authenticated key can use it right now:
+
+```bash
+curl -s https://api.audiopod.ai/api/v1/stem-extraction/catalog \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+Each entry carries an `id` (what you send as `single_stem`), a `label` and
+`description` for your UI, a `group`, the `public_tier` it requires, an
+`allowed` boolean for the current key, and `excludable` (whether it can be used
+with `exclude_stems`).
+
+### Catalog contents
+
+**Core — available on every plan including Basic (7)**
+
+`vocals` · `backing_track` · `drums` · `bass` · `guitar` · `piano` · `other`
+
+**Specialty vocals — Creator and above (4)**
+
+`lead_vocal` · `backing_vocal` · `male_vocal` · `female_vocal`
+
+**Instruments — Creator and above (34)**
+
+`acoustic_guitar` · `electric_guitar` · `lead_guitar` · `rhythm_guitar` ·
+`bagpipes` · `banjo` · `bassoon` · `brass` · `braam` · `celesta` · `cello` ·
+`choir` · `clarinet` · `double_bass` · `flute` · `french_horn` · `fx` · `harp` ·
+`harmonica` · `keys` · `mandolin` · `oboe` · `organ` · `percussion` ·
+`plucked_strings` · `strings` · `saxophone` · `trombone` · `trumpet` · `tuba` ·
+`viola` · `violin` · `woodwind` · `xylophone`
+
+<Warning>
+Requesting a Creator-tier stem with a Basic key is rejected. Check `allowed` on
+the catalog response first, or handle the error and prompt for an upgrade.
+</Warning>
+
+<Info>
+**Pricing.** Catalog isolation is metered per minute of audio like every other
+stem job. A few premium selections carry a multiplier — see
+[API Wallet & Pricing](/account/api-wallet).
 </Info>
 
 ---
@@ -561,8 +652,8 @@ For more control, use `extract()` and `wait_for_completion()` separately:
 
 ## Pricing
 
-**Base rate:** $0.10 per minute of audio processed for standard modes (`2stem`,
-`4stem`, `6stem`, `16stem`).
+**Base rate:** $0.10 per minute of audio processed for every standard mode —
+`single`, `two`, `four`, `six`, `producer`, `studio`, `mastering`.
 
 | Duration | Cost (standard modes) |
 |----------|-----------------------|
@@ -571,16 +662,16 @@ For more control, use `extract()` and `wait_for_completion()` separately:
 | 10 minutes | $1.00 |
 | 1 hour | $6.00 |
 
-### Premium packages
+### Premium catalog selections
 
-Premium separation packages route through a higher-fidelity engine and bill at
-a multiplier of the base rate:
+Some catalog selections run on a higher-fidelity engine and bill at a multiplier
+of the base rate:
 
-| Package | Multiplier | Effective rate |
-|---------|------------|----------------|
-| `karaoke` (lead vocal + backing vocal + instrumental) | **1.5×** | $0.15/min |
-| `vocal_gender` (male + female + instrumental) | **1.5×** | $0.15/min |
-| `instrument_isolator` (any single instrument + everything-else) | **2.0×** | $0.20/min |
+| Selection | Multiplier | Effective rate |
+|-----------|------------|----------------|
+| Lead / backing vocal split (`lead_vocal`, `backing_vocal`) | **1.5×** | $0.15/min |
+| Vocal gender split (`male_vocal`, `female_vocal`) | **1.5×** | $0.15/min |
+| Single-instrument isolation from the 45-instrument catalog | **2.0×** | $0.20/min |
 
 <Info>
 Check your balance and usage at [API Wallet](/account/api-wallet).
