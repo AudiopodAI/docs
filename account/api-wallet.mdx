@@ -72,7 +72,7 @@ noted).
     from audiopod import AudioPod
     
     client = AudioPod()
-    balance = client.wallet.balance()
+    balance = client.wallet.get_balance()
     
     print(f"Balance: {balance['balance_usd']}")
     print(f"Spent: {balance['total_spent_usd']}")
@@ -83,7 +83,7 @@ noted).
     import AudioPod from 'audiopod';
     
     const client = new AudioPod();
-    const balance = await client.wallet.balance();
+    const balance = await client.wallet.getBalance();
     
     console.log(`Balance: ${balance.balance_usd}`);
     console.log(`Spent: ${balance.total_spent_usd}`);
@@ -134,6 +134,196 @@ noted).
   "amount_usd": "$25.00"
 }
 ```
+
+---
+
+## Automatic Top-Up
+
+Automatic top-up keeps long-running and unattended integrations from stalling
+on an empty wallet. Once it is on, we watch your balance as calls come in — the
+moment it would drop below your **threshold**, we charge a saved card for your
+chosen **amount** and credit the wallet.
+
+The wallet stays prepaid: funds are added *before* they are spent. Nothing is
+ever billed after the fact, and every automatic charge sends you a receipt by
+email.
+
+### One-time browser step
+
+A card can only be saved from a browser. Card details are entered on a secure
+hosted form run by our payment provider — they never pass through the AudioPod
+API, and they can never be sent with an API key. This is a card-industry
+requirement (and the reason bank verification prompts can appear), not an
+AudioPod restriction.
+
+So arming automatic top-up is a two-part flow:
+
+1. **Once, in a browser** — save a card, either from
+   [API Keys](https://www.audiopod.ai/dashboard/account/api-keys) →
+   **Automatic top-up** → **Add card**, or by calling
+   `POST /auto-topup/payment-method-session` from a signed-in session and
+   opening the returned `url`.
+2. **From then on, over the API** — read the configuration, tighten the limits,
+   or switch it off with a plain API key.
+
+<Warning>
+  **API keys have deliberately limited power here.** With an API key you can
+  read the configuration, **lower** any limit, and **disable** automatic top-up.
+  Turning it **on**, **raising** a limit, or saving a card requires a signed-in
+  dashboard session and returns `403` with
+  `detail.error = "dashboard_required"` otherwise. A leaked key can therefore
+  never arm or widen a charge against your card — only shrink or stop one.
+</Warning>
+
+### Read the configuration
+
+```bash
+curl -s "https://api.audiopod.ai/api/v1/api-wallet/auto-topup" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq .
+```
+
+**Response:**
+
+```json
+{
+  "enabled": true,
+  "threshold_cents": 1000,
+  "threshold_usd": "$10.00",
+  "topup_amount_cents": 2500,
+  "topup_amount_usd": "$25.00",
+  "max_topups_per_day": 3,
+  "monthly_cap_cents": 20000,
+  "monthly_cap_usd": "$200.00",
+  "has_payment_method": true,
+  "card_brand": "visa",
+  "card_last4": "4242",
+  "day_charge_count": 1,
+  "month_charged_cents": 2500,
+  "last_charged_at": "2026-07-30T14:02:11Z",
+  "next_attempt_at": null,
+  "consecutive_failures": 0,
+  "disabled_reason": null,
+  "disabled_at": null,
+  "limits": {
+    "min_threshold_cents": 500,
+    "max_threshold_cents": 50000,
+    "min_amount_cents": 1000,
+    "max_amount_cents": 50000,
+    "max_per_day": 20,
+    "min_monthly_cap_cents": 2500,
+    "max_monthly_cap_cents": 500000
+  }
+}
+```
+
+Read your bounds from `limits` rather than hard-coding them — they are the
+authoritative ranges and can change without a breaking API version.
+
+### Update the configuration
+
+Every field is optional; send only what you want to change.
+
+```bash
+curl -X PUT "https://api.audiopod.ai/api/v1/api-wallet/auto-topup" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"threshold_cents": 2000, "monthly_cap_cents": 10000}'
+```
+
+| Field | Type | Default | Range |
+|-------|------|---------|-------|
+| `enabled` | boolean | `false` | — (turning on needs a dashboard session) |
+| `threshold_cents` | integer | `1000` ($10) | $5 – $500 |
+| `topup_amount_cents` | integer | `2500` ($25) | $10 – $500 |
+| `max_topups_per_day` | integer | `3` | 1 – 20 |
+| `monthly_cap_cents` | integer | `20000` ($200) | $25 – $5,000 |
+
+Returns the full configuration object shown above.
+
+<Note>
+  **The automatic minimum ($10) is higher than the manual minimum ($1)** on
+  purpose. Card processing has a flat component, so a $1 automatic recharge
+  spends a third of itself on fees. Larger, less frequent top-ups keep more of
+  your money in the wallet.
+</Note>
+
+### Save or replace a card
+
+Call this from a signed-in dashboard session and send the browser to the
+returned `url`. The link is single-use and short-lived; `expires_at` is a Unix
+timestamp.
+
+```bash
+curl -X POST \
+  "https://api.audiopod.ai/api/v1/api-wallet/auto-topup/payment-method-session" \
+  -H "Content-Type: application/json"
+```
+
+**Response:**
+
+```json
+{
+  "url": "https://<secure-card-form-url>",
+  "expires_at": 1785000000
+}
+```
+
+### Turn it off
+
+`DELETE` switches automatic top-up off **and** forgets the saved card. It
+returns the resulting configuration, with `enabled: false` and
+`has_payment_method: false`. Your balance and manual top-up are untouched.
+
+```bash
+curl -X DELETE "https://api.audiopod.ai/api/v1/api-wallet/auto-topup" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+To pause automatic top-up but keep the card, send
+`PUT {"enabled": false}` instead.
+
+### Guardrails
+
+Two independent ceilings bound what a runaway loop can spend. Both are enforced
+server-side, and a charge that would cross either is simply not placed.
+
+| Guardrail | What it caps | Resets |
+|-----------|--------------|--------|
+| `max_topups_per_day` | Number of automatic charges | Daily |
+| `monthly_cap_cents` | Total dollars charged automatically | On the 1st of each calendar month |
+
+`day_charge_count` and `month_charged_cents` in the response tell you how much
+headroom is left against each. When a ceiling is reached, automatic top-up stops
+for the period but stays armed — nothing is disabled, and manual top-up still
+works.
+
+### When a charge fails
+
+A declined charge is retried on a widening schedule, then automatic top-up
+switches itself off rather than hammering your card:
+
+1. **First failure** — retried about an hour later.
+2. **Second failure** — retried about six hours after that.
+3. **Third failure** — automatic top-up is switched off and we email you.
+
+While a retry is pending, `next_attempt_at` holds the earliest time we will try
+again and `consecutive_failures` counts the run. A successful charge resets both.
+
+Some failures skip the retries and disable immediately, because a retry cannot
+possibly clear them — most commonly when your bank requires you to confirm the
+card in person, which is impossible for a charge placed while you are away.
+When automatic top-up disables itself, `disabled_reason` and `disabled_at`
+explain what happened. Save the card again (or replace it) and turn automatic
+top-up back on.
+
+<Warning>
+  **Cards issued in India are not supported for automatic top-up yet.** Indian
+  regulations require a separately registered mandate with its own notification
+  and approval steps, which we have not built. Saving an Indian card for
+  automatic top-up is refused at the point of saving. **Manual top-up is
+  unaffected** — Add Funds and `POST /api-wallet/topup/checkout` work normally
+  with an Indian card.
+</Warning>
 
 ---
 
@@ -199,6 +389,7 @@ curl -s "https://api.audiopod.ai/api/v1/api-wallet/pricing" | jq .services
 | `402` | `insufficient_api_balance` | Wallet is empty |
 | `400` | `invalid_amount` | Amount outside $1-$10,000 range |
 | `401` | `unauthorized` | Invalid API key |
+| `403` | `dashboard_required` | Automatic top-up: this change (turning it on, raising a limit, or saving a card) needs a signed-in dashboard session |
 
 **Example 402 response:**
 
