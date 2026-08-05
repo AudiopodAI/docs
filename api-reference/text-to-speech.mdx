@@ -16,7 +16,7 @@ AudioPod AI's Text to Speech service provides unified text-to-speech capabilitie
 ### Key Features
 
 - **200+ Voices**: Pre-built voices with unique characteristics, plus your own custom clones
-- **Inline Directing (TTS-2)**: Steer emotion, delivery, non-verbal sounds, pauses, and pronunciation right inside the text — on every plan
+- **Inline Directing**: Steer emotion, delivery, non-verbal sounds, pauses, and pronunciation right inside the text — on every plan
 - **Word / Character Timestamps**: Follow-along timing sidecar for captions and highlighting
 - **Custom Voice Support**: Use your own voice clones and collections
 - **Variable Speed Control**: Adjust speech speed from 0.25x to 4.0x
@@ -280,7 +280,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
 - `audio_format` (optional): Output format - mp3, wav, ogg (default: mp3)
 - `speed` (optional): Speech speed 0.25-4.0 (default: 1.0)
 - `language` (optional): Language code - auto-detected if not provided
-- `generation_params` (optional): JSON string of TTS-2 controls — `delivery_mode`, `timestamp_type`, `text_normalization` (see [Delivery & timestamp controls](#delivery-timestamp-controls))
+- `generation_params` (optional): JSON string of premium-voice controls — `delivery_mode`, `timestamp_type`, `text_normalization` (see [Delivery & timestamp controls](#delivery-timestamp-controls))
 
 **Response:**
 
@@ -295,7 +295,7 @@ Generate speech from text using any voice (standard or custom) by voice UUID, ID
 }
 ```
 
-## Inline Directing (TTS-2)
+## Inline Directing
 
 Steer the performance directly inside `input_text` — no separate parameters
 needed. Inline directing is available on **every plan**, including the free tier.
