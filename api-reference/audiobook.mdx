@@ -18,6 +18,7 @@ Every endpoint is API-key authenticated and asynchronous: submit a job, get an I
 
 - **Inputs**: upload PDF, EPUB, DOCX, or TXT; paste raw text; or generate a book from a prompt. Chapters are detected automatically.
 - **Voices**: 100+ languages with standard narration voices; custom voice cloning across 20+ languages.
+- **Auto Direction**: a per-paragraph performance note and emotion written across the whole book, anchored to a narration brief so the tone holds from first chapter to last — dialogue directed as dialogue, instead of a flat read. Free on every plan.
 - **ACX-compliant export**: per-chapter MP3 at **192 kbps CBR / 44.1 kHz**, a retail sample, optional narrated opening/closing credits, a cover slot, and a `metadata.json` manifest — packaged as a single ZIP via a presigned URL.
 - **Automatic compliance check**: file format, audio levels, silence, and per-chapter length are validated on export; a non-compliant book is rejected with the exact reason rather than shipped silently.
 - **Asynchronous + webhooks**: `job.completed` / `job.failed` / `job.cancelled` callbacks for backlog-scale automation.
@@ -74,6 +75,9 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | Get / update / delete a chapter | GET·PUT·DELETE | `/audiobook/projects/{project_id}/chapters/{chapter_id}` |
 | List paragraphs in a chapter | GET | `/audiobook/projects/{project_id}/chapters/{chapter_id}/paragraphs` |
 | Get / update a paragraph | GET·PUT | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}` |
+| **Auto Direction — direct the book** | POST | `/audiobook/projects/{project_id}/direction/auto` |
+| Latest direction run | GET | `/audiobook/projects/{project_id}/direction/auto/latest` |
+| Direction run status | GET | `/audiobook/projects/{project_id}/direction/auto/{job_id}/status` |
 | List voices | GET | `/audiobook/voices/available` |
 | List languages | GET | `/audiobook/voices/languages` |
 | Cost estimate | GET | `/audiobook/projects/{project_id}/cost-estimate` |
@@ -284,6 +288,24 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
 # => { "job_id": 99, "estimated_completion_time": "under 2 minutes" }
 ```
 
+<ParamField body="file_key" type="string" required>Storage key returned by the upload response.</ParamField>
+<ParamField body="filename" type="string" required>Original filename, including the extension.</ParamField>
+<ParamField body="force" type="boolean" default="false">Re-parse a project that already has chapters. **Destructive** — existing chapters and paragraphs are replaced.</ParamField>
+<ParamField body="auto_direction" type="boolean">Run [Auto Direction](#auto-direction) as soon as parsing finishes, so the book narrates expressively without a second call. **Defaults to `false` for API-key callers** — see below.</ParamField>
+
+<Note>
+**`auto_direction` defaults to off for API keys, on purpose.** Auto Direction rewrites the `direction` on every paragraph, which changes how your next narration sounds. We are not going to change your integration's output without you asking for it, so an API-key parse leaves directions alone unless you pass `auto_direction=true`. (In the web studio the default is the other way round — a book should already sound directed when the author opens it.)
+
+You can also direct a book at any time after parsing with [`POST .../direction/auto`](#auto-direction) — nothing about it is tied to parse time.
+</Note>
+
+```bash
+# Parse AND direct in one call
+curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"file_key\": \"$FILE_KEY\", \"filename\": \"book.epub\", \"auto_direction\": true}"
+```
+
 ### Poll for parse completion
 
 <Warning>
@@ -474,7 +496,7 @@ Read one paragraph with `GET .../projects/{project_id}/paragraphs/{paragraph_id}
 <ParamField body="narration_style" type="string">Delivery style for this take.</ParamField>
 <ParamField body="emotion" type="string">Emotional direction for this take.</ParamField>
 <ParamField body="character_name" type="string">Speaking character (max 120 chars).</ParamField>
-<ParamField body="direction" type="string">Screenplay-style direction (max 500 chars); takes precedence over `narration_style` for this take.</ParamField>
+<ParamField body="direction" type="string">Performance direction for this take; takes precedence over `narration_style`. The field accepts 500 characters but only the first **110** are performed — see [Auto Direction](#auto-direction) for how to write one, and let it write them for you.</ParamField>
 
 **Response:**
 
@@ -492,6 +514,83 @@ curl -X POST "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID/narrate" \
 ```
 
 Poll `GET .../projects/{project_id}/paragraphs/{paragraph_id}` until `status` is `completed` (or `failed`, with `error_message`). The first take of a paragraph is billed, the **first regeneration is free**, and subsequent regenerations are billed again — `billing.is_free_regen` tells you which case you are in *before* the work runs. A `409` means the paragraph is locked; unlock it with `PUT .../paragraphs/{paragraph_id}` first.
+
+## 3c. Auto Direction
+
+A narrator that reads every line the same way sounds flat, however good the voice is. **Direction** is what fixes that: a short performance note on each paragraph — how the line is delivered, and with what feeling — that the narrator acts on.
+
+You can write directions yourself, one paragraph at a time (see [Direct a single line](#direct-a-single-line)). Auto Direction writes them for the whole book in one call.
+
+`POST /audiobook/projects/{project_id}/direction/auto`
+
+It runs in two passes. First a **narration brief** for the book as a whole — its reading identity, derived from the metadata and the opening pages. Then a performance note and an emotion per paragraph, each anchored to that brief, so the tone holds across a long book instead of drifting chapter to chapter. Dialogue is directed as dialogue.
+
+<ParamField body="chapter_ids" type="string[]">Direct only these chapters. Omit to direct the whole book.</ParamField>
+
+```bash
+# Direct the whole book
+curl -X POST "$AP/audiobook/projects/$PID/direction/auto" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" -d '{}'
+# => { "job_id": "901", "total_chapters": 23 }
+
+# ...or one chapter
+curl -X POST "$AP/audiobook/projects/$PID/direction/auto" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"chapter_ids\": [\"$CHAPTER_ID\"]}"
+```
+
+**Auto Direction is free on every plan**, including the free tier. It is the same class of work as chapter detection, and a book that only sounds good on a paid plan is a worse product.
+
+### Waiting for a direction run
+
+```bash
+# Status of a specific run...
+curl "$AP/audiobook/projects/$PID/direction/auto/901/status" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# ...or of the most recent one, when you did not keep the job_id
+curl "$AP/audiobook/projects/$PID/direction/auto/latest" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => { "job_id": "901", "status": "COMPLETED", "progress": 100,
+#      "result": { "directed_count": 315, "skipped_user_edited": 4,
+#                  "chapters_processed": 23, "total_chapters": 23 } }
+```
+
+Poll until `status` is `COMPLETED` or `FAILED`. A `409` on the POST means a run is already in flight for this project.
+
+<Note>
+**Directing does not re-render audio.** It only writes `direction` and `emotion` onto paragraphs that already exist — it never re-splits chapters and never deletes a take. Paragraphs already narrated keep the audio they have until you narrate them again:
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"voice_id\": 389, \"chapter_ids\": [\"$CHAPTER_ID\"], \"include_completed\": true}"
+```
+
+Re-narration is billed normally, so try one chapter before committing a whole book.
+</Note>
+
+### Your directions win
+
+A direction you wrote by hand is **never overwritten** by a later automatic run. Writing one via `PUT .../paragraphs/{paragraph_id}` marks that row as yours, and every subsequent Auto Direction skips it — the run reports how many it left alone in `result.skipped_user_edited`.
+
+The suggestion it replaced is kept on the row, so reverting to the automatic version costs nothing and needs no new run.
+
+### Direct a single line
+
+`PUT /audiobook/projects/{project_id}/paragraphs/{paragraph_id}`
+
+```bash
+curl -X PUT "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"direction": "urgent, low, barely audible", "emotion": "tense"}'
+```
+
+<ParamField body="direction" type="string">A short stage note the narrator acts on. See the length note below.</ParamField>
+<ParamField body="emotion" type="string">One of `neutral`, `warm`, `tense`, `sad`, `excited`, `intimate`, `dramatic`, `authoritative`. `neutral` means "no particular feeling".</ParamField>
+
+<Warning>
+**Write a direction short.** The field accepts up to 500 characters, but only the first **110** shape the performance — a longer note is trimmed at a word boundary and the rest is not voiced. One instruction of roughly a dozen words works best: `"urgent, low, barely audible"`, not a paragraph of stage notes.
+
+When you send a longer one, the response carries a `warnings` entry telling you exactly how much of it will not be heard.
+</Warning>
 
 ## 4. Choose a voice
 
@@ -519,7 +618,30 @@ Poll `GET .../projects/{project_id}/paragraphs/{paragraph_id}` until `status` is
 <ParamField body="include_completed" type="boolean" default="false">Re-narrate paragraphs that already have finished audio.</ParamField>
 <ParamField body="include_locked" type="boolean" default="false">Include locked paragraphs.</ParamField>
 <ParamField body="include_skipped" type="boolean" default="false">Include paragraphs marked `skip_narration`.</ParamField>
-<ParamField body="narration_settings" type="object" default="{}">Free-form per-run narration settings.</ParamField>
+<ParamField body="narration_settings" type="object" default="{}">Per-run narration settings — see [Delivery mode](#delivery-mode-how-performed-the-read-is) below.</ParamField>
+
+#### Delivery mode — how performed the read is
+
+`narration_settings.delivery_mode` is the single biggest lever on how a book *sounds*:
+
+| Value | Read |
+|---|---|
+| `stable` | One steady narrator from the first paragraph to the last. Least performance range. **This is the default for book narration.** |
+| `balanced` | Between the two. |
+| `creative` | The most range and variation — usually what narrative fiction wants. |
+
+Books default to `stable` because a long narration is where drift is most audible: across several hundred paragraphs, a narrator whose timbre wanders is worse than one that is a little plain. If your title wants a performed read — fiction, dialogue-heavy work, anything theatrical — ask for it:
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"voice_id\": 389, \"chapter_ids\": [\"$CHAPTER_ID\"], \"include_completed\": true,
+       \"narration_settings\": {\"delivery_mode\": \"creative\"}}"
+```
+
+`delivery_mode` and [Auto Direction](#auto-direction) work on different things and compose well: delivery mode sets how much range the voice has at all, direction says what to do with it line by line. A directed book on `creative` is the most expressive result available.
+
+Also accepted in `narration_settings`: `speed` (0.5–2.0) and `language` (a bare subtag such as `"it"`, overriding the project's language for this run).
 
 **Response** (`BatchNarrationResponse`):
 
