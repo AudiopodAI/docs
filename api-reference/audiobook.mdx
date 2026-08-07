@@ -78,6 +78,10 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | **Auto Direction — direct the book** | POST | `/audiobook/projects/{project_id}/direction/auto` |
 | Latest direction run | GET | `/audiobook/projects/{project_id}/direction/auto/latest` |
 | Direction run status | GET | `/audiobook/projects/{project_id}/direction/auto/{job_id}/status` |
+| **Pronunciation dictionary — list entries** | GET | `/audiobook/projects/{project_id}/pronunciations` |
+| Add a pronunciation entry | POST | `/audiobook/projects/{project_id}/pronunciations` |
+| Update a pronunciation entry | PUT | `/audiobook/projects/{project_id}/pronunciations/{pronunciation_id}` |
+| Delete a pronunciation entry | DELETE | `/audiobook/projects/{project_id}/pronunciations/{pronunciation_id}` |
 | List voices | GET | `/audiobook/voices/available` |
 | List languages | GET | `/audiobook/voices/languages` |
 | Cost estimate | GET | `/audiobook/projects/{project_id}/cost-estimate` |
@@ -591,6 +595,87 @@ curl -X PUT "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID" \
 
 When you send a longer one, the response carries a `warnings` entry telling you exactly how much of it will not be heard.
 </Warning>
+
+## 3d. Pronunciation dictionary
+
+Some words need a nudge no voice selection can give you — the wrong stress on a place name, a word from another language read as if it were English. A **pronunciation dictionary** fixes this per project: map a written word (`source`) to what the narrator should actually say (`alias`), and every future narration or regeneration in every chapter of the project picks it up automatically.
+
+The substitution happens only at synthesis time. The manuscript, the paragraph text returned by the API, and everything in the exported package all keep the original spelling — only what gets spoken changes.
+
+### Manage entries
+
+Same `X-API-Key` auth as the rest of this API.
+
+| Operation | Method | Endpoint |
+|-----------|--------|----------|
+| List entries | GET | `/audiobook/projects/{project_id}/pronunciations` |
+| Add an entry | POST | `/audiobook/projects/{project_id}/pronunciations` |
+| Update an entry | PUT | `/audiobook/projects/{project_id}/pronunciations/{pronunciation_id}` |
+| Delete an entry | DELETE | `/audiobook/projects/{project_id}/pronunciations/{pronunciation_id}` |
+
+<ParamField body="source" type="string" required>The written word or phrase to match, 1–200 characters.</ParamField>
+<ParamField body="alias" type="string" required>What the narrator says instead of `source`, minimum 1 character. See [Writing a good alias](#writing-a-good-alias) below.</ParamField>
+<ParamField body="case_sensitive" type="boolean" default="false">When `false`, `source` matches regardless of case.</ParamField>
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/pronunciations" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"source": "Otranto", "alias": "Òtranto"}'
+# => 201 { "id": "...", "source": "Otranto", "alias": "Òtranto", "case_sensitive": false }
+```
+
+`POST` returns `201` on success and `409` when `source` already has an entry for this project — update the existing one instead of retrying the create:
+
+```bash
+curl -X PUT "$AP/audiobook/projects/$PID/pronunciations/$PRONUNCIATION_ID" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"alias": "Òtranto", "case_sensitive": true}'
+
+curl -X DELETE "$AP/audiobook/projects/$PID/pronunciations/$PRONUNCIATION_ID" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => 204
+```
+
+### Matching semantics
+
+- **Whole-word.** A match's boundaries are non-alphanumeric characters or the start/end of the text, so `source: "rise"` matches the standalone word `rise` and not the `rise` inside `surprise`.
+- **Multi-word sources work**, including hyphens, apostrophes, and periods — `"Mr. Smith"` is a valid `source`.
+- **Case-insensitive by default.** Set `case_sensitive: true` to require an exact-case match.
+- **Longer sources win.** If two entries' sources overlap on the same text, the longer one is applied.
+
+### Writing a good alias
+
+The safe default, and what works on **every** voice: an accented or phonetic respelling of the same word. It doesn't need to be true IPA — anything that nudges the reader to the right sound works:
+
+| Problem | `source` | `alias` |
+|---|---|---|
+| Wrong stress on a place name | `Otranto` | `Òtranto` (or `Oh-TRAHN-toh`) |
+| A word read in the wrong language | `rise` | `rìse` |
+
+<Warning>
+**IPA is advanced, and voice-dependent.** `alias` may instead be a single word's IPA transcription wrapped in forward slashes — one word per pair of slashes, no spaces inside: `/ˈɔtranto/`. This is honored only on voices that support expressive delivery (the [`delivery_mode`](#delivery-mode-how-performed-the-read-is) setting). On a voice without that support, the slash-wrapped notation is stripped before synthesis and **the word is silently dropped from the narration** — not mispronounced, missing. Unless you know the voice you're narrating with supports it, use an accented or phonetic respelling instead; it's honored on every voice.
+
+Pronunciation fixes belong here, in `alias` (or by editing the paragraph text itself) — not in a paragraph's `direction` field. `direction` shapes performance, not pronunciation, and phonetic notation placed there is stripped rather than spoken.
+</Warning>
+
+### Applying a fix without re-rendering the whole book
+
+New entries apply automatically to narration going forward, but a paragraph that was already narrated keeps its existing audio until it is re-rendered. `POST .../narration/batch` accepts `paragraph_ids` (in addition to `chapter_ids`), so you can re-render only the affected lines instead of a whole chapter — get the ids from [`GET .../chapters/{chapter_id}/paragraphs`](#list-a-chapters-paragraphs):
+
+```bash
+# find the paragraphs that mention the word you just fixed
+curl -s "$AP/audiobook/projects/$PID/chapters/$CHAPTER_ID/paragraphs" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq -r '.paragraphs[] | select(.text | test("Otranto")) | .id'
+
+# re-render only those paragraphs
+curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"voice_id\": 387, \"paragraph_ids\": [\"$PARA_ID\"], \"include_completed\": true}"
+```
+
+<Note>
+Narration billing is per paragraph: the first take is billed, the first regeneration of a paragraph is free, and later regenerations bill again at the normal rate — the same rule as [manual regeneration](#narrate-a-single-paragraph). `GET /audiobook/projects/{project_id}/cost-estimate` already reflects this per paragraph, so you can check what a targeted re-render will actually cost before you run it.
+</Note>
 
 ## 4. Choose a voice
 
