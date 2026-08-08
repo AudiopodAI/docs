@@ -760,6 +760,33 @@ Add voices to an existing collection.
     **Causes:** - Not enough credits for voice preview generation
     **Solutions:** - Purchase additional credits - Check credit requirements
   </Accordion>
+
+  <Accordion title="402 CUSTOM_VOICE_LIMIT_REACHED - Voice Slot Limit">
+    Returned when creating a custom voice would exceed your plan's voice slots. Free/Basic plans include **3 custom voice slots**; Creator, Pro, and Studio plans have **unlimited** custom voices. Existing voices are never removed — deleting a voice frees a slot.
+
+    ```json
+    {
+      "detail": {
+        "code": "CUSTOM_VOICE_LIMIT_REACHED",
+        "message": "You've used 3 of 3 custom voices on the Basic plan. Delete a voice or upgrade for more.",
+        "feature": "custom_voices",
+        "current_plan": "basic",
+        "limit": 3,
+        "used": 3
+      }
+    }
+    ```
+
+    **Solutions:** - Delete an unused custom voice to free a slot - Upgrade to a paid plan for unlimited custom voices
+
+    Check your current usage with `GET /api/v1/voice/voice-profiles/limits`:
+
+    ```json
+    { "used": 3, "limit": 3, "unlimited": false, "plan": "basic" }
+    ```
+
+    `limit` is `-1` and `unlimited` is `true` on plans without a cap.
+  </Accordion>
 </AccordionGroup>
 
 ## Use Cases & Examples
