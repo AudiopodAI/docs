@@ -57,38 +57,63 @@ Extract basic video metadata without authentication.
   </Tab>
   <Tab title="Python">
     ```python
+    import time
     import requests
     
-    # Get basic video info (no auth required)
-    video_info_request = {
-        "url": "https://youtube.com/watch?v=example123",
-        "include_formats": False  # Limited format info for public access
-    }
+    API = "https://api.audiopod.ai"
     
+    # Get basic video info (no auth required)
     response = requests.post(
-        "https://api.audiopod.ai/api/v1/video/public/info",
-        json=video_info_request
+        f"{API}/api/v1/video/public/info",
+        json={
+            "url": "https://youtube.com/watch?v=example123",
+            "include_formats": False,  # Limited format info for public access
+        },
     )
     
-    if response.status_code == 200:
-        video_info = response.json()
-        print(f"Title: {video_info['title']}")
-        print(f"Duration: {video_info['duration']} seconds")
-        print(f"Uploader: {video_info['uploader']}")
-        print(f"View count: {video_info['view_count']}")
+    # 200 -> the metadata was cached and is returned right away.
+    # 202 -> extraction is queued; poll `poll_url` every 1-2 s until it answers 200.
+    while response.status_code == 202:
+        time.sleep(1.5)
+        response = requests.get(API + response.json()["poll_url"])
+    
+    response.raise_for_status()  # 400 = extraction failed; `detail` says why
+    video_info = response.json()
+    print(f"Title: {video_info['title']}")
+    print(f"Duration: {video_info['duration']} seconds")
+    print(f"Uploader: {video_info['uploader']}")
+    print(f"View count: {video_info['view_count']}")
     ```
   </Tab>
   <Tab title="cURL">
     ```bash
+    # Queue the extraction (returns 200 with the metadata if it is cached)
     curl -X POST "https://api.audiopod.ai/api/v1/video/public/info" \
       -H "Content-Type: application/json" \
       -d '{
         "url": "https://youtube.com/watch?v=example123",
         "include_formats": false
       }'
+    # HTTP 202
+    # {"job_id": "3f1c…", "status": "PENDING",
+    #  "poll_url": "/api/v1/video/video-download/public/info/status/3f1c…", ...}
+    
+    # Poll every 1-2 seconds: 202 while extracting, 200 with the metadata when done
+    curl "https://api.audiopod.ai/api/v1/video/video-download/public/info/status/3f1c…"
     ```
   </Tab>
 </Tabs>
+
+**Responses**
+
+| Status | Meaning |
+|---|---|
+| `200` | Metadata (the `POST` when it is cached, or the status route when extraction finished) |
+| `202` | Extraction in progress — the body carries `job_id` and `poll_url`; poll every 1–2 seconds |
+| `400` | Extraction failed; `detail` is the reason (private, unavailable, unsupported) |
+| `404` | The status route did not recognise the job id, or it expired (after 1 hour) — submit again |
+
+The `POST` answers within a second either way; a fresh extraction typically completes in 5–15 seconds and never runs longer than 45 seconds. Results are cached for 14 days, so repeat requests for the same URL return `200` immediately.
 
 ### Get Video Info (Authenticated)
 
