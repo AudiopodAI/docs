@@ -89,7 +89,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | Narrate a single paragraph | POST | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}/narrate` |
 | Narration progress | GET | `/audiobook/projects/{project_id}/narration/progress` |
 | Cancel narration | POST | `/audiobook/projects/{project_id}/narration/cancel` |
-| Regenerate a chapter | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/regenerate` |
+| Re-render one chapter | POST | `/audiobook/projects/{project_id}/narration/batch` with `chapter_ids` + `include_completed` |
 | Retry a chapter's failed paragraphs | POST | `/audiobook/projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs` |
 | Production settings — opening/closing announcement, music, cover | GET·PUT | `/audiobook/projects/{project_id}/production-settings` |
 | Upload media (cover/music) | POST | `/audiobook/projects/{project_id}/media/upload` |
@@ -99,7 +99,9 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | Dashboard stats | GET | `/audiobook/dashboard` |
 
 <Warning>
-`POST /audiobook/projects/{project_id}/narration/start` is **removed** and now returns **`410 Gone`**. It predates per-paragraph billing and bypassed metering entirely. Use `POST /audiobook/projects/{project_id}/narration/batch` — with no `chapter_ids` and no `paragraph_ids` it narrates the whole project, which is exactly what `narration/start` used to do.
+`POST /audiobook/projects/{project_id}/narration/start` is **deprecated and removed** — it now returns **`410 Gone`**. Use `POST /audiobook/projects/{project_id}/narration/batch`: with no `chapter_ids` and no `paragraph_ids` it narrates the whole project, which is exactly what `narration/start` used to do.
+
+`POST /audiobook/projects/{project_id}/chapters/{chapter_id}/regenerate` is **deprecated and removed** and also returns **`410 Gone`**. Use `POST /audiobook/projects/{project_id}/narration/batch` with `{"chapter_ids": ["<chapter-uuid>"], "include_completed": true}` — `include_completed` is required, because a chapter you are RE-rendering already has audio and would otherwise be skipped entirely.
 </Warning>
 
 ## Quick Start (cURL)
@@ -780,7 +782,7 @@ Narration is complete when `completed_chapters + failed_chapters >= total_chapte
 
 ### Paragraph-level & regeneration
 
-For a single line, use [`POST .../paragraphs/{paragraph_id}/narrate`](#narrate-a-single-paragraph). To re-render a whole chapter after an edit, `POST .../projects/{project_id}/chapters/{chapter_id}/regenerate` (optional `?voice_id=` query parameter). To re-queue only the paragraphs of a chapter whose status is `failed`, `POST .../projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs`.
+For a single line, use [`POST .../paragraphs/{paragraph_id}/narrate`](#narrate-a-single-paragraph). To re-render a whole chapter after an edit, `POST .../projects/{project_id}/narration/batch` with `{"chapter_ids": ["<chapter-uuid>"], "include_completed": true}` (add `voice_id` to swap the voice at the same time) — `include_completed` is what makes it a *re*-render, since the chapter's paragraphs are already complete and would otherwise all be skipped. To re-queue only the paragraphs of a chapter whose status is `failed`, `POST .../projects/{project_id}/chapters/{chapter_id}/retry-failed-paragraphs`.
 
 ### Cancel a narration run
 
@@ -817,7 +819,7 @@ By default, `POST .../narration/batch` **skips** paragraphs that already have co
 }
 ```
 
-Alternatively, `POST .../projects/{project_id}/chapters/{chapter_id}/regenerate` re-renders a single chapter in one call.
+That body — one `chapter_ids` entry plus `include_completed` — *is* the "re-render one chapter" call. There is no separate endpoint for it; the old `.../chapters/{chapter_id}/regenerate` route is deprecated and returns `410 Gone`.
 
 ## 6. Production extras (optional)
 
@@ -997,7 +999,10 @@ Jobs are prepaid: credits are reserved at job start, settled on success, and **r
     Parsing, narration, mixing, and export are mutually exclusive per project — each would rewrite structure the other is reading. Poll `GET .../narration/progress` (or the project's `status`) and retry once the live job finishes. A `409` on a single paragraph means it is `locked`; unlock it via `PUT .../paragraphs/{paragraph_id}` first.
   </Accordion>
   <Accordion title="410 — narration/start is gone">
-    `POST .../narration/start` has been removed because it bypassed metering. Send `POST .../narration/batch` instead — with no `chapter_ids` and no `paragraph_ids` it narrates the whole project.
+    `POST .../narration/start` is deprecated and removed. Send `POST .../narration/batch` instead — with no `chapter_ids` and no `paragraph_ids` it narrates the whole project.
+  </Accordion>
+  <Accordion title="410 — chapters/{chapter_id}/regenerate is gone">
+    Deprecated and removed. Send `POST .../narration/batch` with `{"chapter_ids": ["<chapter-uuid>"], "include_completed": true}`. Without `include_completed` the request succeeds but narrates nothing — every paragraph in an already-rendered chapter is filtered out as complete, and you get `400 No eligible paragraphs to narrate`.
   </Accordion>
   <Accordion title="Pagination appears stuck on page 1">
     You are probably sending `skip`/`limit`. Unknown query parameters are ignored rather than rejected, so the request still returns `200` — with the first page, every time. The project and chapter list endpoints page with `page` and `per_page`; loop on `has_next`.
