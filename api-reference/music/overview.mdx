@@ -210,22 +210,25 @@ All music generation is asynchronous:
 Music generation is billed per minute of audio generated. Two billing paths
 apply depending on how you authenticate:
 
+One rate card: **990 credits/minute** on both paths. The wallet price is those
+credits at $1 = 7,500 credits.
+
 | Path | Rate |
 |------|------|
 | Account credits (subscription / JWT) | **990 credits/minute** |
-| API wallet (API key, USD-denominated) | **$0.04/minute** |
+| API wallet (API key, USD-denominated) | **$0.132/minute** |
 
 | Duration | Credits | API wallet (USD) |
 |----------|---------|------------------|
-| 30 seconds | 495 | $0.02 |
-| 1 minute | 990 | $0.04 |
-| 2 minutes | 1,980 | $0.08 |
-| 5 minutes | 4,950 | $0.20 |
-| 10 minutes | 9,900 | $0.40 |
+| 30 seconds | 495 | $0.07 |
+| 1 minute | 990 | $0.14 |
+| 2 minutes | 1,980 | $0.27 |
+| 5 minutes | 4,950 | $0.66 |
+| 10 minutes | 9,900 | $1.32 |
 
 <Note>
   **AudioMusic Premium** (`quality: "premium"`) is a higher-fidelity variant
-  that bills at **2× the base rate** — 1,980 credits/minute or $0.08/minute.
+  that bills at **2× the base rate** — 1,980 credits/minute or $0.264/minute.
   Requires a Pro-tier or higher subscription; calls from Free/Basic tiers return
   `402 PREMIUM_TIER_REQUIRED`.
 </Note>
