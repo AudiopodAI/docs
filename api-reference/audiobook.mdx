@@ -300,7 +300,7 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
 <ParamField body="auto_direction" type="boolean">Run [Auto Direction](#auto-direction) as soon as parsing finishes, so the book narrates expressively without a second call. **Defaults to `false` for API-key callers** — see below.</ParamField>
 
 <Note>
-**`auto_direction` defaults to off for API keys, on purpose.** Auto Direction rewrites the `direction` on every paragraph, which changes how your next narration sounds. We are not going to change your integration's output without you asking for it, so an API-key parse leaves directions alone unless you pass `auto_direction=true`. (In the web studio the default is the other way round — a book should already sound directed when the author opens it.)
+**`auto_direction` defaults to off for API keys, on purpose.** Auto Direction rewrites the `direction` on every paragraph, which changes how your next narration sounds. We are not going to change your integration's output without you asking for it, so an API-key parse leaves directions alone unless you pass `auto_direction=true`. In the web studio the default follows the author's audiobook settings (Dashboard → Account → Audiobook).
 
 You can also direct a book at any time after parsing with [`POST .../direction/auto`](#auto-direction) — nothing about it is tied to parse time.
 </Note>
@@ -597,6 +597,39 @@ curl -X PUT "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID" \
 
 When you send a longer one, the response carries a `warnings` entry telling you exactly how much of it will not be heard.
 </Warning>
+
+### Audiobook settings
+
+`GET /api/v1/audiobook/settings` — read the account-level preference that controls whether a book imported in the web studio gets an automatic direction pass.
+
+```bash
+curl "$AP/audiobook/settings" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => { "auto_direction_default": true, "source": "account",
+#      "active": false, "applies_to_api_key_parses": false }
+```
+
+<ResponseField name="auto_direction_default" type="boolean">Whether a book imported in the web studio gets an automatic direction pass. `true` when the author has never set this preference.</ResponseField>
+<ResponseField name="source" type="string">Where `auto_direction_default` came from: `account` if this account has stored a preference, `default` if it is reading the platform default.</ResponseField>
+<ResponseField name="active" type="boolean">Whether the platform currently applies the studio default. `false` while the feature is rolling out — the preference is still stored either way.</ResponseField>
+<ResponseField name="applies_to_api_key_parses" type="boolean">Always `false`. This setting never changes what an API-key parse does — see below.</ResponseField>
+
+`PATCH /api/v1/audiobook/settings` — set the preference. Body:
+
+<ParamField body="auto_direction_default" type="boolean" required>Whether a book imported in the web studio should get an automatic direction pass.</ParamField>
+
+```bash
+curl -X PATCH "$AP/audiobook/settings" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"auto_direction_default": false}'
+# => { "auto_direction_default": false, "source": "account",
+#      "active": false, "applies_to_api_key_parses": false }
+```
+
+Both endpoints need the same authentication as the other audiobook endpoints.
+
+<Note>
+**This setting never touches API-key parses.** `applies_to_api_key_parses` is always `false`: a manuscript parsed with an API key is never auto-directed unless that request passes `auto_direction=true` (see [above](#parse-the-uploaded-file-into-chapters)). An API key may read and update this preference for its account, but doing so does not change that integration's own parses — it only changes what happens to books imported through the web studio. The parse-time `auto_direction` parameter always overrides the account preference for that one book.
+</Note>
 
 ## 3d. Pronunciation dictionary
 
