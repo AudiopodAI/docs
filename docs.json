@@ -43,6 +43,11 @@
             "group": "OpenAI Compatibility",
             "icon": "plug",
             "pages": ["api-reference/openai-compatibility"]
+          },
+          {
+            "group": "Tools",
+            "icon": "wrench",
+            "pages": ["sdks/postman"]
           }
         ]
       },

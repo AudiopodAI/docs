@@ -1,0 +1,87 @@
+---
+title: "Postman Collections"
+description: "Fork the AudioPod AI API into Postman and make a real call without writing any code."
+---
+
+Two published collections live in the public **AudioPod** workspace on Postman.
+Fork either one into your own workspace and it stays linked to ours, so you can
+pull updates later.
+
+## Start here — Getting Started
+
+Eight requests in three folders. The first folder reaches a real `200` in two
+requests **with no account and no API key**: it mints a short-lived sandbox key,
+stores it in a collection variable, and synthesizes a snippet of speech. Folder 2
+walks the submit-a-job / poll-the-status pattern the rest of the API uses, and
+folder 3 covers wallet balance and webhook registration.
+
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/58401244-916ddbda-1a70-4c07-8ccd-fe524703a84b?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D58401244-916ddbda-1a70-4c07-8ccd-fe524703a84b%26entityType%3Dcollection%26workspaceId%3D8013472d-5897-47d1-bf5c-92683a027b35&utm_source=audiopod-docs-postman)
+
+## The full reference
+
+Every public endpoint — 361 requests across 19 folders, covering audiobook,
+podcast, stems, transcription, text-to-speech, voice management, music and
+account. Use it as a browsable reference once you know the shape of a call.
+
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/58401244-584f22a4-0bef-4783-92fc-4f62bc6df4c3?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D58401244-584f22a4-0bef-4783-92fc-4f62bc6df4c3%26entityType%3Dcollection%26workspaceId%3D8013472d-5897-47d1-bf5c-92683a027b35&utm_source=audiopod-docs-postman)
+
+<Note>
+  The reference collection is **regenerated from the live OpenAPI document** on a
+  schedule and pushed to the same collection id, so a fork tracks the real API
+  instead of drifting away from it. The Getting Started collection is
+  hand-maintained and deliberately small.
+</Note>
+
+## Authenticating your fork
+
+Every authenticated request sends `X-API-Key: {{apiKey}}`. You have two ways to
+fill that in.
+
+<Tabs>
+  <Tab title="Collection variable">
+    1. [Create an API key](https://www.audiopod.ai/dashboard/account/api-keys) in your dashboard.
+    2. Open the forked collection → **Variables** tab.
+    3. Paste the key into the **current value** of `apiKey`, and leave `baseUrl`
+       at `https://api.audiopod.ai`.
+
+    Keep the key in *current value*, not *initial value* — initial values travel
+    with the collection when you share it.
+
+  </Tab>
+  <Tab title="Environment">
+    The workspace also publishes an **AudioPod Production** environment holding
+    `baseUrl` and an empty `apiKey`. Fork it from the workspace, select it in the
+    environment picker, and set `apiKey` there instead. This is the better option
+    if you switch between several keys.
+  </Tab>
+</Tabs>
+
+Folder 1 of Getting Started needs neither — the sandbox is keyless. If you run an
+authenticated request with `apiKey` still blank, the collection's pre-request
+script stops it with an explanatory message rather than sending an unauthorized
+call.
+
+## Browse without forking
+
+<Columns cols={2}>
+  <Card title="Getting Started" icon="rocket" href="https://www.postman.com/rakesh-ad13f0db-3325695/audiopod/collection/58401244-916ddbda-1a70-4c07-8ccd-fe524703a84b?utm_source=audiopod-docs-postman">
+    Eight requests, keyless first call
+  </Card>
+  <Card title="AudioPod AI API" icon="code" href="https://www.postman.com/rakesh-ad13f0db-3325695/audiopod/collection/58401244-584f22a4-0bef-4783-92fc-4f62bc6df4c3?utm_source=audiopod-docs-postman">
+    The full 361-request reference
+  </Card>
+</Columns>
+
+## Next steps
+
+<Columns cols={3}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    The same flow in cURL, Python and Node.js
+  </Card>
+  <Card title="API Keys" icon="key" href="/account/api-keys">
+    Create, scope and rotate keys
+  </Card>
+  <Card title="Webhooks" icon="bell" href="/account/webhooks">
+    Get told when a job finishes
+  </Card>
+</Columns>
