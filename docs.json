@@ -22,7 +22,7 @@
           {
             "group": "Account",
             "icon": "user",
-            "pages": ["account/api-keys", "account/api-wallet", "account/webhooks"]
+            "pages": ["account/api-keys", "account/api-wallet"]
           }
         ]
       },
@@ -38,11 +38,6 @@
             "group": "AI Integration",
             "icon": "robot",
             "pages": ["sdks/mcp"]
-          },
-          {
-            "group": "OpenAI Compatibility",
-            "icon": "plug",
-            "pages": ["api-reference/openai-compatibility"]
           },
           {
             "group": "Tools",
@@ -83,7 +78,6 @@
             "icon": "microphone",
             "pages": [
               "api-reference/speech-to-text",
-              "api-reference/live-transcription",
               "api-reference/text-to-speech",
               "api-reference/reader"
             ]
@@ -110,7 +104,6 @@
             "group": "Utilities",
             "icon": "gear",
             "pages": [
-              "api-reference/media-extraction",
               "api-reference/auth",
               "api-reference/account"
             ]
