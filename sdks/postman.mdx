@@ -9,19 +9,20 @@ pull updates later.
 
 ## Start here — Getting Started
 
-Eight requests in three folders. The first folder reaches a real `200` in two
+Six requests in three folders. The first folder reaches a real `200` in two
 requests **with no account and no API key**: it mints a short-lived sandbox key,
 stores it in a collection variable, and synthesizes a snippet of speech. Folder 2
 walks the submit-a-job / poll-the-status pattern the rest of the API uses, and
-folder 3 covers wallet balance and webhook registration.
+folder 3 shows your wallet balance.
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/58401244-916ddbda-1a70-4c07-8ccd-fe524703a84b?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D58401244-916ddbda-1a70-4c07-8ccd-fe524703a84b%26entityType%3Dcollection%26workspaceId%3D8013472d-5897-47d1-bf5c-92683a027b35&utm_source=audiopod-docs-postman)
 
 ## The full reference
 
-Every public endpoint — 361 requests across 19 folders, covering audiobook,
-podcast, stems, transcription, text-to-speech, voice management, music and
-account. Use it as a browsable reference once you know the shape of a call.
+Every endpoint we support — 291 requests across 12 folders: text to speech and
+voice design, transcription, music, audiobook, podcast, reader, stem separation,
+speaker separation, noise removal, audio to MIDI, your wallet and your API keys.
+Use it as a browsable reference once you know the shape of a call.
 
 [![Run in Postman](https://run.pstmn.io/button.svg)](https://god.gw.postman.com/run-collection/58401244-584f22a4-0bef-4783-92fc-4f62bc6df4c3?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D58401244-584f22a4-0bef-4783-92fc-4f62bc6df4c3%26entityType%3Dcollection%26workspaceId%3D8013472d-5897-47d1-bf5c-92683a027b35&utm_source=audiopod-docs-postman)
 
@@ -65,10 +66,10 @@ call.
 
 <Columns cols={2}>
   <Card title="Getting Started" icon="rocket" href="https://www.postman.com/rakesh-ad13f0db-3325695/audiopod/collection/58401244-916ddbda-1a70-4c07-8ccd-fe524703a84b?utm_source=audiopod-docs-postman">
-    Eight requests, keyless first call
+    Six requests, keyless first call
   </Card>
   <Card title="AudioPod AI API" icon="code" href="https://www.postman.com/rakesh-ad13f0db-3325695/audiopod/collection/58401244-584f22a4-0bef-4783-92fc-4f62bc6df4c3?utm_source=audiopod-docs-postman">
-    The full 361-request reference
+    The full 291-request reference
   </Card>
 </Columns>
 
@@ -81,7 +82,7 @@ call.
   <Card title="API Keys" icon="key" href="/account/api-keys">
     Create, scope and rotate keys
   </Card>
-  <Card title="Webhooks" icon="bell" href="/account/webhooks">
-    Get told when a job finishes
+  <Card title="API pricing" icon="coins" href="https://www.audiopod.ai/developers/pricing">
+    What a job costs, and the free starting credit
   </Card>
 </Columns>
