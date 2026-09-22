@@ -12,7 +12,7 @@ create project → add manuscript → parse into chapters → narrate → export
                                                               └──── completion webhook ────┘
 ```
 
-Every endpoint is API-key authenticated and asynchronous: submit a job, get an ID back immediately, and receive a signed webhook when it finishes — so your control panel never blocks on a long render.
+The API-key workflow supports asynchronous production: submit a job, get an ID back immediately, and receive a signed webhook when it finishes — so your control panel never blocks on a long render. The guided narrator-sample endpoint described below is Studio-only.
 
 ### Key features
 
@@ -71,6 +71,14 @@ When `active` is `false`, PATCH still saves the preference and returns the saved
 For a single manuscript import, pass `auto_direction=true` or `auto_direction=false` explicitly to override the default without changing the saved preference. This applies to uploaded-file parsing, pasted text, and generated manuscripts. Omit the field or pass JSON `null` to use the default.
 
 The uploaded-file parse endpoint accepts this in JSON, form fields, or the query string; an explicit body value takes precedence over the query value. The paste and generate endpoints accept it in their JSON bodies.
+
+### Guided narrator samples in Studio
+
+The Studio-only `POST /api/v1/audiobook/projects/{project_id}/production/quote` request also accepts an optional `auto_direction` boolean. Omitted or `null` follows the author's account preference; an account with no saved preference keeps the guided workflow's default of `true`. An explicit `true` or `false` overrides that choice for this production.
+
+This guided sample default applies independently of the `active` field for automatic direction during manuscript intake. A saved `false` is respected in both workflows. API-key requests to the guided quote endpoint return `400`; use the API narration workflow documented below.
+
+Preparing a guided sample takes over any outstanding automatic direction started by manuscript intake, so the sample does not wait for a whole-book direction pass. A direction run started explicitly is preserved: finish or stop it before preparing the sample, otherwise the quote request returns `409`.
 
 ## Getting the IDs
 
