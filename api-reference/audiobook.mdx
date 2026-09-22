@@ -32,6 +32,46 @@ All endpoints require authentication. Use an API key (recommended for server-to-
 - **API Key (Recommended)**: `X-API-Key: your_api_key` header — [create one in the dashboard](https://www.audiopod.ai/dashboard/account/api-keys).
 - **JWT Token**: `Authorization: Bearer your_jwt_token` (session-based auth).
 
+## Account audiobook settings
+
+`GET /api/v1/audiobook/settings` reads the authenticated account's preference for automatic reading direction in Audiobook Studio. `PATCH /api/v1/audiobook/settings` saves it and returns the same response shape.
+
+```bash
+# Read the account preference using session authentication
+curl "https://api.audiopod.ai/api/v1/audiobook/settings" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+
+# Turn automatic direction off for future Studio parses
+curl -X PATCH "https://api.audiopod.ai/api/v1/audiobook/settings" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"auto_direction_default": false}'
+```
+
+The PATCH body requires `auto_direction_default`, a boolean. Both endpoints return:
+
+```json
+{
+  "auto_direction_default": false,
+  "source": "account",
+  "active": true,
+  "applies_to_api_key_parses": false
+}
+```
+
+| Field | Meaning |
+|-------|---------|
+| `auto_direction_default` | The author's saved preference. It is `true` if the account has never chosen. |
+| `source` | `account` after an explicit choice; `default` if the account has never chosen. |
+| `active` | Whether AudioPod currently applies account preferences to Studio parses. This is separate from the author's choice. |
+| `applies_to_api_key_parses` | Always `false`. API-key parses remain opt-in, regardless of this preference. |
+
+When `active` is `false`, PATCH still saves the preference and returns the saved value. Studio parses with no explicit `auto_direction` then default to `false`; the saved choice takes effect when `active` becomes `true`. Changing this preference does not direct or re-render existing books.
+
+For a single manuscript import, pass `auto_direction=true` or `auto_direction=false` explicitly to override the default without changing the saved preference. This applies to uploaded-file parsing, pasted text, and generated manuscripts. Omit the field or pass JSON `null` to use the default.
+
+The uploaded-file parse endpoint accepts this in JSON, form fields, or the query string; an explicit body value takes precedence over the query value. The paste and generate endpoints accept it in their JSON bodies.
+
 ## Getting the IDs
 
 Almost every call below is addressed by an ID, and how you obtain them is the first thing to get right.
@@ -62,6 +102,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 
 | Operation | Method | Endpoint |
 |-----------|--------|----------|
+| Account audiobook settings | GET·PATCH | `/audiobook/settings` |
 | Create project | POST | `/audiobook/projects` |
 | List projects (`page`, `per_page`) | GET | `/audiobook/projects` |
 | Get project (`?include_chapters=true`) | GET | `/audiobook/projects/{project_id}` |
@@ -300,7 +341,9 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
 <ParamField body="auto_direction" type="boolean">Run [Auto Direction](#auto-direction) as soon as parsing finishes, so the book narrates expressively without a second call. **Defaults to `false` for API-key callers** — see below.</ParamField>
 
 <Note>
-**`auto_direction` defaults to off for API keys, on purpose.** Auto Direction rewrites the `direction` on every paragraph, which changes how your next narration sounds. We are not going to change your integration's output without you asking for it, so an API-key parse leaves directions alone unless you pass `auto_direction=true`. (In the web studio the default is the other way round — a book should already sound directed when the author opens it.)
+**API-key parses default to `auto_direction=false`.** Set `auto_direction=true` explicitly to add reading direction after parsing. The account preference does not change this API-key default.
+
+In Audiobook Studio, an omitted `auto_direction` follows the author's [account preference](#account-audiobook-settings) when that setting is active. An explicit `true` or `false` overrides the default for that parse, for either authentication method. Explicit `true` also works when the account preference is not active.
 
 You can also direct a book at any time after parsing with [`POST .../direction/auto`](#auto-direction) — nothing about it is tied to parse time.
 </Note>
@@ -374,6 +417,7 @@ Parses typically finish in under two minutes for EPUB/DOCX/TXT and in 2–10 min
 
 <ParamField body="text" type="string" required>Manuscript or chapter text.</ParamField>
 <ParamField body="source_type" type="string" default="paste">Source label.</ParamField>
+<ParamField body="auto_direction" type="boolean | null">Add automatic reading direction after splitting the text into chapters. Omitted or `null` follows the [account preference](#account-audiobook-settings) for Studio requests and defaults to `false` for API keys. An explicit `true` or `false` overrides that default for this import.</ParamField>
 
 ### Generate a book from a prompt
 
@@ -385,8 +429,11 @@ Parses typically finish in under two minutes for EPUB/DOCX/TXT and in 2–10 min
 <ParamField body="tone" type="string" default="warm">Writing tone.</ParamField>
 <ParamField body="chapter_count" type="integer" default="3">Number of chapters.</ParamField>
 <ParamField body="words_per_chapter" type="integer" default="600">Target words per chapter.</ParamField>
+<ParamField body="auto_direction" type="boolean | null">Add automatic reading direction after generating and splitting the manuscript. Omitted or `null` follows the [account preference](#account-audiobook-settings) for Studio requests and defaults to `false` for API keys. An explicit `true` or `false` overrides that default for this import.</ParamField>
 
 The `paste` and `generate` endpoints return a `ManuscriptIntakeResponse` with `total_chapters`, `total_words`, and `estimated_duration_minutes`.
+
+When automatic direction is requested, it continues asynchronously after the manuscript is saved. Read `GET /audiobook/projects/{project_id}/direction/auto/latest` to find its job and follow [direction progress](#waiting-for-a-direction-run). Direction does not start audio narration; submit a narration request when you are ready.
 
 <Warning>
 `manuscript/parse`, `manuscript/paste`, and `manuscript/generate` **replace the project's entire chapter/paragraph structure** — any existing narration is discarded. Parse once per manuscript; re-parse only if the manuscript file itself changed.
