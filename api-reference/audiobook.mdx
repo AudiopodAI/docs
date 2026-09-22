@@ -68,7 +68,9 @@ The PATCH body requires `auto_direction_default`, a boolean. Both endpoints retu
 
 When `active` is `false`, PATCH still saves the preference and returns the saved value. Studio parses with no explicit `auto_direction` then default to `false`; the saved choice takes effect when `active` becomes `true`. Changing this preference does not direct or re-render existing books.
 
-For a single manuscript parse, pass `auto_direction=true` or `auto_direction=false` explicitly to override the default without changing the saved preference. The parse endpoint accepts this in JSON, form fields, or the query string; an explicit body value takes precedence over the query value.
+For a single manuscript import, pass `auto_direction=true` or `auto_direction=false` explicitly to override the default without changing the saved preference. This applies to uploaded-file parsing, pasted text, and generated manuscripts. Omit the field or pass JSON `null` to use the default.
+
+The uploaded-file parse endpoint accepts this in JSON, form fields, or the query string; an explicit body value takes precedence over the query value. The paste and generate endpoints accept it in their JSON bodies.
 
 ## Getting the IDs
 
@@ -415,6 +417,7 @@ Parses typically finish in under two minutes for EPUB/DOCX/TXT and in 2–10 min
 
 <ParamField body="text" type="string" required>Manuscript or chapter text.</ParamField>
 <ParamField body="source_type" type="string" default="paste">Source label.</ParamField>
+<ParamField body="auto_direction" type="boolean | null">Add automatic reading direction after splitting the text into chapters. Omitted or `null` follows the [account preference](#account-audiobook-settings) for Studio requests and defaults to `false` for API keys. An explicit `true` or `false` overrides that default for this import.</ParamField>
 
 ### Generate a book from a prompt
 
@@ -426,8 +429,11 @@ Parses typically finish in under two minutes for EPUB/DOCX/TXT and in 2–10 min
 <ParamField body="tone" type="string" default="warm">Writing tone.</ParamField>
 <ParamField body="chapter_count" type="integer" default="3">Number of chapters.</ParamField>
 <ParamField body="words_per_chapter" type="integer" default="600">Target words per chapter.</ParamField>
+<ParamField body="auto_direction" type="boolean | null">Add automatic reading direction after generating and splitting the manuscript. Omitted or `null` follows the [account preference](#account-audiobook-settings) for Studio requests and defaults to `false` for API keys. An explicit `true` or `false` overrides that default for this import.</ParamField>
 
 The `paste` and `generate` endpoints return a `ManuscriptIntakeResponse` with `total_chapters`, `total_words`, and `estimated_duration_minutes`.
+
+When automatic direction is requested, it continues asynchronously after the manuscript is saved. Read `GET /audiobook/projects/{project_id}/direction/auto/latest` to find its job and follow [direction progress](#waiting-for-a-direction-run). Direction does not start audio narration; submit a narration request when you are ready.
 
 <Warning>
 `manuscript/parse`, `manuscript/paste`, and `manuscript/generate` **replace the project's entire chapter/paragraph structure** — any existing narration is discarded. Parse once per manuscript; re-parse only if the manuscript file itself changed.
