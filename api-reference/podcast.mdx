@@ -1,6 +1,6 @@
 ---
 title: "Podcast"
-description: "Generate multi-speaker podcast episodes from your source material — outline, transcript, and narrated audio — then publish a public RSS feed."
+description: "Generate multi-speaker podcast episodes from your source material — outline, transcript, and narrated audio."
 ---
 
 ## Overview
@@ -8,8 +8,8 @@ description: "Generate multi-speaker podcast episodes from your source material 
 The Podcast API turns your topic and source material into a finished,
 multi-speaker episode. A project moves through a simple lifecycle: create the
 project and its speakers, add sources, generate an outline, generate the
-transcript, then render the narrated audio. Finished episodes can be published
-to a public RSS feed for Apple Podcasts and Spotify.
+transcript, then render the narrated audio. The RSS feed is limited while it
+is rebuilt; see [RSS feed](#rss-feed-limited) below.
 
 ## Authentication
 
@@ -26,7 +26,7 @@ to a public RSS feed for Apple Podcasts and Spotify.
 | 4. Generate the transcript | `POST /api/v1/podcast/projects/{id}/transcript/generate` |
 | 5. Estimate + render audio | `GET /api/v1/podcast/projects/{id}/audio/estimate` · `POST /api/v1/podcast/projects/{id}/audio/generate` |
 | 6. Track progress | `GET /api/v1/podcast/projects/{id}/progress` |
-| 7. Publish an RSS feed | `POST /api/v1/podcast/feed` |
+| 7. RSS feed (limited) | `POST /api/v1/podcast/feed` |
 
 ## Create a Project
 
@@ -124,10 +124,17 @@ curl -X POST "https://api.audiopod.ai/api/v1/podcast/projects/$PROJECT_ID/audio/
 
 Poll `GET /api/v1/podcast/projects/{id}/progress` until generation completes.
 
-## Publish an RSS Feed
+## RSS Feed (limited)
 
-Turn your completed episodes into a public podcast feed you can submit to
-directories. The feed URL carries a signed, feed-scoped token.
+<Warning>
+The RSS feed is being rebuilt and is limited until then. Episodes appear in it
+only when you opt them in, one episode at a time, and the feed has no show
+artwork yet, so podcast directories such as Apple Podcasts and Spotify will not
+accept it. To publish an episode today, download its audio and upload it to
+your podcast host.
+</Warning>
+
+The feed URL carries a signed, feed-scoped token.
 
 <Tabs>
   <Tab title="POST">
@@ -139,8 +146,7 @@ directories. The feed URL carries a signed, feed-scoped token.
   <Tab title="Response">
     ```json
     {
-      "feed_url": "https://api.audiopod.ai/api/v1/podcast/feed/<token>.xml",
-      "submit_to": ["Apple Podcasts Connect", "Spotify for Podcasters"]
+      "feed_url": "https://api.audiopod.ai/api/v1/podcast/feed/<token>.xml"
     }
     ```
   </Tab>
