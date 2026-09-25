@@ -127,11 +127,12 @@ Poll `GET /api/v1/podcast/projects/{id}/progress` until generation completes.
 ## RSS Feed (limited)
 
 <Warning>
-The RSS feed is being rebuilt and is limited until then. Episodes appear in it
-only when you opt them in, one episode at a time, and the feed has no show
-artwork yet, so podcast directories such as Apple Podcasts and Spotify will not
-accept it. To publish an episode today, download its audio and upload it to
-your podcast host.
+The RSS feed is being rebuilt and is limited until then. Today it lists every
+completed episode on your account, and anyone with the feed URL can read it.
+Listing is moving to per-episode opt-in. The feed has no show artwork yet, so
+podcast directories such as Apple Podcasts and Spotify will not accept it. To
+publish an episode today, download its audio and upload it to your podcast
+host.
 </Warning>
 
 The feed URL carries a signed, feed-scoped token.
