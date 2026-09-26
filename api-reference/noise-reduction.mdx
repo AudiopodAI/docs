@@ -707,26 +707,31 @@ Check the denoising service availability and status.
 
 ## Pricing
 
-Noise reduction is billed from your **account credit balance** (subscription
-plan). The API-wallet (USD) path is not enabled for denoising — calls must
-authenticate via JWT/session, not via API key.
+One rate card: a noise-reduction job costs the same from the dashboard as it
+does through an API key. Session calls spend account credits; API-key calls
+spend the API wallet, at the dollar value of the same credits ($1 = 7,500).
 
-| Service | Quality mode | Cost |
-|---------|--------------|------|
-| AI Denoising | `balanced` (default) | 660 credits/minute |
-| AI Denoising | `studio` | 1,320 credits/minute |
-| AI Denoising | `ultra` | 2,640 credits/minute |
-| Spectral Processing | — | 660 credits/minute |
+| Service | Quality mode | Credits | API wallet |
+|---------|--------------|---------|------------|
+| AI Denoising | `balanced` (default) | 150 credits/minute | $0.02/min |
+| AI Denoising | `studio` | 300 credits/minute | $0.04/min |
+| AI Denoising | `ultra` | 600 credits/minute | $0.08/min |
+| Spectral Processing | — | 150 credits/minute | $0.02/min |
+
+<Note>
+  Spectral processing is billed at the same rate as balanced denoising — it is
+  a lighter, non-AI method, and it is priced accordingly.
+</Note>
 
 ### Cost Examples
 
-| Duration | Method | Credits |
-|----------|--------|---------|
-| 10 minutes | AI Denoising (balanced) | 6,600 |
-| 10 minutes | AI Denoising (studio) | 13,200 |
-| 10 minutes | AI Denoising (ultra) | 26,400 |
-| 30 minutes | Spectral | 19,800 |
-| 1 hour | AI Denoising (balanced) | 39,600 |
+| Duration | Method | Credits | API wallet |
+|----------|--------|---------|------------|
+| 10 minutes | AI Denoising (balanced) | 1,500 | $0.20 |
+| 10 minutes | AI Denoising (studio) | 3,000 | $0.40 |
+| 10 minutes | AI Denoising (ultra) | 6,000 | $0.80 |
+| 30 minutes | Spectral | 4,500 | $0.60 |
+| 1 hour | AI Denoising (balanced) | 9,000 | $1.20 |
 
 ## Next Steps
 

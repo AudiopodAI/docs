@@ -557,17 +557,21 @@ def choose_optimal_target_voice(source_characteristics, available_voices):
 
 Voice conversion is billed by audio duration:
 
+One rate card: **990 credits per minute** of source audio, whichever way you
+authenticate. Funding from the API wallet costs the dollar value of those
+credits at $1 = 7,500 credits.
+
 | Path | Rate | Basis |
 |------|------|-------|
-| **API wallet** (API key, USD) | **$0.13 per minute** | Duration of the source audio |
 | **Account credits** (subscription / JWT) | **990 credits per minute** | Duration of the source audio |
+| **API wallet** (API key, USD) | **$0.132 per minute** | Duration of the source audio |
 
 ### Cost Examples — API wallet (per minute)
 
 | Duration | USD Cost |
 |----------|----------|
 | 30 seconds | $0.07 |
-| 2 minutes | $0.26 |
+| 2 minutes | $0.27 |
 | 5 minutes | $0.65 |
 | 10 minutes | $1.30 |
 
