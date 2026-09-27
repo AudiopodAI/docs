@@ -5,16 +5,14 @@ description: "Pay-as-you-go pricing. Add funds and pay only for what you use."
 
 ## Pricing
 
-**Start free, pay-as-you-go.** New accounts begin with free credits — no card
-required. When you need more, top up and pay only for what you use: **$1 =
-7,500 credits, and credits never expire.**
+**The developer API wallet is funded in USD and is separate from Studio subscription or PAYG credits.** Studio's $1 = 7,500-credit conversion does not apply to the API wallet. See the live [API pricing page](https://audiopod.ai/developers/pricing) for current rates.
 
 All API prices below are per minute of audio processed (input duration unless
 noted).
 
 | Service | Rate | $10 Gets You |
 |---------|------|--------------|
-| **Stem Separation** | $0.10/min | 100 min |
+| **Stem Separation — core outputs** | $0.10/min | 100 min |
 | **Transcription** | $0.01/min | 1000 min |
 | **Text to Speech** | $0.04/min | 250 min |
 | **Voice Cloning** | $0.04/min | 250 min |
@@ -34,9 +32,8 @@ noted).
   rate:
   - **Music Generation — AudioMusic Premium** (`quality="premium"`): **2×** the
     base rate ($0.08/min).
-  - **Stem Separation — premium catalog selections**: separations that run on
-    the premium engine bill at **1.5×** ($0.15/min), and single-instrument
-    isolation from the 45-instrument catalog at **2×** ($0.20/min).
+  - **Stem Separation — output groups**: lead + backing vocals cost **$0.15/min together**; male + female vocals cost **$0.15/min together**. Both pairs total **$0.30/min**. Other specialist instrument groups cost **$0.20/min each**; lead + rhythm guitar share one group. Add **$0.10/min** if you also select core stems. Selecting more outputs within one group does not add another charge. [Group pricing details](/api-reference/stem-splitter#prices-by-output-group).
+
 
   Every standard mode — `single`, `two`, `four`, `six`, `producer`, `studio`,
   `mastering` — bills at the base $0.10/min.
