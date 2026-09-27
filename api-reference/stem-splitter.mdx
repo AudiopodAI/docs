@@ -662,16 +662,24 @@ For more control, use `extract()` and `wait_for_completion()` separately:
 | 10 minutes | $1.00 |
 | 1 hour | $6.00 |
 
-### Premium catalog selections
+### Prices by output group
 
-Some catalog selections run on a higher-fidelity engine and bill at a multiplier
-of the base rate:
+Different output groups add together. Selecting one or both outputs within a vocal pair costs the same. Lead and rhythm guitar also share one specialist group.
 
-| Selection | Multiplier | Effective rate |
-|-----------|------------|----------------|
-| Lead / backing vocal split (`lead_vocal`, `backing_vocal`) | **1.5×** | $0.15/min |
-| Vocal gender split (`male_vocal`, `female_vocal`) | **1.5×** | $0.15/min |
-| Single-instrument isolation from the 45-instrument catalog | **2.0×** | $0.20/min |
+| Selected output group | Developer API wallet | Studio credits |
+|-----------------------|----------------------|----------------|
+| Core vocals and instruments | $0.10/min | 660/min |
+| Lead + backing vocals | $0.15/min together | 990/min together |
+| Male + female vocals | $0.15/min together | 990/min together |
+| Other specialist instrument groups | $0.20/min each | 1,320/min each |
+
+All four vocal specialties total **$0.30/min on the API** or **1,980 Studio credits/min**. Adding core instruments totals **$0.40/min** or **2,640 Studio credits/min**. These are separate payment systems; API dollars are not a conversion of subscription credits.
+
+Creator unlocks specialty vocals and the instrument catalog. Pro and Studio provide larger credit allowances; detailed decomposition presets require Pro. All public plans meter usage.
+
+Read `GET /api/v1/stem-extraction/pricing` for the current group rate card. For credit-funded Studio jobs, `POST /api/v1/stem-extraction/quote` returns the measured duration, each group's price and the complete total. It does not quote API-wallet jobs. Studio quotes round duration up to whole seconds, then round the total down to whole credits; minimum charges apply. Group line items sum to that total and can differ by one credit due to allocation rounding.
+
+Review the full quote before starting. Credits are reserved at creation. Groups that fail to deliver every requested output are refunded. A missing-output retry has its own quote; it is not permission to charge again for outputs already delivered.
 
 <Info>
 Check your balance and usage at [API Wallet](/account/api-wallet).
