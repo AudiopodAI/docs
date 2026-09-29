@@ -47,10 +47,10 @@ noted).
 </Note>
 
 <Note>
-  **Noise Reduction** is currently billed from your **account credit balance**
-  (subscription plan credits), not from the API wallet. To use noise reduction
-  programmatically, sign in to your account and obtain a session — the API-key
-  + wallet path for denoising is not yet enabled.
+  **Noise Reduction** API-key calls bill the API price of the chosen
+  `quality_mode` (`balanced`, `studio` or `ultra`). Call
+  `POST /api/v1/denoiser/quote` for the exact cost before you start a job. See
+  [Noise Reduction](/api-reference/noise-reduction#pricing).
 </Note>
 
 ---

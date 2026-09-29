@@ -10,7 +10,7 @@ AudioPod AI's Noise Reduction API uses advanced AI models to remove background n
 ### Key Features
 
 - **AI-Powered Denoising**: Advanced neural networks for intelligent noise removal
-- **Multiple Quality Modes**: Balanced, aggressive, and preserving modes
+- **Three Quality Modes**: `balanced` (faster, lighter), `studio` (the default) and `ultra` (highest fidelity)
 - **Spectral Processing**: Traditional spectral subtraction for specific noise types
 - **Voice Preservation**: Maintain natural speech characteristics during cleanup
 - **Video Support**: Process audio from video files while preserving video streams
@@ -38,7 +38,7 @@ Remove background noise using AI-powered denoising models.
     # Simple noise reduction
     denoised = client.denoiser.denoise_audio(
         audio_file="noisy_recording.wav",
-        quality_mode="balanced",  # "balanced", "studio"
+        quality_mode="balanced",  # "balanced", "studio" (default) or "ultra"
         wait_for_completion=True
     )
 
@@ -117,7 +117,7 @@ Remove background noise using AI-powered denoising models.
         // Simple noise reduction
         const denoised = await client.denoiser.denoiseAudio({
           audioFile: fs.createReadStream('noisy_recording.wav'),
-          qualityMode: 'balanced',  // "balanced", "studio"
+          qualityMode: 'balanced',  // "balanced", "studio" (default) or "ultra"
           waitForCompletion: true
         });
 
@@ -206,7 +206,7 @@ Remove background noise using AI-powered denoising models.
             "https://api.audiopod.ai/api/v1/denoiser/denoise",
             headers={"X-API-Key": api_key},
             data={
-                "quality_mode": "balanced"  # "balanced", "studio"
+                "quality_mode": "balanced"  # "balanced", "studio" (default) or "ultra"
             },
             files={"file": audio_file}
         )
@@ -409,14 +409,11 @@ Process audio/video from URLs (YouTube, etc.) to remove noise.
   </Tab>
   <Tab title="cURL">
     ```bash
-    # Denoise from URL
+    # Denoise from URL (multipart form fields, not a JSON body)
     curl -X POST "https://api.audiopod.ai/api/v1/denoiser/denoise" \
       -H "X-API-Key: $AUDIOPOD_API_KEY" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "url": "https://youtube.com/watch?v=example123",
-        "quality_mode": "aggressive"
-      }'
+      -F "url=https://youtube.com/watch?v=example123" \
+      -F "quality_mode=ultra"
 
     # Check job status
     curl -X GET "https://api.audiopod.ai/api/v1/denoiser/jobs/JOB_ID" \
@@ -426,8 +423,14 @@ Process audio/video from URLs (YouTube, etc.) to remove noise.
 </Tabs>
 
 **Quality Modes:**
-- **`balanced`**: Good balance between noise removal and audio preservation
-- **`studio`**: Higher quality processing with enhanced algorithms, best for professional use
+
+Every mode removes background noise and improves speech clarity. Send the mode as the `quality_mode` form field.
+
+- **`balanced`**: The fastest, lightest mode, with clean results.
+- **`studio`** (default): Broadcast and podcast quality. Used when `quality_mode` is omitted or blank.
+- **`ultra`**: The highest fidelity, restoring lost high frequencies.
+
+The value is case-insensitive. Any other value is rejected with a `422` before a job is created or any credits are reserved.
 
 **Response:**
 
@@ -667,8 +670,6 @@ Check the denoising service availability and status.
     if response.status_code == 200:
         health_status = response.json()
         print(f"Service status: {health_status['status']}")
-        print(f"Device: {health_status['device']}")
-        print(f"Model: {health_status['model']}")
     ```
   </Tab>
 </Tabs>
@@ -677,12 +678,7 @@ Check the denoising service availability and status.
 
 ```json
 {
-  "status": "available",
-  "device": "cuda:0",
-  "model": "dns64",
-  "cuda_available": true,
-  "cuda_device_count": 1,
-  "cuda_device_name": "NVIDIA GeForce RTX 4090"
+  "status": "available"
 }
 ```
 
@@ -694,8 +690,13 @@ Check the denoising service availability and status.
     **Solutions:** - Use supported formats (WAV, MP3, M4A, MP4) - Verify file integrity - Check audio content exists
   </Accordion>
   
-  <Accordion title="422 Processing Error - Denoising Failed">
-    **Causes:** - Audio quality too poor for processing - Extreme noise levels - Very short audio duration
+  <Accordion title="413 Payload Too Large - Over Your Plan's Upload Limit">
+    **Causes:** - The uploaded file is larger than your plan allows per upload
+    **Solutions:** - Upgrade your plan for larger uploads - Trim or compress the file before uploading
+  </Accordion>
+
+  <Accordion title="422 Unprocessable Entity - Invalid Request or Denoising Failed">
+    **Causes:** - `quality_mode` is not one of `balanced`, `studio` or `ultra` - Audio quality too poor for processing - Extreme noise levels - Very short audio duration
     **Solutions:** - Try different quality mode - Use spectral processing for specific noise types - Ensure minimum 5 seconds duration
   </Accordion>
   
@@ -707,26 +708,27 @@ Check the denoising service availability and status.
 
 ## Pricing
 
-Noise reduction is billed from your **account credit balance** (subscription
-plan). The API-wallet (USD) path is not enabled for denoising — calls must
-authenticate via JWT/session, not via API key.
+Signed-in accounts are billed from the **account credit balance** at the rate
+of the chosen quality mode, with a 10-credit minimum per job. API-key calls pay
+the API price of the chosen mode. Call `POST /api/v1/denoiser/quote` to see the
+exact cost before you start a job.
 
 | Service | Quality mode | Cost |
 |---------|--------------|------|
-| AI Denoising | `balanced` (default) | 660 credits/minute |
-| AI Denoising | `studio` | 1,320 credits/minute |
-| AI Denoising | `ultra` | 2,640 credits/minute |
+| AI Denoising | `balanced` | 330 credits/minute |
+| AI Denoising | `studio` (default) | 660 credits/minute |
+| AI Denoising | `ultra` | 1,320 credits/minute |
 | Spectral Processing | — | 660 credits/minute |
 
 ### Cost Examples
 
 | Duration | Method | Credits |
 |----------|--------|---------|
-| 10 minutes | AI Denoising (balanced) | 6,600 |
-| 10 minutes | AI Denoising (studio) | 13,200 |
-| 10 minutes | AI Denoising (ultra) | 26,400 |
+| 10 minutes | AI Denoising (balanced) | 3,300 |
+| 10 minutes | AI Denoising (studio) | 6,600 |
+| 10 minutes | AI Denoising (ultra) | 13,200 |
 | 30 minutes | Spectral | 19,800 |
-| 1 hour | AI Denoising (balanced) | 39,600 |
+| 1 hour | AI Denoising (studio) | 39,600 |
 
 ## Next Steps
 
