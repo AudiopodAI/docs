@@ -86,9 +86,10 @@ Declare the format in the start frame. `sample_rate`, `channels` and
 the session starts and before any credits are reserved. 16 kHz mono is
 recommended for the lowest latency and bandwidth.
 
-`language` is a language code such as `"en"`, `"pt-BR"` or `"yue"`. Omit it, or send
-`null` or `"auto"`, to auto-detect. `diarize` must be `true` or `false`. Any other
-value is rejected with `INVALID_CONFIG`.
+`language` is a language code such as `"en"`, `"pt-BR"` or `"yue"`. Omitting it, or
+sending `null` or `"auto"`, uses the default language (English). Send `"multi"` for
+multilingual detection. `diarize` must be `true` or `false`. Any other value is
+rejected with `INVALID_CONFIG`.
 
 Each binary audio message may be at most 1 MiB (1,048,576 bytes); a larger one is
 rejected with `FRAME_TOO_LARGE` and ends the session. Audio beyond
