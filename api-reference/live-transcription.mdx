@@ -40,6 +40,11 @@ wss://api.audiopod.ai/api/v1/transcription/stream?api_key=ap_your_key
 
 Browser/session clients may instead pass a short-lived JWT as `?token=...`.
 
+Server-side clients that can set handshake headers may send the API key as
+`Authorization: Bearer ap_your_key` instead. When that header is present it is the
+only credential used: a malformed or invalid Bearer value is refused and never falls
+back to `?api_key=` or `?token=`.
+
 ## Protocol
 
 Messages are JSON text frames, except the audio you upload, which is **binary**.
@@ -49,7 +54,7 @@ Messages are JSON text frames, except the audio you upload, which is **binary**.
 | Frame | Type | Payload |
 |---|---|---|
 | Start (first frame) | text | `{ "type": "start", "language": "en", "diarize": false, "sample_rate": 16000, "channels": 1 }` |
-| Audio | binary | Raw 16-bit little-endian PCM, 16 kHz, mono |
+| Audio | binary | Raw 16-bit little-endian PCM at the `sample_rate` and `channels` you declared |
 | End | text | `{ "type": "end" }` |
 
 **Server → client**
@@ -71,11 +76,25 @@ for the lowest latency.
 | Property | Value |
 |---|---|
 | Encoding | 16-bit signed PCM (little-endian) |
-| Sample rate | 16000 Hz |
-| Channels | 1 (mono) |
+| Sample rate | 8000–48000 Hz (16000 recommended) |
+| Channels | 1 (mono) or 2 (stereo, interleaved) |
 
-Resample to 16 kHz mono before sending. Larger sample rates or stereo will be
-rejected with an `INVALID_CONFIG` error.
+Declare the format in the start frame. `sample_rate`, `channels` and
+`max_duration_seconds` must be JSON integers (not strings or decimals). A
+`sample_rate` outside 8000–48000 Hz, `channels` other than 1 or 2, or a
+`max_duration_seconds` below 1 is rejected with an `INVALID_CONFIG` error before
+the session starts and before any credits are reserved. 16 kHz mono is
+recommended for the lowest latency and bandwidth.
+
+`language` is a language code such as `"en"`, `"pt-BR"` or `"yue"`. Omitting it, or
+sending `null` or `"auto"`, uses the default language (English). Send `"multi"` for
+multilingual detection. `diarize` must be `true` or `false`. Any other value is
+rejected with `INVALID_CONFIG`.
+
+Each binary audio message may be at most 1 MiB (1,048,576 bytes); a larger one is
+rejected with `FRAME_TOO_LARGE` and ends the session. Audio beyond
+`max_duration_seconds` is not transcribed or billed: the session stops at that
+point with `MAX_DURATION_REACHED`.
 
 <Note>
 **Prepaid billing.** Live transcription is prepaid at the standard transcription
@@ -211,7 +230,8 @@ proc.connect(ctx.destination);
 | `PREMIUM_TIER_REQUIRED` | Live transcription requires a paid plan (free sessions get a short preview). |
 | `INSUFFICIENT_CREDITS` | Not enough credits to reserve the session. Top up and retry. |
 | `MAX_DURATION_REACHED` | The session hit `max_duration_seconds`; it was finalized and saved. |
-| `INVALID_CONFIG` | The `start` frame was malformed (e.g. unsupported sample rate). |
+| `INVALID_CONFIG` | The `start` frame was malformed (e.g. unsupported sample rate, a non-integer value, `max_duration_seconds` below 1, an invalid `language`, or a non-boolean `diarize`). |
+| `FRAME_TOO_LARGE` | A binary audio message exceeded 1 MiB. Send smaller chunks (e.g. 100 ms). |
 | `UPSTREAM_ERROR` | A transient error in the transcription engine — reconnect and retry. |
 
 ## Next steps
