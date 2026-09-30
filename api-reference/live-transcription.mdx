@@ -49,7 +49,7 @@ Messages are JSON text frames, except the audio you upload, which is **binary**.
 | Frame | Type | Payload |
 |---|---|---|
 | Start (first frame) | text | `{ "type": "start", "language": "en", "diarize": false, "sample_rate": 16000, "channels": 1 }` |
-| Audio | binary | Raw 16-bit little-endian PCM, 16 kHz, mono |
+| Audio | binary | Raw 16-bit little-endian PCM at the `sample_rate` and `channels` you declared |
 | End | text | `{ "type": "end" }` |
 
 **Server → client**
@@ -71,11 +71,13 @@ for the lowest latency.
 | Property | Value |
 |---|---|
 | Encoding | 16-bit signed PCM (little-endian) |
-| Sample rate | 16000 Hz |
-| Channels | 1 (mono) |
+| Sample rate | 8000–48000 Hz (16000 recommended) |
+| Channels | 1 (mono) or 2 (stereo, interleaved) |
 
-Resample to 16 kHz mono before sending. Larger sample rates or stereo will be
-rejected with an `INVALID_CONFIG` error.
+Declare the format in the start frame. A `sample_rate` outside 8000–48000 Hz, or
+`channels` other than 1 or 2, is rejected with an `INVALID_CONFIG` error before
+the session starts and before any credits are reserved. 16 kHz mono is
+recommended for the lowest latency and bandwidth.
 
 <Note>
 **Prepaid billing.** Live transcription is prepaid at the standard transcription
