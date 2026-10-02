@@ -42,7 +42,7 @@ Install `audiopod-transcribe` the same way with `/plugin install audiopod-transc
 | `/audiopod:transcribe` | `/audiopod:transcribe https://example.com/interview.mp3 srt` |
 | `/audiopod:stems` | `/audiopod:stems https://example.com/song.mp3 4stem` |
 | `/audiopod:tts` | `/audiopod:tts "Welcome to the show" British English` |
-| `/audiopod:status` | `/audiopod:status <job-id>` |
+| `/audiopod:status` | `/audiopod:status <job-id> transcribe` |
 
 `/audiopod:tts` is available in the `audiopod` plugin only. You can also ask in plain language, like "remove the background noise from this clip", and the matching skill picks it up.
 
@@ -50,7 +50,7 @@ Install `audiopod-transcribe` the same way with `/plugin install audiopod-transc
 
 ## How jobs work
 
-AudioPod jobs run asynchronously. Claude starts the job, polls its status until it finishes, and hands you the output links. Output links expire after 1 hour. If one has expired, ask again (or run `/audiopod:status <job-id>`) for fresh links.
+AudioPod jobs run asynchronously. Claude starts the job, polls its status until it finishes, and hands you the output links. Output links expire after 1 hour. If one has expired, ask again (or run `/audiopod:status <job-id> <tool>`, since job ids are unique per tool) for fresh links.
 
 ## Credits
 
