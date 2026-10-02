@@ -28,7 +28,7 @@ The server advertises ten tools. Schemas are returned by `tools/list` — these 
 |------|-------------|----------------|
 | `generate_music` | Songs, instrumentals, rap, vocal stems from a text prompt. | `music:generate` |
 | `text_to_speech` | TTS in 200+ languages with 200+ voices and custom clones — powered by AudioSonic. | `voice:synthesize` |
-| `clone_voice` | Clone a voice from a 5–30s reference clip. | `voice:clone` |
+| `clone_voice` | Consume a prior exact-reference admission and retained UUID; no agent consent attestation. | `voice:clone` |
 | `separate_stems` | Up to 16 stems (vocals, drums, bass, guitar, piano, other…). Two-stem mode returns a vocals/instrumental (karaoke) split. | `stems:separate` |
 | `transcribe_audio` | Word-level timestamps, speaker diarization, SRT/VTT/JSON. | `transcribe` |
 | `denoise_audio` | Remove background noise while preserving voice character. | `audio:write` |
@@ -40,6 +40,31 @@ The server advertises ten tools. Schemas are returned by `tools/list` — these 
 Scopes are enforced when authenticating with an API key. JWT-based auth implies full user privileges.
 
 ---
+
+## Reviewed localization and voice workflow tools (preview)
+
+Supporting deployments expose four additional closed operation registries through
+tools/list. Discover the deployed schema; do not invent aliases or infer rollout.
+
+| Tool | Operations |
+| --- | --- |
+| dubbing_read | capabilities, projects, project, project_voices, source, edition, quote, job, events, folders, glossary, templates, review_grants, review_comments |
+| dubbing_update | adopt_source, create_project, create_edition, save_revision, analyze, generate, retranslate, cancel, retry_exports, create_folder, rename_folder, delete_folder, move_project, write_glossary, reset_glossary, save_template, create_from_template, invite_review, revoke_review, mark_review_complete |
+| voice_workflow_read | capabilities, pronunciation, resolve_pronunciation, audition_quote, consent, registration |
+| voice_workflow_update | write_pronunciation, reset_pronunciation, audition, revoke_consent |
+
+Analyze and contextual audition require explicit canonical paid approval and
+retained caller UUIDs; Generate uses the accepted live workflow hold. Agents must
+stop at review/export decisions, preserve structured errors and never silently
+accept a replacement quote. Use [the SDK/CLI tutorial](/sdks/localization) and
+[public request reference](/api-reference/dubbing) for the same decision boundaries.
+
+New legal recording consent, named acceptance and exact-reference admission are
+manual signed-in person/browser actions, outside these agent operation registries.
+An agent cannot attest another person's identity or permission. clone_voice consumes
+a prior admission rather than granting consent. API-key MCP callers cannot invite
+or revoke signed-in review grants or revoke consent by impersonating a JWT. See
+[consent migration](/api-reference/voice-consent).
 
 ## Setup
 

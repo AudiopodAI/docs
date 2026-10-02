@@ -133,22 +133,37 @@ result = client.transcription.wait_for_completion(job["id"])
 
 ---
 
-## Voice Cloning and TTS
+## Voice consent and TTS
 
-Create custom voices and generate speech.
+New clones use signed-in exact-reference consent, admit_reference and
+register_reference. The former voice.clone example and legacy create_voice request
+are not new-create shortcuts. See [consent migration](/api-reference/voice-consent)
+for self/manual named-recipient grants, replacement CAS and uncertain recovery.
+Existing voices still use the canonical TTS lane.
 
 ```python
-from audiopod import AudioPod
-
-client = AudioPod(api_key="ap_your_api_key")
-
-# Clone a voice from audio sample
-voice = client.voice.clone(
-    file="./sample.wav",
-    name="My Voice"
-)
-print(f"Voice ID: {voice['id']}")
+# Explicitly select an authorized ID from client.voice.list_voices().
+capability = client.voice.capabilities(voice_id, operation="tts")
+if capability["readiness"]["state"] != "ready":
+    raise RuntimeError(capability["readiness"]["reason_code"])
+job = client.voice.generate_speech(voice_id, "Hello.", language="en")
 ```
+
+## Reviewed localization (preview)
+
+Supporting builds expose client.dubbing and client.uploads. Follow
+[the phased SDK/CLI tutorial](/sdks/localization) for original-byte upload, canonical
+quote inspection, explicit Analyze, review/CAS save, latest quote/explicit Generate
+and all-required-output verification. Types are in audiopod.workflow_contracts.
+Dubbing uses account credits with API keys and JWTs alike; it does not use the
+legacy USD wallet. AsyncClient exposes the same service methods with await.
+
+`Client(access_token=signed_in_jwt)` or `AsyncClient(access_token=signed_in_jwt)`
+is a signed-in client for consent and named review, exclusive with api_key;
+it sends no X-API-Key. Waits stop at review_required/export_partial/completed.
+Errors retain status_code, code, action, detail and retry_after. Charged POSTs
+are never automatically retried; rejected quotes require a new decision.
+See [endpoint reference](/api-reference/dubbing).
 
 ---
 

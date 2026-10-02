@@ -1,0 +1,187 @@
+---
+title: "Reviewed dubbing"
+description: "Owned source admission, exact credit quotes, revision review and required deliverables."
+---
+
+<Note>
+Preview contract. Use a backend and SDK build that expose these routes. Check
+`GET /api/v1/dubbing/capabilities` and require `readiness.state="ready"` before
+offering this workflow. Missing routes or unavailable/unknown readiness are not
+permission to dispatch. This documentation does not announce deployment.
+</Note>
+
+Dubbing localizes an owned source into reviewed language editions. API-key and
+signed-in requests use the same **account-credit** workflow. Existing legacy
+speech-translation and other service wallet rates remain unchanged.
+
+## Authentication and upload
+
+Owner routes accept an API key or signed-in JWT. Consent grants and named client
+review require the actual signed-in identity; an API key cannot impersonate a
+recipient. All UUIDs are canonical UUID strings. Request objects reject unknown
+fields. Client duration, storage keys and provider identifiers are not inputs.
+
+| Method/path | Request | Response |
+| --- | --- | --- |
+| `GET /api/v1/uploads/limits?service=dubbing` | None | plan, max_upload_bytes, max_duration_s, multipart_threshold_bytes |
+| `POST /api/v1/uploads/presign` | service="dubbing", filename, content_type, size_bytes | upload_id, url, method="PUT", headers, key_expires_in |
+| `PUT` returned URL | Exact original bytes; returned storage headers only | Storage success |
+| `POST /api/v1/dubbing/sources` | upload_session_id UUID | Source projection; may be preparing |
+| `GET /api/v1/dubbing/sources/{id}` | None | Source projection |
+| `GET /api/v1/dubbing/sources/{id}/media` | Authenticated owner request | Original media bytes; range requests supported |
+
+The server verifies the uploaded object and decodes/probes it. Source projection
+fields are id, filename, source_duration (exact numerator/denominator seconds or
+null while preparing), has_video, expires_at, status, media_url and error_code.
+Use only a ready source. There is no upload-completion or multipart/resume route
+in this contract. Limits are caller-specific; read them rather than guessing from
+the multipart threshold.
+
+## Projects and saved revisions
+
+All paths below are relative to `/api/v1/dubbing`.
+
+| Method/path | Request or query |
+| --- | --- |
+| `POST /projects` | source_id UUID, title (1–160 chars), source_language (2–20 chars), optional folder_id UUID/null |
+| `GET /projects` | optional folder_id, unfiled bool, review=pending/complete, completion=pending/complete; returns items |
+| `GET /projects/{id}` | Owned project, source and language editions |
+| `DELETE /projects/{id}` | Stages deletion; returns project_id and state=purge_pending |
+| `GET /projects/{id}/voices` | items of owned, completed, live clones for this exact project/source |
+| `POST /projects/{id}/editions` | target_language, settings, required_outputs; returns saved edition |
+| `GET /editions/{id}` | Edition with latest_job and snapshot_stale pronunciation/glossary facts |
+| `PUT /editions/{id}` | expected_revision, segments, settings, required_outputs; returns a new revision |
+| `POST /editions/{id}/review-complete` | expected_revision; records owner review for the current revision |
+
+Edition fields are id, project_id, target_language, revision, settings, segments,
+required_outputs and owner_review_complete. Read responses also expose latest_job
+and snapshot_stale. Send only the write fields to PUT. Segment timing uses integer
+microseconds, independently of UI locale.
+
+**Settings:** catalog_voice_id is a positive authorized voice ID. audio_format is
+mp3 (default) or wav. speed defaults to 1 and must be finite, 0.25–4. delivery_mode
+is stable, balanced (default) or creative. background is none (default) or preserve;
+background_gain_db defaults to -12, finite -40–0. The effective selected voice must
+support the chosen language, format and controls. A numeric ID alone is not proof
+of access or support.
+
+**Segments:** id (1–64 chars), source_text (max 20,000), target_text (1–20,000),
+start_us (integer ≥0), end_us (integer > start_us), voice_id (>0), optional speed
+and delivery_mode with the same defaults/ranges. A save includes 1–10,000 segments
+and an observed expected_revision ≥1. Source corrections remain part of the saved
+revision. Technical timing/voice blockers prevent generation.
+
+**Outputs:** required_outputs contains distinct audio/srt/vtt/video values, always
+including audio (default `["audio"]`). Video requires a source with video.
+Selections belong to the saved revision and quote; selecting captions or video
+does not add another component charge.
+
+## Quote, Analyze, review and Generate
+
+| Method/path | Request |
+| --- | --- |
+| `GET /editions/{id}/quote` | optional retranslate bool=false; no generation or charge |
+| `POST /projects/{id}/analyze` | confirm=true, confirmations array (1–20 distinct editions/UUID keys) |
+| `GET /jobs/{id}` | Read job |
+| `POST /jobs/{id}/generate` | confirm=true, expected_revision ≥1, quote_identity (64 chars) |
+| `POST /jobs/{id}/retranslate` | Same confirmation shape; explicit translation-only rerun |
+| `POST /jobs/{id}/cancel` | Explicit cancellation |
+| `POST /jobs/{id}/retry-exports` | Explicit same-job export recovery, no new speech charge |
+| `GET /jobs/{id}/events?after=N` | Ordered items with sequence, state, data, created_at; after ≥0 |
+| `GET /jobs/{id}/artifacts/{kind}` | Authenticated owner bytes, kind audio/srt/vtt/video/speech |
+
+Each Analyze confirmation contains edition_id UUID, expected_revision ≥1,
+quote_identity (64 chars), caller-generated UUID idempotency_key and optional
+retranslate=false. Persist the UUID and exact body before dispatch. Reusing the
+same key/context returns the accepted job; changed context is rejected. A fresh
+intentional job needs a new UUID. No SDK transport automatically retries charged
+POSTs or replaces a rejected quote.
+
+The quote returns edition_id, revision, action (analyze/generate/regenerate),
+quote_identity, required_credits, additional_credits, billing_unit=account_credits,
+credits_per_source_second=33, exact source_duration, required_outputs, held_job_id,
+review_deadline and retranslate. Display these server facts. The initial hold is
+**ceil(33 × full measured source seconds)** per language edition, with no minimum.
+API-key and JWT calls draw on the same account credits. This is an exception to
+legacy USD API-wallet lanes; wallet cents are not accepted as dubbing credits.
+
+Analyze reserves the full workflow once and stops at review_required. Saving
+reviewed revisions and Generate use that live hold without another full charge.
+All selected outputs must validate before completed/captured publication.
+export_partial keeps a bounded recovery decision: retry exports or cancel.
+Captured jobs do not become free speech regeneration requests.
+
+For a completed edit, obtain a new action=regenerate quote. The server charges
+ceil(33 × the union of affected original source intervals), including dependencies;
+client-edited timing and output durations cannot shrink the basis. Accepted
+completed retranslation uses retranslate=true, a new confirmed Analyze item/key
+and the union of **all saved original intervals**. Cached ASR is reused. A held
+review retranslation instead uses `POST /jobs/{id}/retranslate` and the existing
+hold. Neither action extends its review deadline.
+
+## Job truth and errors
+
+Job projection fields: id, edition_id, revision, status, stage,
+financial_disposition (held/captured/released), required_credits, required_outputs,
+artifacts, output_status, blockers, warnings, error_code, review_deadline,
+export_deadline and event_sequence. Artifact fields are kind, available, url,
+expires_at and classification (generated_original/processed). URLs are
+API-relative authenticated routes, never reusable storage credentials.
+
+States: analyzing → review_required → generating; export_partial may require
+recovery. settle_pending/release_pending expose reconciliation. Terminal states
+are completed, failed, cancelled or expired. A successful download requires
+completed + captured and every selected required output available/published;
+clean speech alone does not prove the selected delivery package is ready.
+
+HTTP failures preserve `detail: {code, action}` and status; SDKs also retain
+Retry-After and any extra safe detail. Common actionable failures:
+
+| Code | Action |
+| --- | --- |
+| quote_changed | review_quote; fetch latest quote and obtain a new confirmation |
+| revision_conflict | reload_revision; do not overwrite a concurrent edit |
+| idempotency_context_changed | new_confirmation; never reuse the key for different work |
+| source_expired | replace_source |
+| voice_not_available / voice_consent_required | choose_voice |
+| voice_language_or_format_unsupported | choose_voice |
+| workflow_deadline_expired | new_quote |
+| review_invitation_unavailable | request_invitation |
+
+SDK wait helpers stop at review_required/export_partial/completed. A timeout
+retains the accepted job with code=wait_timeout/action=poll_job; it starts no new
+work. Localize stable reason/action codes rather than displaying provider prose.
+
+## Folders, glossary, templates and named review
+
+| Method/path | Shape |
+| --- | --- |
+| `GET/POST /folders` | GET items; POST label (1–120), kind=client/series (default client) |
+| `PUT/DELETE /folders/{id}` | PUT label/kind; DELETE returns deleted=true |
+| `PUT /projects/{id}/folder` | folder_id UUID or null |
+| `GET/PUT/DELETE /glossary?language=hi&project_id=UUID` | Optional owned project scope; PUT expected_version ≥0, mode, entries; DELETE expected_version resets inheritance |
+| `GET /templates` | Private items |
+| `POST /templates/from-job` | job_id UUID, label (1–120); captures safe completed settings |
+| `POST /projects/from-template` | template_id, new source_id, title, source_language, target_language, explicit fresh settings/voice, required_outputs |
+| `POST/GET /editions/{id}/review-grants` | POST recipient_email (3–320); GET items |
+| `DELETE /review-grants/{id}` | Signed-in owner revoke; revoked=true |
+| `GET /reviews/{token}` | Verified signed-in named recipient only |
+| `POST /reviews/{token}/comments` | expected_revision, segment_id (1–64), position_us ≥0 within segment, body (1–4000) |
+| `POST /reviews/{token}/approve` | expected_revision; approval bound to this revision |
+| `GET /reviews/media/{grant_id}/{kind}` | Named recipient, live revision/grant, selected deliverable only |
+| `GET /editions/{id}/review-comments` | Owner items with safe recipient attribution |
+
+Glossary mode is inherit/override/disable. Each of up to 300 entries contains source
+(1–200), mode=preferred/keep_unchanged, preferred_target (1–200, required for
+preferred) and case_sensitive=false. Glossary controls translation; pronunciation
+controls spoken rendering and uses a separate caller-owned version/snapshot.
+Changes make saved snapshots stale but do not start paid regeneration.
+
+Templates require fresh source/voice/quote confirmation and copy no consent or
+paid hold. Review grants last seven days, are manually shared and revocable; no
+email is sent. Recipients see a safe target-text/timing/media projection, not
+source text, internal prompts or owner dictionaries. New revisions invalidate
+prior approvals; state=waiting_for_revision has no completed media access.
+
+See [the SDK/CLI tutorial](/sdks/localization) and
+[consent and retention migration](/api-reference/voice-consent).

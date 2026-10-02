@@ -68,3 +68,13 @@ curl -X POST "https://api.audiopod.ai/api/v1/stem-extraction/api/extract" \
   -F "url=https://youtube.com/watch?v=..." \
   -F "mode=six"
 ```
+
+## Reviewed localization preview
+
+- [SDK/CLI owned-source tutorial](sdks/localization.mdx)
+- [Dubbing endpoint and credit reference](api-reference/dubbing.mdx)
+- [Exact-reference consent and retention migration](api-reference/voice-consent.mdx)
+
+These pages gate availability on supporting SDK builds and deployed capabilities;
+they do not announce publication. New dubbing uses account credits with API keys
+and JWTs alike. Legacy wallet service rates remain unchanged.

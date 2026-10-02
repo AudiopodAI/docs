@@ -108,6 +108,8 @@ Both SDKs provide access to the same set of services:
 | Music | `client.music` | `client.music` | AI music generation |
 | Denoiser | `client.denoiser` | `client.denoiser` | Noise reduction |
 | Speaker | `client.speaker` | `client.speaker` | Speaker diarization |
+| Dubbing (preview) | `client.dubbing` | `client.dubbing` | Quote → explicit Analyze → review → Generate |
+| Source upload (preview) | `client.uploads` | `client.uploads` | Limits, presign and original-byte PUT |
 | Wallet | `client.wallet` | `client.wallet` | Balance and billing |
 
 ## Error Handling
@@ -153,6 +155,15 @@ Both SDKs automatically read from the `AUDIOPOD_API_KEY` environment variable:
 ```bash
 export AUDIOPOD_API_KEY="ap_your_api_key"
 ```
+
+## Localization and exact-reference migration
+
+[Localize an owned recording](/sdks/localization) with explicit server quotes and
+retained UUIDs. New waits stop for review/export decisions; paid POSTs are not
+automatically retried. [Consent migration](/api-reference/voice-consent) uses
+signed-in self/manual named-recipient grants for one exact recording/crop. API
+keys can consume an existing grant but cannot grant it. These preview methods
+require supporting backend/SDK builds and ready deployed capabilities.
 
 ## Next Steps
 

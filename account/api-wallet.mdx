@@ -7,6 +7,16 @@ description: "Pay-as-you-go pricing. Add funds and pay only for what you use."
 
 **The developer API wallet is funded in USD and is separate from Studio subscription or PAYG credits.** Studio's $1 = 7,500-credit conversion does not apply to the API wallet. See the live [API pricing page](https://audiopod.ai/developers/pricing) for current rates.
 
+<Note>
+**Reviewed dubbing preview exception.** The new /api/v1/dubbing workflow uses
+account credits for API-key and JWT calls: ceil(33 × full measured source seconds)
+per edition, no minimum. Analyze reserves once; review/save/Generate use the same
+hold. Completed changes quote affected original interval unions. It does not
+charge USD wallet cents. Existing rates below, including legacy speech
+translation, are unchanged. Check deployed capabilities and see
+[reviewed dubbing](/api-reference/dubbing).
+</Note>
+
 All API prices below are per minute of audio processed (input duration unless
 noted).
 
@@ -17,7 +27,7 @@ noted).
 | **Text to Speech** | $0.04/min | 250 min |
 | **Voice Cloning** | $0.04/min | 250 min |
 | **Voice Conversion** | $0.13/min | 77 min |
-| **Speech Translation (Dubbing)** | $0.40/min | 25 min |
+| **Speech Translation (legacy)** | $0.40/min | 25 min |
 | **Speaker Separation** | $0.20/min | 50 min |
 | **Music Generation** | $0.04/min | 250 min |
 | **Audiobook Narration** | $0.04/min | 250 min |

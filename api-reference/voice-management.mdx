@@ -171,183 +171,34 @@ Retrieve detailed information about a specific voice.
   </Tab>
 </Tabs>
 
-## Create Custom Voices
-
-### Upload Single Audio Sample
-
-Create a custom voice model from a single audio file.
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/voice/voice-profiles
-    X-API-Key: {api_key}
-    Content-Type: multipart/form-data
-    
-    name: My Custom Voice
-    description: Professional voice for presentations
-    file: (audio file)
-    denoise: true
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import requests
-    
-    with open("voice_sample.wav", "rb") as audio_file:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/voice/voice-profiles",
-            headers={"X-API-Key": api_key},
-            data={
-                "name": "My Custom Voice",
-                "description": "Professional voice for presentations",
-                "denoise": True
-            },
-            files={"file": audio_file}
-        )
-    
-    if response.status_code == 200:
-        voice_data = response.json()
-        voice_id = voice_data["id"]
-        print(f"Voice created with ID: {voice_id}")
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-profiles" \
-      -H "X-API-Key: your_api_key" \
-      -F "name=My Custom Voice" \
-      -F "description=Professional voice for presentations" \
-      -F "denoise=true" \
-      -F "file=@voice_sample.wav"
-    ```
-  </Tab>
-</Tabs>
-
-**Response:**
-
-```json
-{
-  "id": 123,
-  "uuid": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "My Custom Voice",
-  "description": "Professional voice for presentations",
-  "voice_type": "CUSTOM",
-  "status": "PROCESSING",
-  "created_at": "2024-01-15T10:30:00Z",
-  "processed_at": null,
-  "is_public": false,
-  "file_path": "/voices/custom/voice_123.wav"
-}
-```
-
-### Upload Multiple Audio Samples
-
-Create a higher-quality voice model using multiple audio samples.
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/voice/voice-profiles/multi-sample
-    X-API-Key: {api_key}
-    Content-Type: multipart/form-data
-    
-    name: High Quality Voice
-    description: Multi-sample voice for better quality
-    is_public: false
-    voice_files: (multiple audio files)
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    voice_files = [
-        "sample1.wav",
-        "sample2.wav", 
-        "sample3.wav"
-    ]
-    
-    files = []
-    for i, file_path in enumerate(voice_files):
-        files.append(('voice_files', open(file_path, 'rb')))
-    
-    response = requests.post(
-        "https://api.audiopod.ai/api/v1/voice/voice-profiles/multi-sample",
-        headers={"X-API-Key": api_key},
-        data={
-            "name": "High Quality Voice",
-            "description": "Multi-sample voice for better quality",
-            "is_public": False
-        },
-        files=files
-    )
-    
-    # Close files
-    for _, file_obj in files:
-        file_obj.close()
-    ```
-  </Tab>
-</Tabs>
-
-### Audio Quality Requirements
-
-For best voice creation results:
-
-- **Duration**: 10-60 seconds of clean audio per sample
-- **Format**: WAV, MP3, or M4A
-- **Sample Rate**: 22kHz or higher  
-- **Quality**: Clear speech without background noise
-- **Content**: Natural speech with varied intonation
-- **Multiple Samples**: 2-5 samples recommended for higher quality
-
-## Instant Voice Cloning (IVC)
-
-Cloning is **instant** — a custom voice is ready to use in **seconds** from a
-single short reference clip. Provide **5–30 seconds** of clean speech and the
-returned voice can be used immediately for text-to-speech and voice conversion.
-
-<Tabs>
-  <Tab title="POST">
-    ```http
-    POST /api/v1/voice/voice-clone
-    X-API-Key: {api_key}
-    Content-Type: multipart/form-data
-
-    name: My Instant Clone
-    file: (5-30s reference audio)
-    ```
-  </Tab>
-  <Tab title="Python">
-    ```python
-    import requests
-
-    with open("reference_5s.wav", "rb") as audio_file:
-        response = requests.post(
-            "https://api.audiopod.ai/api/v1/voice/voice-clone",
-            headers={"X-API-Key": api_key},
-            data={"name": "My Instant Clone"},
-            files={"file": audio_file},
-        )
-
-    voice = response.json()
-    print(f"Voice ready: {voice['id']} — status {voice['status']}")
-    ```
-  </Tab>
-  <Tab title="cURL">
-    ```bash
-    curl -X POST "https://api.audiopod.ai/api/v1/voice/voice-clone" \
-      -H "X-API-Key: $AUDIOPOD_API_KEY" \
-      -F "name=My Instant Clone" \
-      -F "file=@reference_5s.wav"
-    ```
-  </Tab>
-</Tabs>
+## Create or replace custom voices
 
 <Note>
-For the highest fidelity, provide a clean 5–30s clip of a single speaker with
-minimal background noise. Once created, use the voice with
-[Text to Speech](/api-reference/text-to-speech) or
-[Voice Changer](/api-reference/voice-changer).
+New registrations require signed-in self or named-recipient consent for the exact
+recording/window, then strict admission and caller-generated UUID registration.
+See [consent and reference migration](/api-reference/voice-consent). These preview
+contracts require supporting backend/SDK builds; do not assume rollout from docs.
 </Note>
+
+Measure one 3–15 second crop with POST /api/v1/voice/reference/diagnostics. Obtain
+an explicit accepted signed-in permission through POST /voice-consents, authorize
+exact-window transcript validation through POST /reference/admissions, then
+POST /voice-profiles/register with the same original file and retained UUID.
+The latter three paths are relative to /api/v1/voice. Acoustic diagnostics and
+transcript correspondence do not establish identity or grant permission.
+
+New voices are private. Only explicit self/account public-sharing consent permits
+a later separate owner metadata is_public toggle. Named/project/source references
+stay private. Replacement admission requires replace_voice_id and the observed
+numeric reference_revision; failure preserves the active reference. Read
+`GET /voice-profiles/registrations/{idempotency_key}` for uncertain recovery; do not
+start a new UUID, paid retry or provider fallback automatically.
+
+Legacy new single/multi-sample creates without strict admission return
+consent_admission_required; consent=false rejects before slot/billing/creation.
+Legacy sample addition is not reference replacement. Existing immutable catalog
+voices retain their behavior. [Project-only source clones](/api-reference/dubbing)
+require exact scope and a live confirmed workflow hold for registration.
 
 ## Design a Voice
 

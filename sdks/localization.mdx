@@ -1,0 +1,306 @@
+---
+title: "Localize an owned recording with review"
+description: "Upload, inspect a canonical quote, confirm Analyze, review a saved revision, then confirm and download all required outputs."
+---
+
+<Note>
+Preview: requires backend and SDK builds with the new dubbing methods. These
+examples do not imply the current published package or production API has rolled
+out the feature. Probe capabilities first; stop on missing/unavailable readiness.
+</Note>
+
+Create a Hindi edition of your own recording with a catalog voice and audio/SRT
+deliverables. The workflow stops for your review before generation. UI language
+never chooses speech language, and catalog choice does not grant source-clone
+permission.
+
+## 1. Probe availability and choose a voice
+
+Use a supporting [Python SDK](/sdks/python) or [Node SDK](/sdks/nodejs) build,
+a funded account and its API key. Set AUDIOPOD_API_KEY through your environment.
+Keep the original file locally. Dubbing uses account credits with API keys and
+JWTs alike; it is separate from the legacy USD wallet.
+
+```python
+from audiopod import Client
+client = Client()
+facts = client.dubbing.capabilities()
+print(facts)
+if facts["readiness"]["state"] != "ready":
+    raise RuntimeError("Dubbing is not available for this caller")
+for voice in client.voice.list_voices():
+    print(voice["id"], voice["name"])
+```
+
+Pick a voice ID explicitly. Check its TTS language/format/control facts through
+voice.capabilities and the dubbing source/target language lists. The dubbing server
+remains authoritative for effective access and support. Do not assume a voice is
+ready for every operation from its catalog name.
+
+## 2. Save the phased example
+
+Save this script as localize.py. It writes state before confirmed submission,
+uses exact server quotes and UUIDs, and makes review/generation separate commands.
+The state file contains owned project/job IDs and confirmation facts; keep it
+private and retain it after a timeout or lost response.
+
+```python
+import argparse
+import json
+import os
+import time
+from pathlib import Path
+from uuid import uuid4
+from audiopod import Client, AudioPodError
+
+p = argparse.ArgumentParser()
+p.add_argument("phase", choices=["prepare", "analyze", "review", "save", "generate", "download"])
+p.add_argument("--state", default="localization-state.json")
+p.add_argument("--file", default="original.wav")
+p.add_argument("--voice-id", type=int)
+p.add_argument("--source-language", default="en")
+p.add_argument("--target-language", default="hi")
+p.add_argument("--edited", default="review.json")
+p.add_argument("--out", default="localized.wav")
+p.add_argument("--confirm", action="store_true")
+a = p.parse_args()
+state_path = Path(a.state)
+client = Client()
+state = json.loads(state_path.read_text()) if state_path.exists() else {}
+
+def persist():
+    temporary = state_path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2))
+    os.replace(temporary, state_path)
+
+def show(value):
+    print(json.dumps(value, ensure_ascii=False, indent=2))
+
+def require_confirmation():
+    if not a.confirm:
+        raise ValueError("Review the current saved quote; use --confirm only after accepting it")
+
+try:
+    if a.phase == "prepare":
+        if state.get("edition_id"):
+            raise ValueError("Edition already prepared; resume Analyze/review or use a new state path")
+        if a.voice_id is None:
+            raise ValueError("Choose an authorized catalog --voice-id explicitly")
+        capabilities = client.dubbing.capabilities()
+        if capabilities["readiness"]["state"] != "ready":
+            raise ValueError("Dubbing readiness is not ready")
+        voice = client.voice.capabilities(a.voice_id, operation="tts")
+        if voice["readiness"]["state"] != "ready":
+            raise ValueError("Choose a ready authorized voice")
+        context = {"voice_id": a.voice_id, "source_language": a.source_language,
+            "target_language": a.target_language}
+        if state.get("context", context) != context:
+            raise ValueError("Resume with the same voice/language context")
+        state["context"] = context
+        persist()
+        if "upload_id" not in state:
+            file = Path(a.file)
+            limits = client.uploads.limits("dubbing")
+            if file.stat().st_size > limits["max_upload_bytes"]:
+                raise ValueError("Original file exceeds this account's upload limit")
+            upload = client.uploads.presign({"service": "dubbing", "filename": file.name,
+                "content_type": "audio/wav", "size_bytes": file.stat().st_size})
+            client.uploads.put(upload, str(file))  # One PUT; no API credentials to storage.
+            state["upload_id"] = upload["upload_id"]
+            persist()
+        source = (client.dubbing.get_source(state["source_id"]) if "source_id" in state
+            else client.dubbing.adopt_source(state["upload_id"]))
+        state["source_id"] = source["id"]
+        persist()
+        deadline = time.monotonic() + 120
+        while source["status"] == "preparing" and time.monotonic() < deadline:
+            time.sleep(2)
+            source = client.dubbing.get_source(source["id"])
+        if source["status"] != "ready":
+            show(source)
+            raise ValueError("Source is not ready; inspect the retained source before proceeding")
+        project = (client.dubbing.get_project(state["project_id"]) if "project_id" in state
+            else client.dubbing.create_project({"source_id": source["id"],
+                "title": "Reviewed Hindi edition", "source_language": a.source_language}))
+        state["project_id"] = project["id"]
+        persist()
+        edition = client.dubbing.create_edition(project["id"], {
+            "target_language": a.target_language,
+            "settings": {"catalog_voice_id": a.voice_id, "audio_format": "wav"},
+            "required_outputs": ["audio", "srt"]})
+        state["edition_id"] = edition["id"]
+        state["analyze_quote"] = client.dubbing.quote(edition["id"])
+        persist()
+        show(state["analyze_quote"])  # This phase spends no workflow credits.
+
+    elif a.phase == "analyze":
+        require_confirmation()
+        q = state["analyze_quote"]
+        if q["action"] != "analyze":
+            raise ValueError("Inspect the current quote action before accepting")
+        if "analyze_confirmation" not in state:
+            state["analyze_confirmation"] = {"confirm": True, "confirmations": [{
+                "edition_id": state["edition_id"], "expected_revision": q["revision"],
+                "quote_identity": q["quote_identity"], "idempotency_key": str(uuid4())}]}
+            persist()  # Retain key/body before a paid request or process loss.
+        accepted = client.dubbing.analyze(state["project_id"], state["analyze_confirmation"])
+        state["job_id"] = accepted["items"][0]["id"]
+        persist()
+        show(client.dubbing.wait_for_job(state["job_id"], timeout=300))
+        # Stop here: review_required is a user decision, not automatic generation.
+
+    elif a.phase == "review":
+        job = client.dubbing.get_job(state["job_id"])
+        if job["status"] != "review_required":
+            show(job)
+            raise ValueError("This job is not ready for review")
+        edition = client.dubbing.get_edition(state["edition_id"])
+        editable = {"expected_revision": edition["revision"], "segments": edition["segments"],
+            "settings": edition["settings"], "required_outputs": edition["required_outputs"]}
+        Path(a.edited).write_text(json.dumps(editable, ensure_ascii=False, indent=2))
+        show(editable)
+
+    elif a.phase == "save":
+        edited = json.loads(Path(a.edited).read_text())
+        saved = client.dubbing.save_edition(state["edition_id"], edited)
+        client.dubbing.review_complete(saved["id"], saved["revision"])
+        state["generate_quote"] = client.dubbing.quote(saved["id"])
+        persist()
+        show(state["generate_quote"])  # Review latest revision/manifest/price again.
+
+    elif a.phase == "generate":
+        require_confirmation()
+        q = state["generate_quote"]
+        if q["action"] != "generate" or q["held_job_id"] != state["job_id"]:
+            raise ValueError("Inspect the current job/quote; do not substitute another hold")
+        confirmed = {"expected_revision": q["revision"],
+            "quote_identity": q["quote_identity"], "confirm": True}
+        job = client.dubbing.generate(state["job_id"], confirmed)
+        show(client.dubbing.wait_for_job(job["id"], timeout=300))
+        # Stop on export_partial: inspect blockers and decide retry_exports or cancel.
+
+    elif a.phase == "download":
+        job = client.dubbing.get_job(state["job_id"])
+        available = {item["kind"] for item in job["artifacts"] if item["available"]}
+        if job["status"] != "completed" or job["financial_disposition"] != "captured":
+            raise ValueError("The required delivery package is not completed/captured")
+        if not set(job["required_outputs"]).issubset(available):
+            raise ValueError("At least one required deliverable is unavailable or expired")
+        Path(a.out).write_bytes(client.dubbing.artifact(job["id"], "audio"))
+        print("Saved", a.out)
+except AudioPodError as error:
+    show({"status": error.status_code, "code": error.code, "action": error.action,
+        "detail": error.detail})
+    raise SystemExit(1)  # No automatic re-quote, confirmation or charged retry.
+```
+
+Use a WAV source for this example's explicit content_type. If admission remains
+preparing after the bounded wait, inspect source_id with get_source and continue
+project/edition creation only once ready. Rerun prepare with the same voice/language
+arguments to resume a retained source; an already prepared edition is rejected.
+Do not guess successful upload from a local duration. A ready source exposes
+its exact measured duration and expiry before the quote.
+
+## 3. Inspect the quote, then explicitly Analyze
+
+```bash
+python localize.py prepare --file original.wav --voice-id YOUR_VOICE_ID
+# Inspect account_credits, full measured source_duration and required_outputs.
+python localize.py analyze --confirm
+python localize.py review --edited review.json
+```
+
+Choose an actual integer catalog ID in place of YOUR_VOICE_ID. Analyze holds
+ceil(33 × full measured source seconds) once for this edition, with no minimum.
+It returns a held job at review_required; it has not completed your deliverables.
+A retry after transport uncertainty must retain the saved Analyze UUID/body;
+never choose a new UUID just because a response was lost.
+
+## 4. Save review and confirm the latest Generate quote
+
+Edit review.json source/target text, voices and integer microsecond timing. Keep
+observed expected_revision and only the supported write fields. Inspect technical
+blockers and the selected required outputs.
+
+```bash
+python localize.py save --edited review.json
+# Inspect the latest quote and saved revision; Generate uses the same hold.
+python localize.py generate --confirm
+python localize.py download --out localized.wav
+```
+
+A revision_conflict means reload and reconcile edits. A quote_changed means obtain
+a fresh quote and a new explicit decision; the script preserves the rejected
+confirmation instead of authorizing different work. A wait_timeout retains the
+accepted job for GET polling. Inspect get_job or `audiopod dubbing job JOB_UUID`.
+export_partial requires explicit `retry_exports(job_id)` or `cancel(job_id)`;
+retry does not add a speech charge or renew the export deadline.
+
+The download step checks every required output and completed/captured disposition,
+then fetches audio through the authenticated API. Fetch SRT with
+artifact(job_id, "srt"). Keep source/artifact expires_at and workflow deadlines
+visible in your own UI.
+
+## Node and CLI equivalents
+
+```typescript
+import AudioPod from 'audiopod';
+import { randomUUID } from 'node:crypto';
+const client = new AudioPod();
+const quote = await client.dubbing.quote(editionId); // Existing owned edition.
+// After explicit acceptance, persist this UUID/body before submitting:
+const confirmation = { edition_id: editionId, expected_revision: quote.revision,
+  quote_identity: quote.quote_identity, idempotency_key: randomUUID() };
+const accepted = await client.dubbing.analyze(projectId, {
+  confirm: true, confirmations: [confirmation],
+});
+const review = await client.dubbing.waitForJob(accepted.items[0].id, { timeout: 300000 });
+console.log(review); // Stop for review; no automatic Generate.
+```
+
+Node upload/probe methods are uploads.limits/presign/put, dubbing.adoptSource/
+getSource/createProject/createEdition. Review uses getEdition/saveEdition/
+reviewComplete, then a latest quote and explicit generate. Fetch media with
+artifact. Python AsyncClient uses the same snake_case methods with await.
+
+Both CLIs accept exact JSON files; they never fetch and accept a replacement quote:
+
+```bash
+audiopod uploads limits --service dubbing --json
+audiopod uploads presign --body upload-request.json --json
+audiopod uploads put original.wav --body returned-presign.json --json
+audiopod dubbing adopt-source UPLOAD_UUID --json
+audiopod dubbing create-project --body project-request.json --json
+audiopod dubbing create-edition PROJECT_UUID --body edition-request.json --json
+audiopod dubbing quote EDITION_UUID --json
+audiopod dubbing analyze PROJECT_UUID --body confirmed-batch.json --confirm --json
+audiopod dubbing wait JOB_UUID --timeout 300 --json
+audiopod dubbing edition EDITION_UUID --json
+audiopod dubbing save-edition EDITION_UUID --body reviewed-write.json --json
+audiopod dubbing quote EDITION_UUID --json
+audiopod dubbing generate JOB_UUID --body latest-confirmation.json --confirm --json
+audiopod dubbing wait JOB_UUID --timeout 300 --json
+audiopod dubbing job JOB_UUID --json
+# Only after verifying completed/captured and every required output available:
+audiopod dubbing artifact JOB_UUID audio --out localized.wav
+```
+
+Request bodies are defined in the [dubbing reference](/api-reference/dubbing).
+Do not pipe quote output straight into a paid confirmation. Retain UUIDs and job
+IDs, and stop for inspection before each --confirm command.
+
+## How to repeat, organize or share review
+
+Use project folders/library filters for clients or series, glossary rules for
+preferred/unchanged translation terms and separate pronunciation rules for speech.
+Save a completed job as a private template; a new source still needs explicit
+voice/settings/quote confirmation. Invite a named signed-in reviewer manually;
+comments/approval are revision-bound, grants are revocable and media checks live
+access. No invitation is sent automatically.
+
+For translation-only reruns, quote with retranslate=True (Node quote(id, true),
+CLI quote --retranslate). Held review uses explicit retranslate on the same job;
+completed retranslation requires a new confirmed Analyze item with retranslate=true
+and a new UUID. The server reuses ASR and quotes original interval unions, never
+client estimates. See [consent and retention migration](/api-reference/voice-consent)
+before using a source clone or building deletion/recovery UX.

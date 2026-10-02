@@ -1,0 +1,200 @@
+---
+title: "How to migrate voice consent and references"
+description: "Register exact references with signed-in permission, recover uncertain creates and retain artifacts truthfully."
+---
+
+<Note>
+Preview contract: these endpoints and SDK methods require supporting deployed
+backend/SDK builds. Do not infer consent, readiness or rollout from this page.
+Existing stored catalog rows retain their behavior; new registrations use the
+strict flow below.
+</Note>
+
+New clones need an accepted signed-in permission receipt for one exact recording,
+crop and scope, followed by an explicitly validated admission. File quality,
+transcription, speaker identity and permission are separate facts.
+
+## 1. Measure the original reference
+
+`POST /api/v1/voice/reference/diagnostics` is multipart with file and optional
+crop_start_seconds/crop_end_seconds. It performs bounded decoding and acoustic
+measurement, without ASR, a clone, a credit charge or a consent assertion.
+
+It returns duration_seconds, sample_rate, silence_fraction, clipping_fraction,
+peak_dbfs, rms_dbfs, usable_windows, warning_codes, raw_sha256, window_sha256,
+prepared_sha256, crop and transcript_validation. A strict reference crop is
+**3–15 seconds**. Preserve and resend the same original file; the receipt fixes
+which window is prepared. Use measured warnings individually, without inventing
+a perceptual score or treating unknown transcript validation as success.
+
+## 2. Obtain signed-in self or named-recipient permission
+
+`POST /api/v1/voice/voice-consents` accepts JSON:
+
+| Field | Contract |
+| --- | --- |
+| project_kind | account (default), tts, podcast or dubbing |
+| project_id / source_id | nullable scope IDs; must match owned persisted project/source where used |
+| recording_sha256 / window_sha256 / prepared_sha256 | Measured lowercase 64-character SHA-256 digests |
+| crop | start_seconds ≥0, end_seconds; finite 3–15 second window |
+| consent_version | `2026-10-02.voice-consent.v1` |
+| reference_filename | optional display name, max 255 chars |
+| recipient_email | optional named recipient, max 320 chars |
+| confirm | Explicit true after reviewing exact recording/scope/policy |
+| allow_public_sharing | false by default; only an explicit self/account receipt can opt in |
+
+A self receipt becomes accepted after the signed-in owner confirms. A named
+receipt is awaiting_consent: manually share its invitation and original recording.
+No email is sent. The named verified signed-in recipient reads
+`GET /voice-consents/invitations/{token}` then explicitly accepts with
+`POST /voice-consents/invitations/accept` and invitation_token, consent_version,
+confirm=true. The preview exposes safe scope/hash/crop/filename facts; server
+reference playback is unavailable (`reference_shared_manually`). Share the
+original manually so the recipient can inspect the recording.
+
+An API key can consume a prior accepted owner grant but cannot create, accept or
+revoke a signed-in consent decision. Invitations are not public consent links.
+Use `GET /voice-consents/{id}` for state/consent_revision and
+`POST /voice-consents/{id}/revoke` with expected_revision ≥1 for owner revocation.
+Revocation prevents future strict dispatch/publication and starts checked cleanup.
+
+## 3. Admit the exact crop and transcript
+
+`POST /api/v1/voice/reference/admissions` is multipart:
+file (same original), consent_id, consent_revision, consent_version,
+transcription, confirm_transcription=true, optional replace_voice_id and
+reference_revision (default 0). The server uses the receipt crop and checks all
+three recording/preparation digests. Explicit authorization permits exact-window
+ASR transcript correspondence. This does not establish identity or liveness.
+
+A successful admission returns admission_token, expires_at, consent_id/version/
+revision, reference_revision, recording_sha256, measured reference and separate
+transcript_validation. Admission is one-use and expires after 15 minutes. Its
+expiry limits submission, not the ongoing permission of an already accepted
+registered reference. Revoked consent remains authoritative.
+
+```python
+from audiopod import Client, VOICE_CONSENT_VERSION
+from uuid import uuid4
+from pathlib import Path
+import os
+
+# Signed-in JWT belongs to the person explicitly granting this self permission.
+owner = Client(access_token=os.environ["AUDIOPOD_ACCESS_TOKEN"])
+api = Client()  # Same account API key in AUDIOPOD_API_KEY.
+original = "reference.wav"
+facts = owner.voice.reference_diagnostics(original, 0, 10)
+if not facts["prepared_sha256"]:
+    raise RuntimeError("Choose a usable reference")
+# Run only after the person reviews and accepts this exact recording/policy:
+receipt = owner.voice.create_consent({
+    "project_kind": "account", "recording_sha256": facts["raw_sha256"],
+    "window_sha256": facts["window_sha256"],
+    "prepared_sha256": facts["prepared_sha256"], "crop": facts["crop"],
+    "reference_filename": "reference.wav", "consent_version": VOICE_CONSENT_VERSION,
+    "confirm": True,
+})
+admission = api.voice.admit_reference(
+    original, consent_id=receipt["id"], consent_revision=receipt["consent_revision"],
+    consent_version=receipt["consent_version"],
+    transcription="The words actually spoken in this exact crop.",
+    confirm_transcription=True,
+)
+key = str(uuid4())
+with Path("clone-key.txt").open("x") as key_file:
+    key_file.write(key)  # Refuse to overwrite retained identity; store before dispatch.
+registration = api.voice.register_reference(
+    original, admission_token=admission["admission_token"],
+    idempotency_key=key, name="Narrator", language_code="en",
+)
+print(registration)
+# Retain key after transport uncertainty; read status before any new decision.
+print(api.voice.registration_status(key))
+```
+
+The Node equivalents are referenceDiagnostics, createConsent,
+previewConsentInvitation, acceptConsentInvitation, admitReference,
+registerReference and registrationStatus. Register accepts audioFile,
+admission_token, idempotency_key, name and optional language_code. Python uses the
+same wire fields, with the original file as the first method argument.
+
+## 4. Register once and recover truthfully
+
+`POST /api/v1/voice/voice-profiles/register` accepts the same original multipart
+file, admission_token, caller-generated UUID idempotency_key, name and optional
+language_code. For an uncertain response, retain the UUID and exact body; read
+`GET /voice-profiles/registrations/{idempotency_key}`. Do not create a new key to
+retry unknown paid work. Unknown upstream completion is not successful activation
+or proof that no clone exists.
+
+Registration fields: state, voice_id, voice_uuid, display_name, numeric
+reference_revision, readiness and error_code. States are processing, completed,
+failed, registration_uncertain and cleanup_pending. Only completed/live ready
+registration offers an active reference. Pending/uncertain cleanup is a recovery
+state; an existing voice stays usable while a failed replacement is reconciled.
+The SDK does not automatically retry registration or fallback to a different voice.
+
+For replacement, admission must bind replace_voice_id and the currently observed
+numeric reference_revision from the owned voice profile. A stale revision returns
+an error and preserves the active reference. VoiceCapabilities.voice_revision is
+a hash of effective facts, **not** that numeric replacement version. Existing
+accepted takes keep frozen reference identities; replacement does not rewrite them.
+
+`PATCH /api/v1/voice/voices/{id}` supports only name, description, is_public,
+gender, age_group and use_case, validated against existing allowed values. It
+cannot mutate scope, receipts, sample media, reference revisions or private
+routing data. New registration is private. Explicit self/account
+allow_public_sharing permission may authorize a later owner is_public toggle;
+named, project and source permission always remain private.
+
+## Project/source voice limits and migration
+
+A new dubbing source receipt binds project_kind=dubbing and exact project_id/
+source_id. Permission may be collected before Analyze; registration requires the
+live owning workflow hold. It consumes no separate component clone charge.
+Retrieve completed/live scoped voices through
+`GET /api/v1/dubbing/projects/{project_id}/voices`. They are excluded from the
+general catalog and cannot synthesize in another project or general TTS. Personal
+self/account cloning continues to use its canonical existing speech lane.
+
+New legacy single/multi-sample creates no longer bypass strict admission.
+consent=false is rejected before slot/provider/billing work. Missing exact strict
+admission returns consent_admission_required; legacy sample addition does not
+mutate strict references. Replace legacy create_voice/voice.create or fabricated
+voice.clone examples with the receipt → admission → register flow. Existing
+immutable catalog rows are unchanged.
+
+Check `GET /api/v1/voice/voices/{id}/capabilities?operation=tts` (or podcast,
+audiobook, multi_voice_tts, audition). Use only ready operations and supported
+languages/formats/controls. Unknown means recheck. Unsupported timing is rejected
+before billing. Older audiobook, conversion and direct streaming paths reject new
+strict references until they can preserve accepted identity and enforce live
+consent; existing legacy book behavior remains unchanged.
+
+## Artifact retention and deletion
+
+Dubbing sources and processed outputs follow the account's existing artifact
+retention policy. Read source/artifact expires_at, review_deadline and
+export_deadline; do not assume a duration from an API key, a retry or this page.
+Generated clean-speech originals are marked generated_original and have no timed
+retention expiry. Processed sources, stems, caption and video/mixed derivatives
+remain processed. A successful independent artifact is not erased merely because
+a sibling export fails; its own policy clock still applies.
+
+Review has a 72-hour window. Export recovery is bounded to at most 72 hours and
+the earliest dependency expiry. Save, retry, retranslation and regeneration do
+not renew existing source/artifact clocks or the current review hold. Existing
+retention warnings cover processed artifacts before their policy purge. A
+processed expiry or deleted project must be shown truthfully, even if billing
+history or another independent generated artifact remains.
+
+Project/account deletion fences new dispatch/publication and reconciles held
+funds before checked storage/reference cleanup. A purge_pending or cleanup_pending
+response means deletion is staged, not that every external byte has disappeared.
+Provider/storage delete failure remains pending for recovery, never successful
+on an unverified absence. Account erasure includes accepted references and scoped
+clone cleanup. Explicit deletion is distinct from timed retention of generated
+originals.
+
+See [reviewed dubbing reference](/api-reference/dubbing),
+[localization tutorial](/sdks/localization) and [CLI](/sdks/cli).

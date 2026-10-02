@@ -126,16 +126,45 @@ audiopod stems https://example.com/song.mp3 --mode two
 
 ### `audiopod clone`
 
-Train a voice from a 5–30s reference clip.
+Register an admitted exact reference, after signed-in consent and explicit
+admission. Follow [consent migration](/api-reference/voice-consent).
 
 ```bash
-audiopod clone reference.wav --name "Narrator" --description "Calm narrator voice"
+audiopod clone original.wav --name "Narrator" --admission-token TOKEN --idempotency-key UUID
+audiopod voice clone-status UUID --json
 ```
 
-| Flag | Description |
-|------|-------------|
-| `--name` (required) | Display name for the cloned voice. |
-| `--description` | Optional voice characteristics description. |
+Use the same original admitted file; retain UUID after transport uncertainty.
+Name is required and language optional. Replacement is bound during admission to
+numeric reference_revision. Metadata is a separate owner action.
+
+### Reviewed localization and voice actions (preview)
+
+Supporting SDK/backend builds add dubbing, uploads and voice action groups.
+[The phased tutorial](/sdks/localization) covers every confirmation boundary.
+--body FILE sends exact JSON, --confirm accepts an inspected paid/consent/approval
+decision, and binary media actions require --out FILE. The CLI does not re-quote,
+choose a new UUID or automatically retry charged work.
+
+```bash
+audiopod dubbing quote EDITION_UUID --json
+audiopod dubbing analyze PROJECT_UUID --body confirmed-batch.json --confirm --json
+audiopod dubbing wait JOB_UUID --timeout 300 --json
+# Stop for review; save observed revision and inspect the latest quote.
+audiopod dubbing save-edition EDITION_UUID --body reviewed-write.json --json
+audiopod dubbing quote EDITION_UUID --json
+audiopod dubbing generate JOB_UUID --body latest-confirmation.json --confirm --json
+```
+
+Use AUDIOPOD_ACCESS_TOKEN/--access-token for signed-in manual consent/named review;
+API-key work uses AUDIOPOD_API_KEY. Wait stops at review_required/export_partial/
+completed. --json errors retain status/code/action/detail on stderr.
+[Endpoint reference](/api-reference/dubbing) covers folder/glossary/template/review
+actions. Voice actions cover capabilities, diagnostics, consent-create/preview/
+accept/revoke, admit/clone-status/metadata, pronunciation read/save/reset/resolve
+and audition-quote/audition-accept. Explicit retranslation uses quote --retranslate
+then separately confirmed retranslate (held job) or Analyze with retranslate=true
+and a new UUID (completed edition).
 
 ### `audiopod audiobook`
 

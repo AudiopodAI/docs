@@ -132,28 +132,36 @@ const result = await client.transcription.waitForCompletion(job.id);
 
 ---
 
-## Voice Cloning & TTS
+## Voice consent and TTS
 
-Create custom voices and generate speech.
+New clones use signed-in exact-reference consent, admitReference and
+registerReference. The former voice.clone example and legacy voice.create request
+are not new-create shortcuts. Follow [consent migration](/api-reference/voice-consent)
+for self/manual named-recipient grants, replacement CAS and uncertain recovery.
+Existing voices still use the canonical TTS lane.
 
 ```typescript
-import AudioPod from 'audiopod';
-
-const client = new AudioPod({ apiKey: 'ap_your_api_key' });
-
-// Clone a voice from audio sample
-const voice = await client.voice.clone({
-  file: './sample.wav',
-  name: 'My Voice'
-});
-console.log(`Voice ID: ${voice.id}`);
-
-// Generate speech with cloned voice
-const audio = await client.voice.generate({
-  voiceId: voice.id,
-  text: 'Hello, this is my cloned voice speaking!'
-});
+// Select an authorized ID explicitly from client.voice.list().
+const capability = await client.voice.capabilities(voiceId, 'tts');
+if (capability.readiness.state !== 'ready') throw new Error(capability.readiness.reason_code);
+const job = await client.voice.speak({ voiceId, text: 'Hello.', language: 'en' });
+const audio = await client.voice.waitForCompletion(job.id);
 ```
+
+## Reviewed localization (preview)
+
+Supporting builds expose client.dubbing and client.uploads. Follow
+[the phased SDK/CLI tutorial](/sdks/localization) for owned original-byte upload,
+quote inspection, explicit Analyze, review/CAS save, latest quote/explicit Generate
+and all-required-output verification. Typed workflow requests/responses are
+exported from audiopod. Dubbing uses account credits with API keys and JWTs alike;
+it does not use the legacy USD wallet.
+
+`new AudioPod({ accessToken: signedInJwt })` creates a signed-in HTTP client for
+consent and named review, exclusive with apiKey; it sends no X-API-Key. New waits
+stop at review_required/export_partial/completed. Errors retain statusCode, code,
+action, detail and retryAfter. No automatic paid POST retry or quote replacement.
+See [endpoint reference](/api-reference/dubbing).
 
 ---
 

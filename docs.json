@@ -17,12 +17,19 @@
           {
             "group": "Getting Started",
             "icon": "rocket",
-            "pages": ["index", "quickstart"]
+            "pages": [
+              "index",
+              "quickstart"
+            ]
           },
           {
             "group": "Account",
             "icon": "user",
-            "pages": ["account/api-keys", "account/api-wallet", "account/webhooks"]
+            "pages": [
+              "account/api-keys",
+              "account/api-wallet",
+              "account/webhooks"
+            ]
           }
         ]
       },
@@ -32,23 +39,40 @@
           {
             "group": "Official SDKs",
             "icon": "code",
-            "pages": ["sdks/overview", "sdks/python", "sdks/nodejs", "sdks/cli"]
+            "pages": [
+              "sdks/overview",
+              "sdks/python",
+              "sdks/nodejs",
+              "sdks/cli",
+              "sdks/localization"
+            ]
           },
           {
             "group": "AI Integration",
             "icon": "robot",
-            "pages": ["sdks/mcp"]
+            "pages": [
+              "sdks/mcp"
+            ]
           },
           {
             "group": "Tools",
             "icon": "wrench",
-            "pages": ["sdks/postman"]
+            "pages": [
+              "sdks/postman"
+            ]
           }
         ]
       },
       {
         "tab": "API Reference",
         "groups": [
+          {
+            "group": "Localization",
+            "icon": "language",
+            "pages": [
+              "api-reference/dubbing"
+            ]
+          },
           {
             "group": "Audiobook",
             "icon": "book-open",
@@ -87,7 +111,8 @@
             "icon": "user-voice",
             "pages": [
               "api-reference/voice-management",
-              "api-reference/voice-changer"
+              "api-reference/voice-changer",
+              "api-reference/voice-consent"
             ]
           },
           {
