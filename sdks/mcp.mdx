@@ -53,11 +53,22 @@ tools/list. Discover the deployed schema; do not invent aliases or infer rollout
 | voice_workflow_read | capabilities, pronunciation, resolve_pronunciation, audition_quote, consent, registration |
 | voice_workflow_update | write_pronunciation, reset_pronunciation, audition, revoke_consent |
 
-Analyze and contextual audition require explicit canonical paid approval and
-retained caller UUIDs; Generate uses the accepted live workflow hold. Agents must
-stop at review/export decisions, preserve structured errors and never silently
-accept a replacement quote. Use [the SDK/CLI tutorial](/sdks/localization) and
-[public request reference](/api-reference/dubbing) for the same decision boundaries.
+MCP calls use the caller's delegated permissions, like SDK/API requests. Your MCP
+client controls user confirmation prompts. Configure it to show the exact proposed
+action and quote before sensitive calls; the [MCP specification recommends user
+confirmation](https://modelcontextprotocol.io/specification/2025-06-18/server/tools#security-considerations).
+The server validates the closed operation schema, ownership and scopes; it does
+not verify that your client displayed a human confirmation card.
+
+Paid Analyze and contextual audition bodies still require confirm=true, the exact
+canonical quote_identity and a retained caller UUID idempotency key. Generate
+requires the current revision/quote confirmation and uses the accepted live
+workflow hold. Preserve structured errors and stop to review a changed quote.
+Supporting signed-in AudioAgent workflows additionally use a saved approved plan,
+per-action confirmation records and a cumulative spending cap. Those AudioAgent
+approval records are separate from MCP client confirmation. Use [the SDK/CLI
+tutorial](/sdks/localization) and [public request reference](/api-reference/dubbing)
+for the request boundaries.
 
 New legal recording consent, named acceptance and exact-reference admission are
 manual signed-in person/browser actions, outside these agent operation registries.

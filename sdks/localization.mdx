@@ -304,3 +304,17 @@ completed retranslation requires a new confirmed Analyze item with retranslate=t
 and a new UUID. The server reuses ASR and quotes original interval unions, never
 client estimates. See [consent and retention migration](/api-reference/voice-consent)
 before using a source clone or building deletion/recovery UX.
+
+## Confirmation in SDK, CLI and MCP clients
+
+This tutorial's --confirm command is your decision after inspecting the saved
+quote; SDK applications must obtain that decision in their own interface. Paid
+requests carry confirm=true, exact quote_identity and retained Analyze/audition
+UUIDs. Generate confirms the current revision on the existing hold.
+
+[MCP clients](/sdks/mcp) also control their own confirmation prompts under delegated
+write permissions. AudioPod validates the operation schema, ownership, scopes and
+paid request fields, without verifying that an MCP client showed a human approval
+card. Supporting signed-in AudioAgent workflows have separate saved-plan,
+per-action confirmation and cumulative spending-cap checks. Legal recording
+consent remains a signed-in person's manual action in every workflow.
