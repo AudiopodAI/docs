@@ -37,7 +37,7 @@
           {
             "group": "AI Integration",
             "icon": "robot",
-            "pages": ["sdks/mcp"]
+            "pages": ["sdks/mcp", "sdks/claude-plugin"]
           },
           {
             "group": "Tools",
