@@ -1,10 +1,10 @@
 ---
 title: "Claude Plugin"
-description: "Use AudioPod tools inside Claude Code — transcription, stems, text to speech, music, and voice through skills and slash commands."
+description: "Use AudioPod tools inside Claude Code — transcription, stems, noise removal, audio-to-MIDI and more through skills and slash commands."
 ---
 
 <Info>
-**What is the AudioPod plugin?** It brings AudioPod tools into Claude Code. The plugin adds skills and slash commands that call the AudioPod [MCP server](/sdks/mcp) at `https://mcp.audiopod.ai`, so you can transcribe, split stems, or make a voiceover without leaving your session.
+**What is the AudioPod plugin?** It brings AudioPod tools into Claude Code. The plugin adds skills and slash commands that call the AudioPod [MCP server](/sdks/mcp), so you can transcribe, split stems, or turn a recording into MIDI without leaving your session. There are two plugins: `audiopod` (the main plugin) and `audiopod-studio` (the full toolkit).
 </Info>
 
 ## Install
@@ -16,6 +16,14 @@ In Claude Code, run:
 /plugin install audiopod@audiopod
 ```
 
+For the full toolkit, install `audiopod-studio` instead:
+
+```
+/plugin install audiopod-studio@audiopod
+```
+
+Install one of them, not both. Both register an MCP server named `audiopod`, so installing both would duplicate the tools.
+
 The first time Claude uses an AudioPod tool it asks you to connect. Choose Connect, or run `/mcp`, select AudioPod and choose Authenticate. A browser window opens, you sign in to your AudioPod account, review what the connection can do, and choose Allow access. There's no API key to copy. You can disconnect at any time from your AudioPod account page.
 
 ### Using an API key instead (CI or headless)
@@ -23,10 +31,10 @@ The first time Claude uses an AudioPod tool it asks you to connect. Choose Conne
 [Create a key in your dashboard](https://audiopod.ai/dashboard/account/api-keys), then run:
 
 ```
-claude mcp add --transport http audiopod https://mcp.audiopod.ai --header "X-API-Key: <your key>"
+claude mcp add --transport http audiopod https://mcp.audiopod.ai/core --header "X-API-Key: <your key>"
 ```
 
-Use `https://mcp.audiopod.ai/core` instead for the `audiopod-transcribe` tool set. The key is added separately from the plugin, and the plugin's skills still work with it.
+That is the endpoint for the main `audiopod` plugin. For `audiopod-studio`, use `https://mcp.audiopod.ai` instead. The key is added separately from the plugin, and the plugin's skills still work with it.
 
 ---
 
@@ -34,29 +42,28 @@ Use `https://mcp.audiopod.ai/core` instead for the `audiopod-transcribe` tool se
 
 | Plugin | What it covers | Endpoint |
 |------|-------------|----------|
-| `audiopod` | Transcription, stem separation, noise removal, speaker separation, audio-to-MIDI, media conversion, text to speech, music generation, and voice cloning and changing. | `https://mcp.audiopod.ai` |
-| `audiopod-transcribe` | Transcription and audio tools only. | `https://mcp.audiopod.ai/core` |
-
-Install `audiopod-transcribe` the same way with `/plugin install audiopod-transcribe@audiopod`.
+| `audiopod` (AudioPod) | The main plugin: transcription (speaker labels, SRT/VTT/TXT), stem separation, noise removal, speaker separation, format conversion and audio-to-MIDI. | `https://mcp.audiopod.ai/core` |
+| `audiopod-studio` (AudioPod Studio) | The full toolkit: everything in `audiopod` plus music, text to speech and voice tools. | `https://mcp.audiopod.ai` |
 
 ---
 
 ## Commands
 
-| Command | Example |
-|---------|---------|
-| `/audiopod:transcribe` | `/audiopod:transcribe https://example.com/interview.mp3 srt` |
-| `/audiopod:stems` | `/audiopod:stems https://example.com/song.mp3 4stem` |
-| `/audiopod:tts` | `/audiopod:tts "Welcome to the show" British English` |
-| `/audiopod:status` | `/audiopod:status <job-id> transcribe` |
+| `audiopod` command | `audiopod-studio` command | Example |
+|---------|---------|---------|
+| `/audiopod:transcribe` | `/audiopod-studio:transcribe` | `/audiopod:transcribe https://example.com/interview.mp3 srt` |
+| `/audiopod:stems` | `/audiopod-studio:stems` | `/audiopod:stems https://example.com/song.mp3 4stem` |
+| `/audiopod:midi` | `/audiopod-studio:midi` | `/audiopod:midi https://example.com/melody.mp3` |
+| `/audiopod:status` | `/audiopod-studio:status` | `/audiopod:status <job-id> transcribe` |
+| not available | `/audiopod-studio:tts` | `/audiopod-studio:tts "Welcome to the show" British English` |
 
-`/audiopod:tts` is available in the `audiopod` plugin only. You can also ask in plain language, like "remove the background noise from this clip", and the matching skill picks it up.
+`/audiopod-studio:tts` exists only in the `audiopod-studio` plugin. You can also ask in plain language, like "remove the background noise from this clip", and the matching skill picks it up.
 
 ---
 
 ## How jobs work
 
-AudioPod jobs run asynchronously. Claude starts the job, polls its status until it finishes, and hands you the output links. Output links expire after 1 hour. If one has expired, ask again (or run `/audiopod:status <job-id> <tool>`, since job ids are unique per tool) for fresh links.
+AudioPod jobs run asynchronously. Claude starts the job, polls its status until it finishes, and hands you the output links. Output links expire after 1 hour. If one has expired, ask again (or run `/audiopod:status <job-id> <tool>` or `/audiopod-studio:status <job-id> <tool>`, since job ids are unique per tool) for fresh links.
 
 ## Credits
 
