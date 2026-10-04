@@ -22,7 +22,7 @@ Need a key? [Create one in your dashboard](https://www.audiopod.ai/dashboard/acc
 
 ## Tools exposed
 
-The server advertises ten tools. Schemas are returned by `tools/list` — these are the names and one-liners:
+The server advertises eleven tools. Schemas are returned by `tools/list` — these are the names and one-liners:
 
 | Tool | Description | Required scope |
 |------|-------------|----------------|
@@ -35,6 +35,7 @@ The server advertises ten tools. Schemas are returned by `tools/list` — these 
 | `convert_media` | MP3 / WAV / FLAC / OGG / M4A / MP4 / MOV conversion. | `audio:write` |
 | `separate_speakers` | Isolate each speaker into a separate track from multi-speaker audio. | `audio:write` |
 | `change_voice` | Convert a recording to a different target voice (voice-to-voice). | `voice:synthesize` |
+| `audio_to_midi` | Convert a recording of a melody, instrument or song into MIDI files (per-instrument plus one multitrack). Specialist piano and vocal engines need a Creator plan or above; see [pricing](https://audiopod.ai/pricing). | `audio:write` |
 | `check_job_status` | Poll the status and result of a long-running job. | _none (free)_ |
 
 Scopes are enforced when authenticating with an API key. JWT-based auth implies full user privileges.
@@ -56,7 +57,7 @@ claude mcp add --transport http audiopod https://mcp.audiopod.ai \
   --header "X-API-Key: ap_YOUR_KEY" --scope user
 ```
 
-The `--scope user` flag installs at the user level so every Claude Code project picks up the server. Run `claude mcp list` to verify, then `/mcp` inside the TUI to see the ten tools.
+The `--scope user` flag installs at the user level so every Claude Code project picks up the server. Run `claude mcp list` to verify, then `/mcp` inside the TUI to see the eleven tools.
 
 </Tab>
 
@@ -288,7 +289,7 @@ Returns the issuer, supported scopes, and the bearer-token pattern. Most agent c
 
 <Columns cols={2}>
   <Card title="Use the CLI" icon="terminal" href="/sdks/cli">
-    Same ten tools, terminal-first.
+    Same eleven tools, terminal-first.
   </Card>
   <Card title="For Agents landing" icon="robot" href="https://audiopod.ai/for-agents">
     Single-pane overview of every developer surface.
