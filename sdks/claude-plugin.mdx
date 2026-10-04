@@ -16,11 +16,17 @@ In Claude Code, run:
 /plugin install audiopod@audiopod
 ```
 
-On install, Claude Code prompts for your AudioPod API key. [Create one in your dashboard](https://audiopod.ai/dashboard/account/api-keys). The key is stored as a sensitive plugin setting. To change it later, run:
+The first time Claude uses an AudioPod tool it asks you to connect. Choose Connect, or run `/mcp`, select AudioPod and choose Authenticate. A browser window opens, you sign in to your AudioPod account, review what the connection can do, and choose Allow access. There's no API key to copy. You can disconnect at any time from your AudioPod account page.
+
+### Using an API key instead (CI or headless)
+
+[Create a key in your dashboard](https://audiopod.ai/dashboard/account/api-keys), then run:
 
 ```
-/plugin configure audiopod@audiopod
+claude mcp add --transport http audiopod https://mcp.audiopod.ai --header "X-API-Key: <your key>"
 ```
+
+Use `https://mcp.audiopod.ai/core` instead for the `audiopod-transcribe` tool set. The key is added separately from the plugin, and the plugin's skills still work with it.
 
 ---
 
@@ -31,7 +37,7 @@ On install, Claude Code prompts for your AudioPod API key. [Create one in your d
 | `audiopod` | Transcription, stem separation, noise removal, speaker separation, media conversion, text to speech, music generation, and voice cloning and changing. | `https://mcp.audiopod.ai` |
 | `audiopod-transcribe` | Transcription and audio tools only. | `https://mcp.audiopod.ai/core` |
 
-Install `audiopod-transcribe` the same way with `/plugin install audiopod-transcribe@audiopod`, and change its key with `/plugin configure audiopod-transcribe@audiopod`.
+Install `audiopod-transcribe` the same way with `/plugin install audiopod-transcribe@audiopod`.
 
 ---
 
@@ -66,9 +72,10 @@ Audio you send is processed on AudioPod's servers under the [AudioPod privacy po
 
 | Symptom | Fix |
 |---------|-----|
-| `401` "Invalid or expired API key" | Reconfigure your key with `/plugin configure audiopod@audiopod`. |
+| Claude says AudioPod isn't connected or the connection expired | Run `/mcp`, select AudioPod and choose Authenticate. |
 | `402` | Your account doesn't have enough credits for the job. Top up or upgrade on the [pricing page](https://audiopod.ai/pricing). |
 | Tools not showing up | Run `/mcp` to check the connection status of the AudioPod server. |
+| The browser sign-in page doesn't open (remote or headless machine) | Copy the URL Claude shows into a browser on any machine, or use the API-key option above. |
 
 ## Self-hosted MCP alternative
 
