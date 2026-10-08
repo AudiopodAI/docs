@@ -95,7 +95,9 @@
             "icon": "music",
             "pages": [
               "api-reference/music/overview",
+              "api-reference/music/choosing",
               "api-reference/music/generation",
+              "api-reference/music/score-first",
               "api-reference/music/audio-tools",
               "api-reference/music/jobs"
             ]

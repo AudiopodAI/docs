@@ -22,11 +22,16 @@ Need a key? [Create one in your dashboard](https://www.audiopod.ai/dashboard/acc
 
 ## Tools exposed
 
-The server advertises eleven tools. Schemas are returned by `tools/list` — these are the names and one-liners:
+Schemas are returned by `tools/list` — these are the names and one-liners:
 
 | Tool | Description | Required scope |
 |------|-------------|----------------|
-| `generate_music` | Songs, instrumentals, rap, vocal stems from a text prompt. | `music:generate` |
+| `generate_music` | Songs, instrumentals, rap, vocal stems from a text prompt. The default music tool. | `music:generate` |
+| `compose_music` | Score-first: write an editable score (no audio yet) for a song you want to shape before recording. 165 credits. | `music:generate` |
+| `revise_music_score` | Change a score in plain words; the rest of the score is kept. 165 credits per revision. Available when enabled for the account. | `music:generate` |
+| `record_music_score` | Record a score, optionally with a new style or new words for the same tune. ~16.5 credits per second of score. | `music:generate` |
+| `get_music_score` | Read a score you own (key, tempo, sections, length). Free. | `audio:read` |
+| `edit_music_score` | Deprecated alias of `record_music_score`. | `music:generate` |
 | `text_to_speech` | TTS in 200+ languages with 200+ voices and custom clones — powered by AudioSonic. | `voice:synthesize` |
 | `clone_voice` | Clone a voice from a 5–30s reference clip. | `voice:clone` |
 | `separate_stems` | Up to 16 stems (vocals, drums, bass, guitar, piano, other…). Two-stem mode returns a vocals/instrumental (karaoke) split. | `stems:separate` |
@@ -38,7 +43,7 @@ The server advertises eleven tools. Schemas are returned by `tools/list` — the
 | `audio_to_midi` | Convert a recording of a melody, instrument or song into MIDI files (per-instrument plus one multitrack). Specialist piano and vocal engines need a Creator plan or above; see [pricing](https://audiopod.ai/pricing). | `audio:write` |
 | `check_job_status` | Poll the status and result of a long-running job. | _none (free)_ |
 
-Scopes are enforced when authenticating with an API key. JWT-based auth implies full user privileges.
+Scopes are enforced when authenticating with an API key. JWT-based auth implies full user privileges. Not sure which music tool to use? See [Choosing how to make music](/api-reference/music/choosing).
 
 ---
 

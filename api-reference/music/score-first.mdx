@@ -1,0 +1,155 @@
+---
+title: "Score-first music"
+description: "Write an editable score, revise it in plain words, and record it — the AudioMusic Score-first endpoints."
+---
+
+Score-first is the AudioMusic mode for shaping a song before it is recorded.
+Every job here returns a score (melody, chords and sections, as ABC notation
+plus MIDI) alongside — or, for plan and revise jobs, instead of — the audio.
+Not sure which mode you need? See [Choosing how to make music](/api-reference/music/choosing).
+
+All routes live under `/api/v1/music/v3` and take the usual `X-API-Key`
+header. Check `GET /api/v1/music/v3/availability` (`{"available": true}`)
+before showing a Score-first option in your own product.
+
+## Pricing
+
+| Step | Endpoint | Credits |
+| --- | --- | --- |
+| Write a score | `POST /music/v3/plan` | **165** flat |
+| Revise a score | `POST /music/v3/revise` | **165** flat per revision |
+| Record a score | `POST /music/v3/edit` | ~**16.5 per second** of the score's length (15 s minimum, 600 s maximum) |
+| Read a job or score | `GET /music/v3/jobs/{job_id}`, `/score` | free |
+
+Credits are reserved when you call and refunded if the job fails.
+
+## Write a score
+
+### `POST /api/v1/music/v3/plan`
+
+Writes a score only — no audio. Returns in about ten seconds.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `style` | string | yes | Genre, instrumentation, mood, tempo feel, vocal character (1–2000 characters) |
+| `description` | string | one of | What the song is about (1–1000 characters). AudioPod writes the lyrics. Send `description` **or** `lyrics`, not both |
+| `lyrics` | string | one of | Your own lyrics; section tags such as `[verse]` and `[chorus]` help |
+| `target_seconds` | integer | no | 30–300. Length to aim the written lyrics at (with `description`) |
+| `language` | string | no | Language for the written lyrics, e.g. `en`, `hi` |
+| `cot` | string | no | `full` (default) writes melody and harmony; `melody` the tune alone |
+| `seed` | integer | no | Reuse to get closer to an earlier result |
+| `display_name` | string | no | Your name for the track |
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/music/v3/plan" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "style": "warm acoustic folk, fingerpicked guitar, gentle male vocal",
+    "description": "a lighthouse keeper waiting for the ships to come home",
+    "target_seconds": 120
+  }'
+```
+
+The response is a [job](#job-response) with `workflow: "plan"`. When it is
+`COMPLETED`, `score` holds the notation and the job reports the lyrics used,
+who wrote them (`lyrics_source`), the score's `duration_seconds` and your
+`target_seconds`.
+
+## Revise a score in plain words
+
+### `POST /api/v1/music/v3/revise`
+
+<Note>
+Available only when plain-English revision is enabled for your account;
+otherwise this route answers `404`.
+</Note>
+
+Applies a change described in words and returns a **new** score-only job. The
+change is checked before it is returned: outside the part you asked to change,
+the score stays the same.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `source_job_id` | integer | yes | The score to change: a plan, revise or recorded job you own |
+| `instruction` | string | yes | The change, in plain words (1–500 characters) |
+| `section` | string | no | Limit the change to a section, e.g. `chorus` |
+| `bars` | object | no | Limit the change to a bar range: `{"start": 5, "end": 8}` (from 1, inclusive) |
+| `allow_tempo_change` | boolean | no | Set `true` only when the instruction is about tempo |
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/music/v3/revise" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"source_job_id": 4301, "instruction": "make the chorus brighter", "section": "chorus"}'
+```
+
+The job has `workflow: "revise"`, its `source_job_id`, and a
+`score_comparison` that lists the `changed_bars`, plus a short `note`
+describing the change.
+
+| Status | `detail.code` | Meaning |
+| --- | --- | --- |
+| `422` | `REVISE_FAILED` | The change could not be made without disturbing the rest of the score. Nothing is charged; reword it or narrow it with `section` / `bars` |
+| `409` | `REVISE_IN_FLIGHT` | A revision of this score is already running; poll it instead |
+| `404` | — | Not your job, or revision is not enabled for your account |
+
+## Record a score
+
+### `POST /api/v1/music/v3/edit`
+
+Records a score as a finished track. Send just the `source_job_id` to record
+that job's score as it is — the usual last step after plan and revise — or
+override the style or words to perform the same tune differently.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `source_job_id` | integer | yes | The score to record |
+| `abc` | string | no | A complete replacement score in ABC notation, if you edited it yourself |
+| `style` | string | no | A new style for the same tune |
+| `lyrics` | string | no | New words for the same tune |
+| `cot` | string | no | `melody` (default) or `full` |
+| `allow_tempo_change` | boolean | no | Permit a replacement `abc` to change the tempo |
+
+```bash
+curl -X POST "https://api.audiopod.ai/api/v1/music/v3/edit" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"source_job_id": 4302}'
+```
+
+A recording is a new performance of the whole piece: sections you did not
+change will still sound different from an earlier take. An identical request
+for the same score while one is still recording is refused with `409`
+(`SCORE_ALREADY_RECORDING`, with the `job_id` already in progress) and nothing
+is charged.
+
+## Jobs
+
+| Endpoint | Returns |
+| --- | --- |
+| `GET /api/v1/music/v3/jobs/{job_id}` | One job: status, audio, score, comparison and billing |
+| `GET /api/v1/music/v3/jobs/{job_id}/score` | Just the score, ready to revise or record |
+| `GET /api/v1/music/v3/jobs` | Your Score-first jobs, newest first |
+| `GET /api/v1/music/v3/availability` | `{"available": true}` when Score-first is offered |
+
+### Job response
+
+```json
+{
+  "job_id": 4302,
+  "workflow": "revise",
+  "status": "COMPLETED",
+  "style": "warm acoustic folk, fingerpicked guitar, gentle male vocal",
+  "lyrics": "[verse]\n...",
+  "duration_seconds": 118.0,
+  "audio_url": null,
+  "score": { "abc": "X:1\n...", "midi_url": "https://...", "editable": true },
+  "score_comparison": { "changed_bars": [9, 10, 11, 12] },
+  "source_job_id": 4301,
+  "note": "Raised the chorus melody and brightened its chords."
+}
+```
+
+`audio_url` is `null` for plan and revise jobs — they are scores. Poll until
+`status` is `COMPLETED` or `FAILED`.
