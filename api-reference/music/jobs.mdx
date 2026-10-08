@@ -95,7 +95,7 @@ List music generation jobs with filtering, search, and sorting.
 | `limit` | int | 50 | Number of records to return (max 100) |
 | `task` | string | null | Filter by task type (`text2music`, `prompt2instrumental`, etc.) |
 | `status` | string | null | Filter by status (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`) |
-| `song_type` | string | null | Filter by category: `rap`, `song`, `vocals`, `instrumental`, `samples` |
+| `song_type` | string | null | Filter by library category: `song`, `instrumental`, `edits`, `scores` (or the narrower `rap`, `vocals`, `samples`). See [Library categories](#library-categories) |
 | `liked` | bool | null | Filter to liked (true) or not-liked (false) tracks |
 | `search` | string | null | Search across display name, prompt, and lyrics |
 | `language` | string | null | Filter by vocal language |
@@ -108,6 +108,24 @@ List music generation jobs with filtering, search, and sorting.
 
 **Response Headers:**
 - `X-Total-Count`: Total number of matching records (for pagination)
+
+### Library categories
+
+Every job belongs to exactly one of four categories, so `song` + `instrumental` + `edits` + `scores` always adds up to your whole library. The same rule drives `song_type` here, on `/liked` and `/jobs/counts`, and the counts in `/filters/stats`.
+
+| `song_type` | What it returns |
+|-------------|-----------------|
+| `song` | Tracks with vocals: `text2music` and `text2rap` with lyrics to sing, and every `lyric2vocals` job |
+| `instrumental` | `prompt2instrumental` and `text2samples` jobs, plus `text2music` / `text2rap` jobs generated as instrumentals: `instrumental: true`, no lyrics, lyrics of just `[Instrumental]`, or lyrics made only of section tags such as `[Intro]` |
+| `edits` | Jobs made from an existing track: `retake`, `repaint`, `extend`, `edit`, `cover`, `lego`, `extract`, `complete` |
+| `scores` | Written scores without a recording: score-only (plan) jobs, and generations that kept their score but finished without audio |
+| `rap` | The `text2rap` jobs within `song` |
+| `vocals` | The `lyric2vocals` jobs within `song` |
+| `samples` | The `text2samples` jobs within `instrumental` |
+
+<Note>
+`song` used to mean "every `text2music` job", and `instrumental` meant only `prompt2instrumental`. A `text2music` track generated as an instrumental is now in `instrumental`, rap tracks with vocals are in `song`, and edits and scores have their own categories. Filter by `task` to get the old task-only behaviour.
+</Note>
 
 ---
 
@@ -217,24 +235,28 @@ Get aggregated counts of your music generation jobs, broken down by task type an
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `status` | string | Filter by status |
-| `song_type` | string | Filter by category: `rap`, `song`, `vocals`, `instrumental`, `samples` |
+| `song_type` | string | Filter by library category: `song`, `instrumental`, `edits`, `scores` (or `rap`, `vocals`, `samples`). See [Library categories](#library-categories) |
 
 **Response:**
+
+`by_song_type` has one count per [library category](#library-categories). `songs` + `instrumental` + `edits` + `scores` equals `total`; `rap` is the part of `songs` made with `text2rap`.
 
 ```json
 {
   "total": 150,
   "by_task": {
-    "text2music": 80,
+    "text2music": 76,
     "prompt2instrumental": 40,
     "text2rap": 20,
-    "retake": 10
+    "retake": 10,
+    "lyric2vocals": 4
   },
   "by_song_type": {
-    "songs": 80,
-    "rap": 20,
-    "instrumental": 40,
-    "edits": 10
+    "songs": 85,
+    "instrumental": 50,
+    "edits": 10,
+    "scores": 5,
+    "rap": 18
   },
   "filters": {
     "status": null,
@@ -266,7 +288,7 @@ Get all tracks you've liked.
 |-----------|------|---------|-------------|
 | `skip` | int | 0 | Pagination offset |
 | `limit` | int | 50 | Number of records |
-| `song_type` | string | null | Filter by category |
+| `song_type` | string | null | Filter by [library category](#library-categories) |
 | `status` | string | null | Filter by status |
 
 ---
@@ -288,18 +310,21 @@ Get statistics for building filter UI dropdowns — total tracks, liked count, t
 
 **Response:**
 
+`song_types` counts each [library category](#library-categories): `songs` + `instrumental` + `edits` + `scores` equals `total_tracks`, and each count matches what `GET /api/v1/music/jobs?song_type=...` returns (`songs` is the `song` filter). `rap` is the part of `songs` made with `text2rap`.
+
 ```json
 {
   "total_tracks": 150,
   "liked_count": 25,
   "song_types": {
-    "songs": 80,
-    "rap": 20,
-    "instrumental": 40,
-    "edits": 10
+    "songs": 85,
+    "instrumental": 50,
+    "edits": 10,
+    "scores": 5,
+    "rap": 18
   },
   "available_filters": {
-    "song_types": ["songs", "rap", "instrumental", "edits"],
+    "song_types": ["songs", "rap", "instrumental", "edits", "scores"],
     "interactions": ["liked"],
     "statuses": ["pending", "processing", "completed", "failed"],
     "languages": ["en", "zh", "ja", "ko"],
