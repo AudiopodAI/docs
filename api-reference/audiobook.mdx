@@ -200,7 +200,7 @@ curl -s "$AP/audiobook/projects/$PID/review" -H "X-API-Key: $AUDIOPOD_API_KEY" \
   | jq '.items[] | {paragraph_id, expected_text, heard_text, candidate_audio_url}'
 # Listen, then approve them all (free) — or approve / reject one at a time
 curl -s -X POST "$AP/audiobook/projects/$PID/review/approve-all" -H "X-API-Key: $AUDIOPOD_API_KEY"
-# => { "approved": 2 }
+# => { "approved": 2, "refused": 0, "remaining": 0, "refused_reasons": {} }
 # Fully automated pipeline? Create the project with "narration_review_policy":"auto_accept"
 # instead, and nothing ever waits for review.
 
@@ -902,17 +902,21 @@ That body — one `chapter_ids` entry plus `include_completed` — *is* the "re-
 
 ## Narration review
 
+<Tip>
+For automated pipelines, set `narration_review_policy` to `auto_accept` on the project; passages are then never held and your chapters always complete.
+</Tip>
+
 After each passage is narrated, our narration check confirms the audio matches the text. Short or highly expressive lines (laughter, interjections, a phrase in another language) occasionally can't be confirmed, so instead of failing the book, AudioPod handles them like this:
 
-1. **Retry once.** A passage whose audio doesn't match is narrated again.
-2. **Hold for review.** If it still doesn't match, the passage is set to `needs_review` and its best render is kept as a **candidate**. It is **never re-narrated automatically** — no batch, retry or recovery will render it again.
+1. **Retry once.** A passage whose audio doesn't match is narrated again — at most 2 automatic renders per passage.
+2. **Hold for review.** If it still doesn't match, the passage is set to `needs_review` and its best render is kept as a **candidate**. It is **never re-narrated automatically** — no batch, retry or recovery will render it again; only reject with `regenerate`, a single-paragraph narrate, or a text edit renders it again.
 3. **Resolve it.** Held passages **block chapter assembly and export** until you decide:
    - **Approve** — the candidate becomes the passage's audio as a new take. Approving is **free** (the candidate's narration was already refunded). On a per-finished-hour book it still counts toward your narration hours.
    - **Approve all** — the same, for every waiting passage in the book or one chapter.
    - **Reject** — the candidate is discarded and the passage returns to `pending`. Pass `regenerate: true` to narrate it again right away, billed like any narration.
    - **Edit the text** (`PUT .../paragraphs/{paragraph_id}`) — the candidate no longer applies and is retired; the passage returns to pending for a normal narration. Restoring an earlier take also resolves it.
 
-**Replacement candidates.** When a passage that already had approved audio is narrated again and the new render can't be confirmed, the passage keeps its existing audio (`completed`) and the new render waits as a replacement candidate (`replacement: true`). Approve to swap it in; reject to keep the audio you had.
+**Replacement candidates.** When a passage that already had approved audio is narrated again and the new render can't be confirmed, the passage keeps its existing audio (`completed`) and the new render waits as a replacement candidate (`replacement: true`). It appears in the review list like any held passage, and counts toward `needs_review_paragraphs` and the per-chapter `needs_review` in progress. Approve to swap it in; reject to keep the audio you had.
 
 ### Review policy — `narration_review_policy`
 
@@ -930,8 +934,8 @@ curl -X PUT "$AP/audiobook/projects/$PID" -H "X-API-Key: $AUDIOPOD_API_KEY" \
 
 ### Knowing when review is needed
 
-- `GET .../narration/progress` returns `needs_review_paragraphs` (book total) and a `needs_review` count per chapter in `chapter_status`.
-- `POST .../narration/batch` returns `skipped_needs_review`.
+- `GET .../narration/progress` returns `needs_review_paragraphs` (book total) and a `needs_review` count per chapter in `chapter_status`. Both include held replacement candidates (whose passage stays `completed`).
+- `POST .../narration/batch` returns `skipped_needs_review` — held passages are skipped whatever the `include_*` flags or `paragraph_ids` say. When the only passages left are held for review, the batch returns `400` telling you how many wait for review (approve, reject or edit them).
 - `POST .../chapters/{chapter_id}/retry-failed-paragraphs` returns `needs_review` — held passages are not failures and are never retried there.
 - A [`narration.review_required`](/account/webhooks#narration-review-required) webhook fires once per narration job that finished with passages waiting.
 - `POST .../export` returns `422` with `detail.code = "narration_review_pending"` and the `count` of waiting passages.
@@ -1000,8 +1004,16 @@ curl -X POST "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID/review/approve" \
 curl -X POST "$AP/audiobook/projects/$PID/review/approve-all" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
   -d "{\"chapter_id\": \"$CHAPTER_ID\"}"
-# => { "approved": 4 }
+# => { "approved": 3, "refused": 1, "remaining": 1,
+#      "refused_reasons": { "9b2f…": "narration_allowance_exhausted" } }
 ```
+
+A passage that can't be approved is left waiting and reported; the call still returns `200` with a partial result.
+
+<ResponseField name="approved" type="integer">Passages approved by this call.</ResponseField>
+<ResponseField name="refused" type="integer">Passages that could not be approved.</ResponseField>
+<ResponseField name="remaining" type="integer">Passages still waiting for review in the selection.</ResponseField>
+<ResponseField name="refused_reasons" type="object">`{paragraph_id: reason_code}` for each refusal: `narration_allowance_exhausted` (a book bought per finished hour has no hours left for this audio), `review_stale` (the passage has newer narration) or `review_candidate_unavailable`.</ResponseField>
 
 ### Reject one passage
 
@@ -1023,8 +1035,8 @@ Without `regenerate`, the response is `{"paragraph_id": "…", "status": "pendin
 
 | Status | When |
 |---|---|
-| `409` | Approve or reject on a passage with nothing waiting for review (`"This passage has no narration waiting for review."`). |
-| `409` | Approve when the candidate is no longer available, or a per-hour book's narration allowance can no longer cover it — narrate the passage again. |
+| `409` | Approve and reject return `{"detail": {"code": "…", "message": "…"}}`. `review_not_pending`: nothing waits for review on this passage. |
+| `409` | Approve: `review_stale` (the passage has newer narration than the candidate), `review_candidate_unavailable`, or, for a book bought per finished hour, `narration_allowance_exhausted` / `narration_allowance_changed` (approved audio counts toward the book's hours). |
 | `409` | Approve or approve-all while an export is running for the project. |
 | `404` | The paragraph is not in this project. |
 | `422` | `POST .../export` while passages wait: `{"detail": {"code": "narration_review_pending", "message": "…", "count": 3}}`. |
