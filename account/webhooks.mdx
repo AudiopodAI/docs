@@ -16,6 +16,7 @@ Every delivery is **HMAC-signed**, retried with exponential backoff, and carries
 | `job.completed` | A job finished successfully and its output is available. |
 | `job.failed` | A job failed. Credits reserved for the job are refunded automatically. |
 | `job.cancelled` | A job was stopped on request (e.g. `POST .../narration/cancel`). Charges held for work that did not complete are released; output already produced is kept. |
+| `narration.review_required` | An audiobook narration job finished with passages waiting for your [review](/api-reference/audiobook#narration-review). Fires once per job. |
 | `webhook.test` | A synthetic event you trigger yourself to confirm your endpoint works. |
 
 ## Register an endpoint
@@ -64,6 +65,24 @@ The body is JSON. Every event carries `event_id` and `event_type`; job events ad
 ```
 
 A `job.failed` event adds `error_message` and `failure_reason`. The `job_type` field tells you which tool produced the job. Completion webhooks now fire across the audio job types — for example `transcription`, `text_to_speech`, `voice_cloning`, `voice_conversion`, `music_generation`, `stem_extraction`, `speaker_diarization`, `denoise`, `reader`, `podcast`, `media_converter`, `audiobook`, and `export_acx`.
+
+### narration.review_required
+
+Not subscribed by default — add it to `events` when you create or update an endpoint. It fires once when an audiobook narration job finishes with passages held for [narration review](/api-reference/audiobook#narration-review):
+
+```json
+{
+  "event_type": "narration.review_required",
+  "event_id": "c7d2…",
+  "project_id": "3f9b…",
+  "job_id": 1042,
+  "job_type": "audiobook",
+  "needs_review": 2,
+  "paragraph_ids": ["7d0c…", "91aa…"]
+}
+```
+
+Fetch the details with `GET /api/v1/audiobook/projects/{project_id}/review`, then approve or reject each passage. Export is refused until they are resolved.
 
 ## HTTP headers
 
