@@ -43,24 +43,26 @@ plan  ──►  revise (plain words, repeat)  ──►  edit (record)
 ```
 
 1. **Write** a score with [`/music/v3/plan`](/api-reference/music/score-first#write-a-score):
-   a `style` plus either a `description` (AudioPod writes the lyrics, sized to
-   an optional `target_seconds`) or your own `lyrics`. It returns in about ten
+   either a `description` (AudioPod writes the lyrics, sized to
+   an optional `target_seconds`) or your own `lyrics` with a `style`. It returns in about ten
    seconds with a score and no audio.
 2. **Revise** it with [`/music/v3/revise`](/api-reference/music/score-first#revise-a-score-in-plain-words):
    "make the chorus brighter", "take it down a key", "simpler melody in bars
    5–8". Each revision is checked so that everything you did not ask to change
    stays the same, and returns a new score job you can revise again.
 3. **Record** it with [`/music/v3/edit`](/api-reference/music/score-first#record-a-score)
-   when you are happy with it.
+   when you are happy with it, sending the latest score from
+   `GET /music/v3/jobs/{job_id}/score`.
 
 Every step is prepaid and refunded if it fails. Song length in Score-first mode
 follows the amount of lyrics, so `target_seconds` is a target rather than a
 promise — use Song mode when you need an exact length.
 
 <Note>
-Plain-English revision (`/music/v3/revise`) is available only when it is
-enabled for your account. Until then the route answers `404`; you can still
-write a score and record it.
+Plain-English revision (`/music/v3/revise`) is available when it is enabled
+for your account — `GET /api/v1/music/v3/availability` returns
+`"revise": true`. Otherwise the route answers `404`; you can still write a
+score and record it.
 </Note>
 
 ## For agents
