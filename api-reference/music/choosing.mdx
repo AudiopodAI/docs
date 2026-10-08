@@ -1,0 +1,73 @@
+---
+title: "Choosing how to make music"
+description: "Which AudioMusic endpoint to call: Song mode for finished tracks, Score-first for songs you want to shape before they are recorded."
+---
+
+AudioMusic works in two modes, and almost every request belongs to the first.
+
+- **Song** — the default. Describe a song (or bring lyrics) and get a finished,
+  mixed track. It honors a requested length, can write the lyrics for you, and
+  returns synced lyrics. It is also the mode for everything that starts from
+  audio you already have.
+- **Score-first** — for when you want to see and shape the composition itself
+  (melody, chords, sections) before it is recorded. You get an editable score
+  first, change it in plain words as often as you like, and record it when it
+  is right.
+
+There is no single "make music" endpoint: pick the route from the table below.
+
+## Routing table
+
+| You want | Mode | Endpoint |
+| --- | --- | --- |
+| A song from a description ("a sad indie song about rain") — AudioPod writes the lyrics | Song | [`POST /api/v1/music/simple`](/api-reference/music/overview) |
+| A song with your own lyrics | Song | [`POST /api/v1/music/text2music`](/api-reference/music/generation), `lyric2vocals` or `text2rap` |
+| An instrumental or beat | Song | [`POST /api/v1/music/prompt2instrumental`](/api-reference/music/generation) |
+| A sound effect or sample | Song | [`POST /api/v1/music/text2samples`](/api-reference/music/generation) |
+| An exact length, or synced lyrics (LRC) | Song | any Song generation route |
+| A new version of existing audio, or "like this reference" | Song | [`/cover`, `/reference`](/api-reference/music/audio-tools) |
+| Extend, retake or repaint a track | Song | [extend / retake / repaint](/api-reference/music/audio-tools) |
+| "Write it so I can change it" | Score-first | [`POST /api/v1/music/v3/plan`](/api-reference/music/score-first#write-a-score) |
+| Changes to a score, in plain words | Score-first | [`POST /api/v1/music/v3/revise`](/api-reference/music/score-first#revise-a-score-in-plain-words) |
+| Record a score | Score-first | [`POST /api/v1/music/v3/edit`](/api-reference/music/score-first#record-a-score) |
+| The same tune with a new style or new words | Score-first | [`POST /api/v1/music/v3/edit`](/api-reference/music/score-first#record-a-score) with `style` / `lyrics` |
+| You already have the notation | Score-first | `POST /api/v1/music/v3/generate` with `abc`, or `/music/v3/edit` |
+
+When in doubt, use Song mode.
+
+## The Score-first loop
+
+```text
+plan  ──►  revise (plain words, repeat)  ──►  edit (record)
+165 credits   165 credits each                ~16.5 credits per second of score
+```
+
+1. **Write** a score with [`/music/v3/plan`](/api-reference/music/score-first#write-a-score):
+   either a `description` (AudioPod writes the lyrics, sized to
+   an optional `target_seconds`) or your own `lyrics` with a `style`. It returns in about ten
+   seconds with a score and no audio.
+2. **Revise** it with [`/music/v3/revise`](/api-reference/music/score-first#revise-a-score-in-plain-words):
+   "make the chorus brighter", "take it down a key", "simpler melody in bars
+   5–8". Each revision is checked so that everything you did not ask to change
+   stays the same, and returns a new score job you can revise again.
+3. **Record** it with [`/music/v3/edit`](/api-reference/music/score-first#record-a-score)
+   when you are happy with it, sending the latest score from
+   `GET /music/v3/jobs/{job_id}/score`.
+
+Every step is prepaid and refunded if it fails. Song length in Score-first mode
+follows the amount of lyrics, so `target_seconds` is a target rather than a
+promise — use Song mode when you need an exact length.
+
+<Note>
+Plain-English revision (`/music/v3/revise`) is available when it is enabled
+for your account — `GET /api/v1/music/v3/availability` returns
+`"revise": true`. Otherwise the route answers `404`; you can still write a
+score and record it.
+</Note>
+
+## For agents
+
+The AudioPod MCP server exposes the same choice as tools: `generate_music`
+(Song, the default), and `compose_music` → `revise_music_score` →
+`record_music_score` (Score-first), with `get_music_score` to read a score for
+free. See [MCP server](/sdks/mcp).
