@@ -7,21 +7,34 @@ description: "Pay-as-you-go pricing. Add funds and pay only for what you use."
 
 **The developer API wallet is funded in USD and is separate from Studio subscription or PAYG credits.** Studio's $1 = 7,500-credit conversion does not apply to the API wallet. See the live [API pricing page](https://audiopod.ai/developers/pricing) for current rates.
 
-All API prices below are per minute of audio processed (input duration unless
-noted).
+Text to Speech, Voice Cloning and Audiobook Narration are priced per 1,000
+characters of input text. Every other API price below is per minute of audio
+processed (input duration unless noted).
 
 | Service | Rate | $10 Gets You |
 |---------|------|--------------|
 | **Stem Separation — core outputs** | $0.10/min | 100 min |
 | **Transcription** | $0.01/min | 1000 min |
-| **Text to Speech** | $0.04/min | 250 min |
-| **Voice Cloning** | $0.04/min | 250 min |
+| **Text to Speech** | $0.05 per 1,000 characters | ~200,000 characters |
+| **Voice Cloning** | $0.05 per 1,000 characters | ~200,000 characters |
 | **Voice Conversion** | $0.13/min | 77 min |
 | **Speech Translation (Dubbing)** | $0.40/min | 25 min |
 | **Speaker Separation** | $0.20/min | 50 min |
 | **Music Generation** | $0.04/min | 250 min |
-| **Audiobook Narration** | $0.04/min | 250 min |
+| **Audiobook Narration** | $0.09 per 1,000 characters | ~111,000 characters |
 | **Media Conversion** | $0.01/min | 1000 min |
+
+### How characters are counted
+
+Character-priced requests are charged from your prepaid wallet based on the text
+as written, with a minimum charge of **$0.01 per text-to-speech request**.
+
+- Directing/steering tags and pause tags are **not** counted.
+- Non-verbal tags such as `[laugh]` **are** counted.
+- Everything else — letters, spaces, punctuation — counts as written.
+
+For example, $5 covers about 100,000 characters of text to speech or about
+55,500 characters of audiobook narration.
 
 <Info>
   Minimum top-up: **$1.00**. Maximum: **$10,000**.

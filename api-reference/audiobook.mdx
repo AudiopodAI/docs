@@ -23,7 +23,7 @@ The API-key workflow supports asynchronous production: submit a job, get an ID b
 - **Automatic compliance check**: file format, audio levels, silence, and per-chapter length are validated on export; a non-compliant book is rejected with the exact reason rather than shipped silently.
 - **Asynchronous + webhooks**: `job.completed` / `job.failed` / `job.cancelled` callbacks for backlog-scale automation.
 - **White-label output**: delivered files carry the publisher's own title/author/narrator metadata — nothing points back at AudioPod.
-- **Prepaid usage pricing**: $0.04 per minute of output (~$24 for a 10-hour book). See [API Wallet](/account/api-wallet).
+- **Prepaid usage pricing**: $0.09 per 1,000 characters of manuscript text (~$50 for a 10-hour book, at about 56,000 characters per finished hour). See [API Wallet](/account/api-wallet).
 
 ## Authentication
 
@@ -1237,15 +1237,15 @@ Jobs are prepaid: credits are reserved at job start, settled on success, and **r
 
 ## Pricing
 
-Usage-based on a prepaid wallet — you pay per minute of finished output, with no per-seat fee or monthly minimum.
+Usage-based on a prepaid wallet — you pay per 1,000 characters of text narrated, with no per-seat fee or monthly minimum.
 
 | Service | Rate |
 |---------|------|
-| Narration (text-to-speech) | $0.04 / min of output |
-| Voice cloning | $0.04 / min of output |
+| Narration | $0.09 per 1,000 characters |
+| Voice cloning | $0.05 per 1,000 characters |
 | Transcription (if used) | $0.01 / min |
 
-A 10-hour audiobook (~600 minutes) costs roughly **$24**, versus $2,000–$4,000 for a human ACX narrator. For committed monthly volume across many titles, [contact us](mailto:sales@audiopod.ai) about partner pricing below list. See [API Wallet](/account/api-wallet) for top-ups and balance.
+A 10-hour audiobook (~560,000 characters) costs roughly **$50**, versus $2,000–$4,000 for a human ACX narrator. For committed monthly volume across many titles, [contact us](mailto:sales@audiopod.ai) about partner pricing below list. See [API Wallet](/account/api-wallet) for top-ups and balance.
 
 ## Next Steps
 

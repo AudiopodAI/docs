@@ -1282,7 +1282,7 @@ Text to Speech is billed differently depending on how you authenticate:
 | Path | Rate | Basis |
 |------|------|-------|
 | **Account credits** (subscription / JWT) | **0.5 credits per character** | Input character count, charged before synthesis |
-| **API wallet** (API key, USD) | **$0.04 per minute** | Duration of the generated audio |
+| **API wallet** (API key, USD) | **$0.05 per 1,000 characters** | Input character count, prepaid; minimum $0.01 per request |
 
 All voice types (standard and custom) use the same rate. Quality settings do
 not affect pricing.
@@ -1296,14 +1296,17 @@ not affect pricing.
 | 1,000 characters | 500 credits |
 | 5,000 characters | 2,500 credits |
 
-### Cost Examples — API wallet (per minute of output)
+### Cost Examples — API wallet (per character)
 
-| Output Duration | USD Cost |
-| --------------- | -------- |
-| 30 seconds | $0.02 |
-| 1 minute | $0.04 |
-| 5 minutes | $0.20 |
-| 30 minutes | $1.20 |
+| Text Length | USD Cost |
+| ----------- | -------- |
+| 100 characters | $0.01 (minimum) |
+| 1,000 characters | $0.05 |
+| 10,000 characters | $0.50 |
+| 100,000 characters | $5.00 |
+
+Directing/steering tags and pause tags are not counted; non-verbal tags such as
+`[laugh]` are. See [How characters are counted](/account/api-wallet#how-characters-are-counted).
 
 ## Next Steps
 
