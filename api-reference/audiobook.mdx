@@ -134,6 +134,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | List voices | GET | `/audiobook/voices/available` |
 | List languages | GET | `/audiobook/voices/languages` |
 | Cost estimate | GET | `/audiobook/projects/{project_id}/cost-estimate` |
+| Book cost (actual spend) | GET | `/audiobook/projects/{project_id}/cost` |
 | **Narrate (batch — the billed path)** | POST | `/audiobook/projects/{project_id}/narration/batch` |
 | Narrate a single paragraph | POST | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}/narrate` |
 | Narration progress | GET | `/audiobook/projects/{project_id}/narration/progress` |
@@ -764,6 +765,59 @@ Narration billing is per paragraph: the first take is billed, the first regenera
 <ResponseField name="user_custom_voices" type="array">Your own cloned voices (see [Voice Management](/api-reference/voice-management)).</ResponseField>
 
 `GET /audiobook/voices/languages` lists every supported narration locale (100+). Before committing, `GET /audiobook/projects/{project_id}/cost-estimate` returns a per-paragraph breakdown with `word_count`, `estimated_seconds`, and `credits_to_charge`.
+
+### Book cost
+
+`GET /audiobook/projects/{project_id}/cost` returns what narrating this book has **actually** cost so far. Unlike the cost estimate, it is read from your billing records: every charge taken for a passage of this book, including regenerations. Narration is prepaid, so a charge is taken when a passage is queued and returned if that passage fails or is cancelled. Narration is priced at **$0.09 per 1,000 characters** (see [Pricing](#pricing)).
+
+```bash
+curl -s "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/cost" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+```json
+{
+  "project_id": "3f6c2a1e-8b4d-4c1a-9e2f-5d7b9a0c1e23",
+  "currency": "USD",
+  "billing_lane": "api_wallet",
+  "totals": {
+    "charged_cents": 4770,
+    "refunded_cents": 90,
+    "net_cents": 4680,
+    "charged_credits": 0,
+    "refunded_credits": 0,
+    "net_credits": 0,
+    "characters_billed": 520000
+  },
+  "breakdown": {
+    "first_narration": { "characters": 500000, "cents": 4500, "credits": 0 },
+    "regenerations": { "characters": 20000, "cents": 180, "credits": 0, "count": 14 },
+    "free_regenerations": 37,
+    "review_approvals": 6
+  },
+  "chapters": [
+    { "chapter_id": "a1b2c3d4-0000-4000-8000-000000000001", "chapter_number": 1, "title": "Chapter One", "characters": 260000, "cents": 2340, "credits": 0 },
+    { "chapter_id": "a1b2c3d4-0000-4000-8000-000000000002", "chapter_number": 2, "title": "Chapter Two", "characters": 260000, "cents": 2340, "credits": 0 }
+  ],
+  "partial": false,
+  "notes": [],
+  "as_of": "2026-10-09T12:00:00Z"
+}
+```
+
+**First narration vs regenerations.** `first_narration` is each passage's first take. When you edit text and re-render, only the edited passages are re-narrated, not the whole chapter. The first regeneration of each passage is free (counted in `free_regenerations`); every take after that is a paid regeneration (`regenerations`). Approving a flagged narration from [review](#narration-review) costs nothing (counted in `review_approvals`).
+
+<ResponseField name="project_id" type="string">The book.</ResponseField>
+<ResponseField name="currency" type="string">`"USD"`. Every `*_cents` value is in US cents.</ResponseField>
+<ResponseField name="billing_lane" type="string">`"api_wallet"` (paid from the API wallet), `"credits"` (paid from account credits) or `"mixed"` (both).</ResponseField>
+<ResponseField name="totals" type="object">`charged_cents` / `charged_credits`: every charge taken for the book, including ones later returned. `refunded_cents` / `refunded_credits`: charges returned for passages that failed or were cancelled. `net_cents` / `net_credits`: `charged - refunded`, what the book cost; `net_cents` equals the sum of the API wallet debits for this book. `characters_billed`: billable characters of the narration kept.</ResponseField>
+<ResponseField name="breakdown" type="object">`first_narration`: `{characters, cents, credits}` for each passage's first narration. `regenerations`: `{characters, cents, credits, count}` for paid regenerations (every take after a passage's first). `free_regenerations`: count of regenerations that cost nothing (a passage's first regeneration is free). `review_approvals`: count of flagged narrations approved from review, which cost nothing.</ResponseField>
+<ResponseField name="chapters" type="array">Per chapter, `{chapter_id, chapter_number, title, characters, cents, credits}` (net). Passages deleted since they were narrated stay counted under their chapter.</ResponseField>
+<ResponseField name="partial" type="boolean">`true` when older charges made while this book was being narrated can no longer be tied to one of its passages; they are left out of the figures and `notes` says how many. `false` means every charge is accounted for.</ResponseField>
+<ResponseField name="notes" type="array">Explanations, empty when there is nothing to add.</ResponseField>
+<ResponseField name="as_of" type="string">When these figures were read (UTC, ISO 8601).</ResponseField>
+
+Returns `404` if the book does not exist or is not yours.
 
 ## 5. Narrate
 
