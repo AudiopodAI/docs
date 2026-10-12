@@ -1,0 +1,313 @@
+---
+title: "Characters and voices (cast)"
+description: "Give each character in an audiobook its own voice through the API: find who speaks each line, review the cast, merge alternate names, assign a voice per character, then narrate."
+---
+
+## Overview
+
+By default every line of a book is read by one narrator: the project's `selected_voice_id`. **Casting** gives the characters their own voices. Every paragraph carries a `character_name` (empty means the narrator), and every paragraph can carry its own `voice_id`. The cast endpoints fill those two fields for the whole book at once, so you do not have to edit paragraphs one at a time.
+
+```
+add manuscript → find speakers (annotate or detect) → review cast → merge aliases → assign voices → narrate
+```
+
+Every endpoint on this page accepts an API key (`X-API-Key`) as well as a session token, and works only on projects you own. All paths are relative to `https://api.audiopod.ai/api/v1`.
+
+| Step | Method | Endpoint | Cost |
+|---|---|---|---|
+| Split paragraphs into speaker lines | POST | `/audiobook/projects/{project_id}/screenplay/annotate` | Free |
+| Annotation status | GET | `/audiobook/projects/{project_id}/screenplay/annotate/{job_id}/status` | Free |
+| Quick speaker detection (English) | POST | `/audiobook/projects/{project_id}/cast/detect` | Free |
+| Read the cast | GET | `/audiobook/projects/{project_id}/cast` | Free |
+| Merge an alternate name | POST | `/audiobook/projects/{project_id}/cast/alias` | Free |
+| Assign a voice to a character | POST | `/audiobook/projects/{project_id}/cast/assign` | Free |
+| Tag or re-voice one paragraph | PUT | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}` | Free |
+| Design a new voice per character | POST | `/audiobook/projects/{project_id}/cast/auto` | **Prepaid**, see [Auto-cast](#auto-cast-design-a-voice-per-character) |
+| Auto-cast status | GET | `/audiobook/projects/{project_id}/cast/auto/{job_id}/status` | Free |
+
+Casting itself costs nothing, except auto-cast, which designs new voices. You pay when you [narrate](/api-reference/audiobook#5-narrate), at the normal narration rate, whichever voice reads the line.
+
+<Tip>
+**Cast before you narrate.** Annotation can split a paragraph into several lines, and a split paragraph loses its audio. A new voice only takes effect on a line's next narration. Casting a book that has no audio yet costs nothing to redo.
+</Tip>
+
+## Quick start
+
+```bash
+export AUDIOPOD_API_KEY="ap_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+export AP="https://api.audiopod.ai/api/v1"
+# PID = a project whose manuscript is already parsed or pasted
+
+# 1. Split the book into speaker-attributed lines (background job, free)
+JOB=$(curl -s -X POST "$AP/audiobook/projects/$PID/screenplay/annotate" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" -d '{}' | jq -r .job_id)
+until curl -s "$AP/audiobook/projects/$PID/screenplay/annotate/$JOB/status" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" | jq -e '.status=="COMPLETED" or .status=="FAILED"' >/dev/null; do sleep 10; done
+
+# 2. Review who speaks, and how often
+curl -s "$AP/audiobook/projects/$PID/cast" -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  | jq '.members[] | {character_name, is_narrator, paragraph_count, voice_id}'
+
+# 3. Merge an alternate name onto the main one
+curl -s -X POST "$AP/audiobook/projects/$PID/cast/alias" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"character_name": "mastr'"'"'Antonio", "alias_of": "Maestro Ciliegia"}'
+
+# 4. Give each character a voice (ids from GET /audiobook/voices/available)
+curl -s -X POST "$AP/audiobook/projects/$PID/cast/assign" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"character_name": "Maestro Ciliegia", "voice_id": 1248}'
+
+# 5. Narrate. Do NOT send voice_id here, or it replaces every cast voice (see below)
+curl -s -X POST "$AP/audiobook/projects/$PID/narration/batch" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" -d '{}'
+```
+
+<Warning>
+**Leave `voice_id` out of `narration/batch` on a cast book.** A `voice_id` in the batch body is an override for every selected paragraph, and it is saved on each paragraph it narrates, so it replaces the character voices you assigned. Without it, each paragraph uses its own `voice_id` and falls back to the project's `selected_voice_id`. Set the narrator's voice with [`cast/assign`](#assign-a-voice) (`"is_narrator": true`) or on the project instead.
+</Warning>
+
+## 1. Find who speaks each line
+
+There are two ways to fill `character_name`. Both leave locked paragraphs alone.
+
+### Screenplay annotation (recommended)
+
+`POST /audiobook/projects/{project_id}/screenplay/annotate`
+
+Our narration engine reads each paragraph and splits it into lines: narration, and dialogue attributed to the named character who speaks it. A paragraph like *"— Ohi! tu m'hai fatto male! — gridò la vocina."* becomes a dialogue line for the speaker plus a narration line. Each line also gets a short performance `direction`. It works in any language and with any dialogue punctuation: quotation marks, guillemets, or the em dashes common in Italian, French and Spanish fiction.
+
+<ParamField body="chapter_ids" type="string[]">Annotate only these chapters (UUIDs). Omit, or send `{}`, to annotate the whole book.</ParamField>
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/screenplay/annotate" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" -d '{}'
+# => { "job_id": "1914", "total_chapters": 2 }
+```
+
+<ResponseField name="job_id" type="string">The annotation job. Poll its status.</ResponseField>
+<ResponseField name="total_chapters" type="integer">Chapters in scope.</ResponseField>
+
+**Annotation is free**, on every plan.
+
+Poll `GET /audiobook/projects/{project_id}/screenplay/annotate/{job_id}/status` until `status` is `COMPLETED` or `FAILED`:
+
+```bash
+curl "$AP/audiobook/projects/$PID/screenplay/annotate/1914/status" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => { "job_id": "1914", "status": "COMPLETED", "progress": 100.0, "current_step": "completed",
+#      "error_message": null,
+#      "result": { "chapters_annotated": 2, "paragraphs_split": <n>,
+#                  "characters_found": ["Geppetto", "Maestro Ciliegia", ...],
+#                  "skipped_paragraphs": <n> } }
+```
+
+<ResponseField name="status" type="string">`PENDING` · `PROCESSING` · `COMPLETED` · `FAILED`.</ResponseField>
+<ResponseField name="progress" type="number">0–100.</ResponseField>
+<ResponseField name="result.chapters_annotated" type="integer">Chapters processed.</ResponseField>
+<ResponseField name="result.paragraphs_split" type="integer">Paragraphs that were split into more than one line.</ResponseField>
+<ResponseField name="result.characters_found" type="string[]">Named speakers found.</ResponseField>
+<ResponseField name="result.skipped_paragraphs" type="integer">Paragraphs left unchanged. Locked paragraphs, paragraphs being narrated, paragraphs marked `skip_narration`, and any line the engine could not split without changing the author's words all stay as they were.</ResponseField>
+
+What annotation changes, and what it leaves alone:
+
+- **The author's words are kept.** A split is only applied when the lines together reproduce the original paragraph's words. Otherwise the paragraph is left alone and counted in `skipped_paragraphs`.
+- **Paragraph ids change where a paragraph is split.** The first line keeps the original paragraph's id and new lines are inserted after it. Re-read the chapter's paragraphs after annotation; do not reuse ids you stored before it.
+- **A split paragraph loses its audio** and goes back to `pending`, so annotate before narrating.
+- **`character_name` is rewritten** on every unlocked paragraph in scope, including names you set by hand. Lock a paragraph (`PUT .../paragraphs/{id}` with `{"locked": true}`) to protect it.
+- **A `direction` you wrote yourself is kept**; the engine's direction fills only the others. See [Auto Direction](/api-reference/audiobook#3c-auto-direction).
+- **Voices are not assigned.** New lines have no `voice_id`, so they read in the narrator voice until you [assign](#assign-a-voice) one.
+
+`409` means an annotation is already running for this project, a paragraph in scope is being narrated, or the book is exporting. `400` means no chapters matched `chapter_ids`, or the scope is too large for one pass; annotate a range of chapters instead.
+
+### Quick speaker detection (English only)
+
+`POST /audiobook/projects/{project_id}/cast/detect`, no body.
+
+An instant, rule-based pass. It tags a paragraph only when the attribution is unambiguous **English** dialogue: a quotation mark plus a reporting verb next to a capitalised name (`"Wait," said Eleanor.` or `Captain Reyes asked, "Why?"`). It never guesses from a pronoun ("he said"). It does not split paragraphs, and it only fills paragraphs that have no `character_name` yet and are not locked, so it never overwrites a name you set.
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/cast/detect" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => { "detected_paragraphs": <n>, "members": [ ...same shape as GET /cast... ] }
+```
+
+<Note>
+Detection does not recognise non-English dialogue. On an Italian book that uses em-dash dialogue it returns `"detected_paragraphs": 0`. Use screenplay annotation for books that are not in English, and for English books where the speaker is only implied.
+</Note>
+
+## 2. Review the cast
+
+`GET /audiobook/projects/{project_id}/cast`
+
+```bash
+curl "$AP/audiobook/projects/$PID/cast" -H "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+```json
+{
+  "members": [
+    { "character_name": null, "is_narrator": true, "paragraph_count": 75,
+      "voice_id": 1186, "sample_text": "Capitolo 1.", "alias_of": null, "aliases": [] },
+    { "character_name": "Maestro Ciliegia", "is_narrator": false, "paragraph_count": 2,
+      "voice_id": 1248, "sample_text": "— Insegno l'abbaco alle formicole.",
+      "alias_of": null, "aliases": ["mastr'Antonio"] },
+    { "character_name": "Geppetto", "is_narrator": false, "paragraph_count": 1,
+      "voice_id": 917, "sample_text": "— Buon pro vi faccia.", "alias_of": null, "aliases": [] },
+    { "character_name": "mastr'Antonio", "is_narrator": false, "paragraph_count": 1,
+      "voice_id": 1248, "sample_text": "— Rendimi la mia parrucca! — gridò mastr'Antonio.",
+      "alias_of": "Maestro Ciliegia", "aliases": [] }
+  ],
+  "total_characters": 3
+}
+```
+
+<ResponseField name="members" type="array">One entry per speaker: the narrator bucket first, then characters by line count. Names are grouped case-insensitively. A merged alternate name keeps its own entry, with `alias_of` set, and its lines are not counted in the main speaker's `paragraph_count`.</ResponseField>
+<ResponseField name="members[].character_name" type="string | null">The speaker's name as tagged on the paragraphs. `null` for the narrator.</ResponseField>
+<ResponseField name="members[].is_narrator" type="boolean">`true` for the narrator bucket: every paragraph with no `character_name`.</ResponseField>
+<ResponseField name="members[].paragraph_count" type="integer">Lines this speaker has (paragraphs marked `skip_narration` are not counted).</ResponseField>
+<ResponseField name="members[].voice_id" type="integer | null">The voice the speaker currently uses. For the narrator, the project's `selected_voice_id`. For a character, the voice most of their lines carry, or `null` when none has one yet. Lines without a `voice_id` read in the narrator's voice. A character can show a `voice_id` here while a few lines tagged after the last `cast/assign` still have none. Call `cast/assign` again before narrating to cover them.</ResponseField>
+<ResponseField name="members[].sample_text" type="string | null">One of the speaker's lines, for a quick check.</ResponseField>
+<ResponseField name="members[].alias_of" type="string | null">Set when this name is merged onto another speaker.</ResponseField>
+<ResponseField name="members[].aliases" type="string[]">Names merged onto this speaker.</ResponseField>
+<ResponseField name="total_characters" type="integer">Named speakers, not counting the narrator.</ResponseField>
+
+## 3. Merge alternate names
+
+Books call the same person different things: *mastr'Antonio* and *Maestro Ciliegia*, *Mr. Darcy* and *Darcy*. An alias makes them one speaker with one voice.
+
+`POST /audiobook/projects/{project_id}/cast/alias`
+
+<ParamField body="character_name" type="string" required>The alternate name, as it appears in the cast (1–120 characters).</ParamField>
+<ParamField body="alias_of" type="string | null">The main name to merge it onto. Send `null` or omit it to remove the alias again.</ParamField>
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/cast/alias" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"character_name": "Darcy", "alias_of": "Mr. Darcy"}'
+# => { "updated_paragraphs": 1, "members": [ ...updated cast: "Darcy" now has "alias_of": "Mr. Darcy",
+#      and "Mr. Darcy" lists it under "aliases" ... ] }
+```
+
+<ResponseField name="updated_paragraphs" type="integer">Lines under the alternate name that took the main speaker's voice. `0` when the main speaker has no voice yet.</ResponseField>
+<ResponseField name="members" type="array">The cast after the change, same shape as `GET /cast`.</ResponseField>
+
+When you set an alias, the alternate name's unlocked lines take the main speaker's current voice straight away, and every later `cast/assign` to the main name covers the alias too. The paragraphs keep their original `character_name`; the merge is stored on the project. Removing the alias leaves the voices where they are. `400` means the alias is not allowed, for example a name aliased onto itself.
+
+## 4. Assign a voice
+
+`POST /audiobook/projects/{project_id}/cast/assign`
+
+Pick voice ids from [`GET /audiobook/voices/available`](/api-reference/audiobook#4-choose-a-voice), including your own cloned voices. For a book that is not in English, filter by the full locale (`?language=it-IT`) to see the voices suited to it.
+
+<ParamField body="character_name" type="string">The speaker to voice (max 120 characters). Matching is case-insensitive and includes every alias of that name.</ParamField>
+<ParamField body="is_narrator" type="boolean" default="false">Set to `true` (or omit `character_name`) to change the narrator instead: the project's default voice.</ParamField>
+<ParamField body="voice_id" type="integer" required>The voice to use.</ParamField>
+
+```bash
+# A character
+curl -X POST "$AP/audiobook/projects/$PID/cast/assign" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"character_name": "Maestro Ciliegia", "voice_id": 1248}'
+# => { "updated_paragraphs": 1, "narrator_default_updated": false, "already_narrated": 0 }
+
+# The narrator
+curl -X POST "$AP/audiobook/projects/$PID/cast/assign" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"is_narrator": true, "voice_id": 1186}'
+# => { "updated_paragraphs": 0, "narrator_default_updated": true, "already_narrated": 0 }
+```
+
+<ResponseField name="updated_paragraphs" type="integer">Lines that now carry the new voice.</ResponseField>
+<ResponseField name="narrator_default_updated" type="boolean">`true` when the call changed the project's narrator voice.</ResponseField>
+<ResponseField name="already_narrated" type="integer">How many of those lines already had audio. They keep their old audio until you narrate them again.</ResponseField>
+
+**How assignment works.** These are the rules to plan a pipeline around:
+
+- **It is a one-time stamp.** `cast/assign` writes the `voice_id` onto every *unlocked* paragraph tagged with that name (or one of its aliases) **at the moment you call it**. It is not a standing rule. A paragraph tagged with the name *afterwards*, by a later annotation or a `PUT`, has no `voice_id` and reads in the narrator voice until you call `cast/assign` again. Re-running it is safe and free.
+- **Locked paragraphs are skipped.** Unlock them first if they should change.
+- **Narrated lines keep their audio.** A new voice applies on the next narration of the line; see [Re-narrate](#5-narrate-and-re-narrate).
+- **The narrator is different.** Changing the narrator updates the project's `selected_voice_id`, which every paragraph without its own `voice_id` falls back to, now and later.
+
+### One paragraph at a time
+
+`PUT /audiobook/projects/{project_id}/paragraphs/{paragraph_id}` tags or re-voices a single line, for a correction the bulk calls do not cover:
+
+```bash
+curl -X PUT "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"character_name": "Geppetto", "voice_id": 917}'
+```
+
+<ParamField body="character_name" type="string | null">Speaker for this paragraph (max 120 characters). Send `null` to give the line back to the narrator.</ParamField>
+<ParamField body="voice_id" type="integer | null">Voice for this paragraph only. Send `null` to fall back to the project's narrator voice.</ParamField>
+
+Setting `character_name` alone does not change the voice. Send `voice_id` with it, or call `cast/assign` afterwards. A locked paragraph refuses every change except unlocking it (`409`). Changing these fields does not delete the line's audio; the new voice is heard on its next narration.
+
+## 5. Narrate and re-narrate
+
+Narrate with [`POST .../narration/batch`](/api-reference/audiobook#5-narrate) and **no `voice_id`**, so each line uses the voice you cast:
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" -d '{}'
+```
+
+To hear a new voice on lines that are already narrated, re-narrate just those paragraphs with `paragraph_ids` and `include_completed`. Collect the ids of the character's lines from the chapters' paragraph lists:
+
+```bash
+# ids of every line Maestro Ciliegia speaks in one chapter
+IDS=$(curl -s "$AP/audiobook/projects/$PID/chapters/$CHAPTER_ID/paragraphs" -H "X-API-Key: $AUDIOPOD_API_KEY" \
+  | jq -c '[.paragraphs[] | select(.character_name=="Maestro Ciliegia") | .id]')
+
+curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d "{\"paragraph_ids\": $IDS, \"include_completed\": true}"
+```
+
+Re-narration is billed like any narration, so only the lines you send are charged. A single line can also be redone with [`POST .../paragraphs/{paragraph_id}/narrate`](/api-reference/audiobook#narrate-a-single-paragraph), where the first regeneration of a paragraph is free.
+
+## Auto-cast: design a voice per character
+
+`POST /audiobook/projects/{project_id}/cast/auto`
+
+Instead of choosing library voices, auto-cast **designs a new custom voice for each character** from how the book portrays them, saves it to your voices, and assigns it to the character's unlocked lines. It is a paid feature with a prepaid charge.
+
+<ParamField body="character_names" type="string[]">Characters to cast. Omit to cast the speakers with the most lines who have no voice yet.</ParamField>
+<ParamField body="max_characters" type="integer" default="6">How many characters to cast, `1`–`12`.</ParamField>
+
+```bash
+curl -X POST "$AP/audiobook/projects/$PID/cast/auto" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"character_names": ["Maestro Ciliegia", "Geppetto"]}'
+# => { "job_id": "2051", "characters": ["Maestro Ciliegia", "Geppetto"] }
+
+curl "$AP/audiobook/projects/$PID/cast/auto/2051/status" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => { "job_id": "2051", "status": "COMPLETED", "progress": 100.0,
+#      "result": { "cast": [ { "character_name": "Geppetto", "voice_id": 4410, "display_name": "Geppetto" }, ... ],
+#                  "failed": [] } }
+```
+
+- **Prepaid.** 250 credits per character are reserved when you start the job. Each is charged when that character's voice is made, and refunded if it fails. If the balance cannot cover every character, the call returns `402` and nothing is charged.
+- **Plan.** Auto-cast needs a paid subscription plan. On the free plan it returns `402` with `"code": "PREMIUM_TIER_REQUIRED"`. Choosing library voices with `cast/assign` works on every plan.
+- `409`: an auto-cast job is already running for this project. `400`: there are no characters to cast. Run annotation first. `503`: auto-cast is temporarily unavailable, and nothing was charged.
+- Characters that already have a voice are skipped unless you name them in `character_names`.
+
+## Errors
+
+| Status | Meaning |
+|---|---|
+| `400` | Invalid alias, no chapters to annotate, scope too large to annotate in one pass, or no characters to auto-cast. |
+| `402` | Auto-cast only: insufficient credits, or the plan does not include it. |
+| `404` | The project, or the job id, does not exist or is not yours. |
+| `409` | The book is exporting, a line in scope is being narrated, the same kind of job is already running, or the paragraph is locked. |
+| `422` | The request body failed validation (for example `character_name` over 120 characters). |
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Audiobook API" icon="book-open" href="/api-reference/audiobook">
+    The full pipeline: projects, manuscripts, narration, review and ACX export.
+  </Card>
+  <Card title="Voice Management" icon="user" href="/api-reference/voice-management">
+    Clone a voice from a short sample and cast it as a character.
+  </Card>
+</CardGroup>

@@ -127,6 +127,14 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | **Auto Direction — direct the book** | POST | `/audiobook/projects/{project_id}/direction/auto` |
 | Latest direction run | GET | `/audiobook/projects/{project_id}/direction/auto/latest` |
 | Direction run status | GET | `/audiobook/projects/{project_id}/direction/auto/{job_id}/status` |
+| **Cast — read speakers + voices** | GET | `/audiobook/projects/{project_id}/cast` — see [Characters and voices](/api-reference/audiobook-cast) |
+| Split lines by speaker (screenplay annotation) | POST | `/audiobook/projects/{project_id}/screenplay/annotate` |
+| Annotation status | GET | `/audiobook/projects/{project_id}/screenplay/annotate/{job_id}/status` |
+| Quick speaker detection (English) | POST | `/audiobook/projects/{project_id}/cast/detect` |
+| Merge an alternate character name | POST | `/audiobook/projects/{project_id}/cast/alias` |
+| Assign a voice to a character | POST | `/audiobook/projects/{project_id}/cast/assign` |
+| Auto-cast (designs voices — prepaid) | POST | `/audiobook/projects/{project_id}/cast/auto` |
+| Auto-cast status | GET | `/audiobook/projects/{project_id}/cast/auto/{job_id}/status` |
 | **Pronunciation dictionary — list entries** | GET | `/audiobook/projects/{project_id}/pronunciations` |
 | Add a pronunciation entry | POST | `/audiobook/projects/{project_id}/pronunciations` |
 | Update a pronunciation entry | PUT | `/audiobook/projects/{project_id}/pronunciations/{pronunciation_id}` |
@@ -173,9 +181,11 @@ PID=$(curl -s -X POST "$AP/audiobook/projects" -H "X-API-Key: $AUDIOPOD_API_KEY"
 FILE_KEY=$(curl -s -X POST "$AP/audiobook/projects/$PID/manuscript/upload" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file=@book.epub" | jq -r .file_key)
 
-# 3. Parse into chapters (async)
+# 3. Parse into chapters (async). API keys default to auto_direction=false:
+#    pass auto_direction=true to have every paragraph directed after parsing (free)
 curl -s -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
-  -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file_key=$FILE_KEY" -F "filename=book.epub"
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -F "file_key=$FILE_KEY" -F "filename=book.epub" \
+  -F "auto_direction=true"
 
 # 3b. Poll the PROJECT until parsing finishes — status tells you which way it went
 while :; do
@@ -449,6 +459,15 @@ Parses typically finish in under two minutes for EPUB/DOCX/TXT and in 2–10 min
 <ParamField body="source_type" type="string" default="paste">Source label.</ParamField>
 <ParamField body="auto_direction" type="boolean | null">Add automatic reading direction after splitting the text into chapters. Omitted or `null` follows the [account preference](#account-audiobook-settings) for Studio requests and defaults to `false` for API keys. An explicit `true` or `false` overrides that default for this import.</ParamField>
 
+```bash
+# Paste text and direct it in one call (API keys must ask for direction explicitly)
+curl -X POST "$AP/audiobook/projects/$PID/manuscript/paste" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"text": "Capitolo 1\n\nC'"'"'era una volta un pezzo di legno...", "auto_direction": true}'
+# => { "project_id": "...", "source_type": "paste", "total_chapters": 2, "total_words": 1344,
+#      "estimated_duration_minutes": 8.96, "requires_author_approval": true }
+```
+
 ### Generate a book from a prompt
 
 `POST /audiobook/projects/{project_id}/manuscript/generate` — JSON. Drafts an original manuscript, then chapters it.
@@ -675,6 +694,10 @@ curl -X PUT "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID" \
 When you send a longer one, the response carries a `warnings` entry telling you exactly how much of it will not be heard.
 </Warning>
 
+## Characters and voices
+
+A book with dialogue can give every character their own voice: split paragraphs into speaker-attributed lines, review the cast, merge alternate names, and assign a voice per character before you narrate. The full workflow, with every endpoint, is on **[Characters and voices (cast)](/api-reference/audiobook-cast)**.
+
 ## 3d. Pronunciation dictionary
 
 Some words need a nudge no voice selection can give you — the wrong stress on a place name, a word from another language read as if it were English. A **pronunciation dictionary** fixes this per project: map a written word (`source`) to what the narrator should actually say (`alias`), and every future narration or regeneration in every chapter of the project picks it up automatically.
@@ -829,7 +852,7 @@ Returns `404` if the book does not exist or is not yours.
 - **`chapter_ids`** → narrate only those chapters;
 - **`paragraph_ids`** → narrate only those paragraphs.
 
-<ParamField body="voice_id" type="integer">Voice to narrate with (from `voices/available`). Optional — omit to use each paragraph's/chapter's assigned voice, falling back to the project's `selected_voice_id`.</ParamField>
+<ParamField body="voice_id" type="integer">Voice to narrate with (from `voices/available`). Optional — omit to use each paragraph's/chapter's assigned voice, falling back to the project's `selected_voice_id`. **When sent, it overrides every selected paragraph's own voice and is saved on each paragraph it narrates** — omit it on a book with [character voices](/api-reference/audiobook-cast).</ParamField>
 <ParamField body="chapter_ids" type="array">Optional — UUIDs of chapters to narrate.</ParamField>
 <ParamField body="paragraph_ids" type="array">Optional — UUIDs of individual paragraphs to narrate.</ParamField>
 <ParamField body="include_completed" type="boolean" default="false">Re-narrate paragraphs that already have finished audio.</ParamField>
