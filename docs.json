@@ -53,7 +53,8 @@
             "group": "Audiobook",
             "icon": "book-open",
             "pages": [
-              "api-reference/audiobook"
+              "api-reference/audiobook",
+              "api-reference/audiobook-cast"
             ]
           },
           {
