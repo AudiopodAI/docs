@@ -27,7 +27,7 @@ Character voices are **off by default**. While they are off, the book narrates e
 Turning character voices on by any of these routes (or sending `multi_voice: true` again) does two things at no cost:
 
 - every speaker in the book gets a row in the cast;
-- **each character without a cast voice gets a library voice automatically, when a suitable one is available.** When `cast/assign` or auto-cast is what turns them on, the character you chose keeps its voice and every other character gets a library voice. The pick prefers voices whose own language is the book's language, then voices that support it, then, when the character has a gender hint, a voice of that gender. It never takes the narrator's voice or a voice another character already has. If no suitable library voice is left for the book's language, the character stays without a cast voice and its lines read in the narrator voice; give it one with `cast/assign`. The pick is stable, so the same book is cast the same way every time. Change any pick with `cast/assign`.
+- **each character without a cast voice gets a library voice automatically, when a suitable one is available.** When `cast/assign` or auto-cast is what turns them on, the character you chose keeps its voice and every other character without a cast voice gets a library voice on the same terms. The pick prefers voices whose own language is the book's language, then voices that support it, then, when the character has a gender hint, a voice of that gender. It never takes the narrator's voice or a voice another character already has. If no suitable library voice is left for the book's language, the character stays without a cast voice and its lines read in the narrator voice; give it one with `cast/assign`. The pick is stable, so the same book is cast the same way every time. Change any pick with `cast/assign`.
 
 Send `multi_voice: false` to turn them off. Lines then follow the [voice order](#voice-order) for character voices off: a line voiced only through the cast goes back to the chapter's voice or the narrator, while a voice saved on the line stays with it (one you set, a batch `voice_id` it was narrated with, or the narrator voice narration saved on it). Locked lines keep the voice they had. The cast is kept for when you turn character voices back on.
 
@@ -102,8 +102,9 @@ export AUDIOPOD_API_KEY="ap_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 export AP="https://api.audiopod.ai/api/v1"
 # PID = a project you created (with "language" and "selected_voice_id", the narrator)
 
-# 1. Add the manuscript with character voices on: speakers are detected and every
-#    character gets a library voice, free. Our speaker detection pass then runs in
+# 1. Add the manuscript with character voices on: speakers are detected and each
+#    character gets a free library voice while suitable ones are left (check
+#    voice_id in step 2; null = narrator voice until you cast/assign one). Our speaker detection pass then runs in
 #    the background, and narration started meanwhile waits for it
 curl -s -X POST "$AP/audiobook/projects/$PID/manuscript/paste" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
@@ -156,7 +157,7 @@ Narration of a passage that has not started waits until this pass finishes, so l
 
 <ParamField query="method" type="string" default="heuristic">`heuristic`: the instant pass, answered at once. `llm`: [our speaker detection pass](#speaker-detection-pass-with-character-voices-on), run as a background job; the response carries `job_id`.</ParamField>
 
-Either method is free and only fills paragraphs that have no `character_name` and are not locked, so it never overwrites a name you set. With character voices on, each newly found character gets a library voice.
+Either method is free and only fills paragraphs that have no `character_name` and are not locked, so it never overwrites a name you set. With character voices on, each newly found character gets a library voice when the catalog has a suitable one left (one that suits the book's language and is not the narrator's or another character's); a character left without one reads in the narrator voice until you give it one with `cast/assign`.
 
 ```bash
 curl -X POST "$AP/audiobook/projects/$PID/cast/detect" -H "X-API-Key: $AUDIOPOD_API_KEY"
@@ -236,7 +237,7 @@ What annotation changes, and what it leaves alone:
 - **Any paragraph whose text changes loses its audio** and goes back to `pending`: every split paragraph, and any paragraph whose text is rewritten even without a split. Annotate before narrating.
 - **`character_name` is rewritten** on every unlocked paragraph in scope, including names you set by hand. Lock a paragraph (`PUT .../paragraphs/{id}` with `{"locked": true}`) to protect it.
 - **A `direction` you wrote yourself is kept**; the engine's direction fills only the others. See [Auto Direction](/api-reference/audiobook#3c-auto-direction).
-- **New characters get a library voice.** With character voices on, every character annotation finds that has no cast voice gets a free library voice, as after a parse (never a designed one). With character voices off, no voices are picked.
+- **New characters get a library voice.** With character voices on, each character annotation finds that has no cast voice gets a library voice when the catalog has a suitable one left (one that suits the book's language and is not the narrator's or another character's); a character left without one reads in the narrator voice until you give it one with `cast/assign` (never a designed one). With character voices off, no voices are picked.
 
 `409` means an annotation is already running for this project, a paragraph in scope is being narrated, or the book is exporting. `400` means no chapters matched `chapter_ids`, or the scope is too large for one pass; annotate a range of chapters instead.
 
