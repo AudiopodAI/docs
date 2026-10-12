@@ -27,7 +27,7 @@ Character voices are **off by default**. While they are off, the book narrates e
 Turning character voices on by any of these routes (or sending `multi_voice: true` again) does two things at no cost:
 
 - every speaker in the book gets a row in the cast;
-- **every character without a cast voice gets a library voice automatically.** When `cast/assign` or auto-cast is what turns them on, the character you chose keeps its voice and every other character gets a library voice. The pick prefers voices whose own language is the book's language, then voices that support it, then, when our speaker detection recorded whether the character is male or female, a voice of that gender. It never takes the narrator's voice or a voice another character already has. The pick is stable, so the same book is cast the same way every time. Change any pick with `cast/assign`.
+- **each character without a cast voice gets a library voice automatically, when a suitable one is available.** When `cast/assign` or auto-cast is what turns them on, the character you chose keeps its voice and every other character gets a library voice. The pick prefers voices whose own language is the book's language, then voices that support it, then, when the character has a gender hint, a voice of that gender. It never takes the narrator's voice or a voice another character already has. If no suitable library voice is left for the book's language, the character stays without a cast voice and its lines read in the narrator voice; give it one with `cast/assign`. The pick is stable, so the same book is cast the same way every time. Change any pick with `cast/assign`.
 
 Send `multi_voice: false` to turn them off. Lines then follow the [voice order](#voice-order) for character voices off: a line voiced only through the cast goes back to the chapter's voice or the narrator, while a voice saved on the line stays with it (one you set, a batch `voice_id` it was narrated with, or the narrator voice narration saved on it). Locked lines keep the voice they had. The cast is kept for when you turn character voices back on.
 
@@ -146,7 +146,7 @@ When a book has character voices on, adding a manuscript (`parse`, `paste`, `gen
 - gives a paragraph a speaker only when it is confident, and leaves narration and unnamed speakers with the narrator;
 - fills only paragraphs that have no `character_name`, are not locked, and whose speaker you did not clear;
 - merges alternate names of the same character as [aliases](#4-merge-alternate-names) (an alias you set is never changed);
-- records whether each character is male or female when the text shows it, and uses that for the character's free library voice.
+- records whether each character is male or female when the text shows it. The hint is used only for a character that has no cast voice when the pass finishes: it does not change a library voice already picked (for example when the manuscript was parsed). To change such a voice, use `cast/assign`.
 
 Narration of a passage that has not started waits until this pass finishes, so lines are not narrated before their speaker is known. When you asked for `auto_direction`, direction is written after the pass. The pass covers books up to the same word limit as [annotation](#split-mixed-paragraphs-screenplay-annotation).
 
@@ -363,13 +363,15 @@ curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
 
 If a selected line resolves to no voice at all (no cast voice, no chapter voice, no narrator), the batch returns `400`.
 
-To hear a new voice on lines that are already narrated, narrate just those paragraphs again with `paragraph_ids` and `include_completed`. Collect the ids of the character's lines from the chapters' paragraph lists. Paragraphs keep the name they were tagged with, so after an alias merge match the main name **and** its aliases (from `GET /cast`), case-insensitively:
+To hear a new voice on lines that are already narrated, narrate just those paragraphs again with `paragraph_ids` and `include_completed`. Collect the ids of the character's lines from the chapters' paragraph lists. Paragraphs keep the name they were tagged with, so after an alias merge match the main name **and** every alias (from `GET /cast`), case-insensitively. A main name with no lines of its own has no member of its own; its aliases point to it through `alias_of`:
 
 ```bash
 # the character's name plus its aliases, lower-cased
 NAMES=$(curl -s "$AP/audiobook/projects/$PID/cast" -H "X-API-Key: $AUDIOPOD_API_KEY" \
-  | jq -c --arg n "Maestro Ciliegia" '[.members[]
-      | select((.character_name // "" | ascii_downcase) == ($n | ascii_downcase))
+  | jq -c --arg n "Maestro Ciliegia" '($n | ascii_downcase) as $k
+      | [$k] + [.members[]
+      | select(((.character_name // "") | ascii_downcase) == $k
+               or ((.alias_of // "") | ascii_downcase) == $k)
       | ([.character_name] + .aliases)[] | ascii_downcase] | unique')
 # ids of every line Maestro Ciliegia speaks in one chapter, under any of those names
 IDS=$(curl -s "$AP/audiobook/projects/$PID/chapters/$CHAPTER_ID/paragraphs" -H "X-API-Key: $AUDIOPOD_API_KEY" \
@@ -417,7 +419,7 @@ curl "$AP/audiobook/projects/$PID/cast/auto/2051/status" -H "X-API-Key: $AUDIOPO
 ```
 
 - **Prepaid.** 250 credits per character are reserved when you start the job. Each is charged when that character's voice is made, and refunded if it fails. If the balance cannot cover every character, the call returns `402` and nothing is charged.
-- **Plan.** Auto-cast needs a paid subscription plan. On the free plan it returns `402` with `"code": "PREMIUM_TIER_REQUIRED"`. Library voices (`cast/assign` and the automatic pick) work on every plan.
+- **Plan.** Auto-cast needs an active paid subscription plan that includes monthly credits. Without one (the free plan, or a paid add-on that grants no credits) it returns `402` with `"code": "PREMIUM_TIER_REQUIRED"`. Library voices (`cast/assign` and the automatic pick) work on every plan.
 - **Who is skipped.** Without `character_names`, a character is already cast when its cast voice is one you chose (`cast/assign`) or one auto-cast designed, or one of its lines has a voice you set with a `PUT`. A free library voice from the automatic pick does not count, and neither does a voice narration saved on a line. So omitting `character_names` designs a voice for each character that only has a library pick, up to `max_characters`, at 250 credits per character designed. Name the characters in `character_names` to choose exactly what you pay for.
 - `409`: an auto-cast job is already running for this project. `400`: there are no characters to cast; detect speakers first. `503`: auto-cast is temporarily unavailable, and nothing was charged.
 
