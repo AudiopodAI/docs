@@ -114,7 +114,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | Create project | POST | `/audiobook/projects` |
 | List projects (`page`, `per_page`) | GET | `/audiobook/projects` |
 | Get project (`?include_chapters=true`) | GET | `/audiobook/projects/{project_id}` |
-| Update / delete project | PUT·DELETE | `/audiobook/projects/{project_id}` |
+| Update / delete project (incl. `multi_voice`) | PUT·DELETE | `/audiobook/projects/{project_id}` |
 | Upload manuscript | POST | `/audiobook/projects/{project_id}/manuscript/upload` |
 | Parse manuscript | POST | `/audiobook/projects/{project_id}/manuscript/parse` |
 | Append another manuscript file | POST | `/audiobook/projects/{project_id}/manuscript/append` |
@@ -130,7 +130,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | **Cast — read speakers + voices** | GET | `/audiobook/projects/{project_id}/cast` — see [Characters and voices](/api-reference/audiobook-cast) |
 | Split lines by speaker (screenplay annotation) | POST | `/audiobook/projects/{project_id}/screenplay/annotate` |
 | Annotation status | GET | `/audiobook/projects/{project_id}/screenplay/annotate/{job_id}/status` |
-| Quick speaker detection (English) | POST | `/audiobook/projects/{project_id}/cast/detect` |
+| Detect speakers | POST | `/audiobook/projects/{project_id}/cast/detect` |
 | Merge an alternate character name | POST | `/audiobook/projects/{project_id}/cast/alias` |
 | Assign a voice to a character | POST | `/audiobook/projects/{project_id}/cast/assign` |
 | Auto-cast (designs voices — prepaid) | POST | `/audiobook/projects/{project_id}/cast/auto` |
@@ -379,6 +379,8 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/parse" \
 <ParamField body="filename" type="string" required>Original filename, including the extension.</ParamField>
 <ParamField body="force" type="boolean" default="false">Re-parse a project that already has chapters. **Destructive** — existing chapters and paragraphs are replaced.</ParamField>
 <ParamField body="auto_direction" type="boolean">Run [Auto Direction](#auto-direction) as soon as parsing finishes, so the book narrates expressively without a second call. **Defaults to `false` for API-key callers** — see below.</ParamField>
+<ParamField body="detect_speakers" type="boolean">Attribute dialogue to named speakers (each paragraph's `character_name`). Free. Omitted: **off for API-key requests**, on in the web studio. `multi_voice: true` turns it on. See [Characters and voices](/api-reference/audiobook-cast#finding-the-speakers).</ParamField>
+<ParamField body="multi_voice" type="boolean">Give each character their own voice. Turns on `detect_speakers`, and every character found gets a library voice at no cost, which you can change on the cast. Omitted: the book's setting is left as it is (new books start with it off: every line uses the narrator). See [Characters and voices](/api-reference/audiobook-cast).</ParamField>
 
 <Note>
 **API-key parses default to `auto_direction=false`.** Set `auto_direction=true` explicitly to add reading direction after parsing. The account preference does not change this API-key default.
@@ -458,6 +460,8 @@ Parses typically finish in under two minutes for EPUB/DOCX/TXT and in 2–10 min
 <ParamField body="text" type="string" required>Manuscript or chapter text.</ParamField>
 <ParamField body="source_type" type="string" default="paste">Source label.</ParamField>
 <ParamField body="auto_direction" type="boolean | null">Add automatic reading direction after splitting the text into chapters. Omitted or `null` follows the [account preference](#account-audiobook-settings) for Studio requests and defaults to `false` for API keys. An explicit `true` or `false` overrides that default for this import.</ParamField>
+<ParamField body="detect_speakers" type="boolean">Attribute dialogue to named speakers (each paragraph's `character_name`). Free. Omitted: **off for API-key requests**, on in the web studio. `multi_voice: true` turns it on. See [Characters and voices](/api-reference/audiobook-cast#finding-the-speakers).</ParamField>
+<ParamField body="multi_voice" type="boolean">Give each character their own voice. Turns on `detect_speakers`, and every character found gets a library voice at no cost, which you can change on the cast. Omitted: the book's setting is left as it is (new books start with it off: every line uses the narrator). See [Characters and voices](/api-reference/audiobook-cast).</ParamField>
 
 ```bash
 # Paste text and direct it in one call (API keys must ask for direction explicitly)
@@ -479,6 +483,8 @@ curl -X POST "$AP/audiobook/projects/$PID/manuscript/paste" \
 <ParamField body="chapter_count" type="integer" default="3">Number of chapters.</ParamField>
 <ParamField body="words_per_chapter" type="integer" default="600">Target words per chapter.</ParamField>
 <ParamField body="auto_direction" type="boolean | null">Add automatic reading direction after generating and splitting the manuscript. Omitted or `null` follows the [account preference](#account-audiobook-settings) for Studio requests and defaults to `false` for API keys. An explicit `true` or `false` overrides that default for this import.</ParamField>
+<ParamField body="detect_speakers" type="boolean">Attribute dialogue to named speakers (each paragraph's `character_name`). Free. Omitted: **off for API-key requests**, on in the web studio. `multi_voice: true` turns it on. See [Characters and voices](/api-reference/audiobook-cast#finding-the-speakers).</ParamField>
+<ParamField body="multi_voice" type="boolean">Give each character their own voice. Turns on `detect_speakers`, and every character found gets a library voice at no cost, which you can change on the cast. Omitted: the book's setting is left as it is (new books start with it off: every line uses the narrator). See [Characters and voices](/api-reference/audiobook-cast).</ParamField>
 
 The `paste` and `generate` endpoints return a `ManuscriptIntakeResponse` with `total_chapters`, `total_words`, and `estimated_duration_minutes`.
 
@@ -696,7 +702,7 @@ When you send a longer one, the response carries a `warnings` entry telling you 
 
 ## Characters and voices
 
-A book with dialogue can give every character their own voice: split paragraphs into speaker-attributed lines, review the cast, merge alternate names, and assign a voice per character before you narrate. The full workflow, with every endpoint, is on **[Characters and voices (cast)](/api-reference/audiobook-cast)**.
+A book with dialogue can give every character their own voice. Character voices are off by default; send `multi_voice: true` when you add the manuscript (or on `PUT /audiobook/projects/{project_id}`) and every character found gets a library voice for free. Then review the cast, merge alternate names and change any voice before you narrate. The full workflow, with every endpoint, is on **[Characters and voices (cast)](/api-reference/audiobook-cast)**.
 
 ## 3d. Pronunciation dictionary
 
@@ -852,9 +858,15 @@ Returns `404` if the book does not exist or is not yours.
 - **`chapter_ids`** → narrate only those chapters;
 - **`paragraph_ids`** → narrate only those paragraphs.
 
-<ParamField body="voice_id" type="integer">Voice to narrate with (from `voices/available`). Optional — omit to use each paragraph's/chapter's assigned voice, falling back to the project's `selected_voice_id`. **When sent, it overrides every selected paragraph's own voice and is saved on each paragraph it narrates** — omit it on a book with [character voices](/api-reference/audiobook-cast).</ParamField>
+<ParamField body="voice_id" type="integer">Voice to narrate with (from `voices/available`). Optional — a narrator for this run, in place of the book's. With character voices off it voices every selected paragraph. With [character voices](/api-reference/audiobook-cast) on (`multi_voice`) it voices only the narrator's lines: characters keep their cast voice, and a paragraph given its own voice keeps it. It is never saved as a paragraph's own voice. Omit it to use the [voice order](/api-reference/audiobook-cast#voice-order).</ParamField>
+<ParamField body="multi_voice" type="boolean">Optional — turn character voices on or off, saved on the book before this run reads its voices. `true` also gives uncast characters a library voice.</ParamField>
 <ParamField body="chapter_ids" type="array">Optional — UUIDs of chapters to narrate.</ParamField>
 <ParamField body="paragraph_ids" type="array">Optional — UUIDs of individual paragraphs to narrate.</ParamField>
+
+<Note>
+Omit `chapter_ids` and `paragraph_ids` to narrate the whole book. An **empty** list (`[]`) is refused with `400` and `"code": "empty_selection"`, so a filter of yours that matched nothing never narrates, or bills, the whole book.
+</Note>
+
 <ParamField body="include_completed" type="boolean" default="false">Re-narrate paragraphs that already have finished audio.</ParamField>
 <ParamField body="include_locked" type="boolean" default="false">Include locked paragraphs.</ParamField>
 <ParamField body="include_skipped" type="boolean" default="false">Include paragraphs marked `skip_narration`.</ParamField>
