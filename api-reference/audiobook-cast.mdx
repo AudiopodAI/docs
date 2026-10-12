@@ -277,11 +277,17 @@ To hear a new voice on lines that are already narrated, re-narrate just those pa
 # ids of every line Maestro Ciliegia speaks in one chapter
 IDS=$(curl -s "$AP/audiobook/projects/$PID/chapters/$CHAPTER_ID/paragraphs" -H "X-API-Key: $AUDIOPOD_API_KEY" \
   | jq -c '[.paragraphs[] | select(.character_name=="Maestro Ciliegia") | .id]')
+# stop if nothing matched: an empty paragraph_ids narrates the WHOLE book
+[ "$IDS" = "[]" ] || [ -z "$IDS" ] && { echo "no matching paragraphs - nothing to re-narrate" >&2; exit 1; }
 
 curl -X POST "$AP/audiobook/projects/$PID/narration/batch" \
   -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
   -d "{\"paragraph_ids\": $IDS, \"include_completed\": true}"
 ```
+
+<Warning>
+**Never send an empty `paragraph_ids` (or `chapter_ids`).** An empty list means "all paragraphs", so with `include_completed: true` it re-narrates and re-bills the whole book. Check the list before you call.
+</Warning>
 
 Re-narration is billed like any narration, so only the lines you send are charged. A single line can also be redone with [`POST .../paragraphs/{paragraph_id}/narrate`](/api-reference/audiobook#narrate-a-single-paragraph), where the first regeneration of a paragraph is free.
 
