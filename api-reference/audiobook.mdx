@@ -155,6 +155,7 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | Approve all passages (optional `chapter_id`) | POST | `/audiobook/projects/{project_id}/review/approve-all` |
 | Reject one passage (optional `regenerate`) | POST | `/audiobook/projects/{project_id}/paragraphs/{paragraph_id}/review/reject` |
 | Production settings — opening/closing announcement, music, cover | GET·PUT | `/audiobook/projects/{project_id}/production-settings` |
+| **Pacing** — pauses between paragraphs, speaker changes, scene breaks | GET·PATCH | `/audiobook/projects/{project_id}/pacing` — see [Pacing and scene breaks](#pacing-and-scene-breaks) |
 | Upload media (cover/music) | POST | `/audiobook/projects/{project_id}/media/upload` |
 | Start ACX export | POST | `/audiobook/projects/{project_id}/export` |
 | Export status | GET | `/audiobook/projects/{project_id}/export/{job_id}/status` |
@@ -574,7 +575,7 @@ Pagination here is **opt-in**: omit *both* `page` and `per_page` and you get eve
 <ResponseField name="emotion" type="string">Emotional direction for this paragraph.</ResponseField>
 <ResponseField name="character_name" type="string">Speaking character, when the book is cast.</ResponseField>
 <ResponseField name="direction" type="string">Screenplay-style direction applied to this line.</ResponseField>
-<ResponseField name="pause_after_ms" type="integer">Silence appended after this paragraph, in milliseconds.</ResponseField>
+<ResponseField name="pause_after_ms" type="integer">Silence appended after this paragraph, in milliseconds (0–10000). `null` follows the book's [pacing](#pacing-and-scene-breaks); a value here always wins.</ResponseField>
 <ResponseField name="audio_file_path" type="string">Stored audio key, once narrated.</ResponseField>
 <ResponseField name="duration_seconds" type="number">Narrated length, once generated.</ResponseField>
 <ResponseField name="status" type="string">`pending` · `queued` · `narrating` · `completed` · `failed`.</ResponseField>
@@ -623,6 +624,40 @@ curl -X POST "$AP/audiobook/projects/$PID/paragraphs/$PARA_ID/narrate" \
 ```
 
 Poll `GET .../projects/{project_id}/paragraphs/{paragraph_id}` until `status` is `completed` (or `failed`, with `error_message`). The first take of a paragraph is billed, the **first regeneration is free**, and subsequent regenerations are billed again — `billing.is_free_regen` tells you which case you are in *before* the work runs. A `409` means the paragraph is locked; unlock it with `PUT .../paragraphs/{paragraph_id}` first.
+
+### Pacing and scene breaks
+
+How long the finished book pauses between passages is a **book setting**, not something you set line by line. Three values, each in milliseconds (`0`–`10000`):
+
+| Field | Default | The pause… |
+|-------|---------|------------|
+| `paragraph_gap_ms` | `500` | between two passages read by the same voice. When a named character speaks two lines in a row, the gap is half this value. |
+| `speaker_change_gap_ms` | `500` | when the voice changes — narrator to a character, or one character to another. |
+| `scene_break_ms` | `1500` | at a scene break. |
+
+A paragraph's own `pause_after_ms` always wins for the gap after that paragraph.
+
+**Scene breaks are detected for you.** A paragraph made only of divider marks — `* * *`, `***`, `#`, `###`, `⁂`, `~~~`, `---`, `—`, `•••`, `o0o`, a centred `◆`, `❖` or `§` — is a scene break. It stays in the chapter's paragraph list (so you can see where it is), comes back with `skip_narration: true`, is **never narrated and never charged**, and becomes a `scene_break_ms` pause in the chapter audio. Text that merely contains those marks (`***bold***`) or a heading (`# Chapter 1`) is ordinary text. A divider at the very start or end of a chapter is dropped — there is no scene on the other side of it.
+
+<ParamField body="paragraph_gap_ms" type="integer">Pause between passages by the same voice, `0`–`10000` ms.</ParamField>
+<ParamField body="speaker_change_gap_ms" type="integer">Pause when the voice changes, `0`–`10000` ms.</ParamField>
+<ParamField body="scene_break_ms" type="integer">Pause at a scene break, `0`–`10000` ms.</ParamField>
+
+Send only the fields you want to change; the response is the full, current pacing.
+
+```bash
+# read the book's pacing (a book that never set it returns the defaults)
+curl -s "$AP/audiobook/projects/$PID/pacing" -H "X-API-Key: $AUDIOPOD_API_KEY"
+# => { "paragraph_gap_ms": 500, "speaker_change_gap_ms": 500, "scene_break_ms": 1500 }
+
+# more air between voices and a longer pause at scene breaks
+curl -X PATCH "$AP/audiobook/projects/$PID/pacing" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"speaker_change_gap_ms": 900, "scene_break_ms": 2500}'
+# => { "paragraph_gap_ms": 500, "speaker_change_gap_ms": 900, "scene_break_ms": 2500 }
+```
+
+Pacing is applied when chapters are assembled, so changing it **never re-narrates anything and costs nothing**. Assembled chapter audio is refreshed the next time it is played or downloaded, and every export uses the current pacing. Saving pacing also marks divider-only paragraphs in a book imported before scene breaks were recognised, so you don't have to import it again.
 
 ## 3c. Auto Direction
 
