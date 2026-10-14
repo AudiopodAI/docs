@@ -81,21 +81,26 @@ console.log(job.output_url);
 import time
 
 voice = client.voice.create_voice(name="My Voice", audio_file="sample.wav")
+deadline = time.monotonic() + 300  # give up after 5 minutes
 while True:
     status = client.voice.get_voice(voice["id"])["status"]
     if status == "COMPLETED":
         break
     if status in ("FAILED", "CANCELLED"):
         raise RuntimeError(f"Voice cloning {status.lower()}")
+    if time.monotonic() > deadline:
+        raise TimeoutError(f"Voice {voice['id']} still {status} after 5 minutes")
     time.sleep(3)
 ```
 
 ```typescript Node
-let voice = await client.voice.create({ name: "My Voice", audioFile: "./sample.wav" });
+const voice = await client.voice.create({ name: "My Voice", audioFile: "./sample.wav" });
+const deadline = Date.now() + 300_000; // give up after 5 minutes
 for (;;) {
   const { status } = (await client.voice.get(voice.id)) as { status?: string };
   if (status === "COMPLETED") break;
   if (status === "FAILED" || status === "CANCELLED") throw new Error(`Voice cloning ${status}`);
+  if (Date.now() > deadline) throw new Error(`Voice ${voice.id} still ${status} after 5 minutes`);
   await new Promise((resolve) => setTimeout(resolve, 3000));
 }
 ```
