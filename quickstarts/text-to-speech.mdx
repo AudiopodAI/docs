@@ -1,0 +1,94 @@
+---
+title: "Add text to speech to your app"
+sidebarTitle: "Text to speech"
+description: "Turn text into natural speech with a catalog voice or your own cloned voice, in Python or Node, with inline directing for emotion, pauses and pronunciation."
+---
+
+**What you get:** an MP3 (or WAV / OGG) of your text read in the voice you pick, as a download URL.
+
+**Input:** up to 20,000 characters of text per request and a voice id. Split longer text into parts.
+
+## 1. Install and set your key
+
+<CodeGroup>
+```bash Python
+pip install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+
+```bash Node
+npm install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+</CodeGroup>
+
+## 2. Generate speech
+
+<CodeGroup>
+```python Python
+from audiopod import Client
+
+client = Client()
+
+job = client.voice.generate_speech(
+    voice_id=368,
+    text="Welcome back. Here is today's summary.",
+    wait_for_completion=True,
+)
+print(job["output_url"])
+```
+
+```typescript Node
+import AudioPod from "audiopod";
+
+const client = new AudioPod();
+
+// generate() starts the job and waits for it
+const job = await client.voice.generate({
+  text: "Welcome back. Here is today's summary.",
+  voiceId: 368,
+});
+console.log(job.output_url);
+```
+</CodeGroup>
+
+## Pick a voice
+
+`voice_id` takes a catalog voice id (a number) or the id of a voice you cloned. List what your key can use:
+
+<CodeGroup>
+```python Python
+voices = client.voice.list_voices()
+print([v["id"] for v in voices][:10])
+```
+
+```typescript Node
+const voices = await client.voice.list();
+console.log(voices.slice(0, 10).map((v) => v.id));
+```
+</CodeGroup>
+
+Browse and preview the catalog in the [voice library](https://audiopod.ai/voices). To speak in your own voice, [clone it first](/quickstarts/voice-cloning).
+
+## Direct the delivery
+
+Directions go inline in the text:
+
+```python
+text = '[warm, unhurried] Good evening. [breathe] Tonight, a story. <break time="600ms"/> It begins in Worcester /ˈwʊstər/.'
+```
+
+- Emotion and delivery: a leading bracket per segment, e.g. `[whispering, tense]`.
+- Non-verbal sounds: `[laugh]`, `[sigh]`, `[breathe]`, `[chuckle]`, `[gasp]` and more.
+- Pauses: `<break time="500ms"/>` (up to 10 s each, 20 per request).
+- Pronunciation: IPA between slashes, e.g. `Worcester /ˈwʊstər/`.
+
+## Tips
+
+- `speed` runs from 0.25 to 4.0 (default 1.0). `audio_format` / `audioFormat` sets `mp3`, `wav` or `ogg`.
+- For a "listen to this page" button, call TTS from a server route so your API key never reaches the browser, then return `output_url` to the client.
+- Word-level timestamps for read-along UIs and designing a voice from a text description are covered in the [Text to Speech](/api-reference/text-to-speech) reference.
+
+## From an AI agent
+
+On the full MCP endpoint (`https://mcp.audiopod.ai`, see [AudioPod for AI agents](/agents)) ask: *"Read this paragraph aloud in a calm voice: ..."*. The agent calls `text_to_speech` with `text` and, optionally, `voice_id`, `language` and `speed`.

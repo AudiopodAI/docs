@@ -1,0 +1,85 @@
+---
+title: "Transcribe audio with speaker labels"
+sidebarTitle: "Transcription"
+description: "Add speech-to-text with speaker diarization to your app in a few lines of Python or Node: a URL or file in, a speaker-labelled transcript with timestamps out, plus SRT and VTT subtitles."
+---
+
+**What you get:** a transcript split into timed segments, each tagged with who spoke it (`SPEAKER_00`, `SPEAKER_01`, ...). The language is detected automatically, or you can set it. The same job also exports SRT, VTT, TXT, DOCX and PDF.
+
+**Input:** a public URL of an audio or video file, or a local file.
+
+## 1. Install and set your key
+
+<CodeGroup>
+```bash Python
+pip install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+
+```bash Node
+npm install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+</CodeGroup>
+
+Get a key in your [dashboard](https://www.audiopod.ai/dashboard/account/api-keys). New accounts start with free credits.
+
+## 2. Transcribe
+
+<CodeGroup>
+```python Python
+from audiopod import Client
+
+client = Client()  # reads AUDIOPOD_API_KEY
+
+job = client.transcription.transcribe(
+    url="https://example.com/interview.mp3",  # or audio_file="interview.mp3"
+    speaker_diarization=True,
+    wait_for_completion=True,
+)
+
+transcript = client.transcription.get_transcript(job["id"])  # JSON
+for seg in transcript["segments"]:
+    print(f'{seg["start"]:7.1f}s  {seg.get("speaker_label", "")}: {seg["text"].strip()}')
+```
+
+```typescript Node
+import AudioPod from "audiopod";
+
+const client = new AudioPod(); // reads AUDIOPOD_API_KEY
+
+// Starts the job and waits until it completes
+const job = await client.transcription.transcribe({
+  url: "https://example.com/interview.mp3",
+  speakerDiarization: true,
+});
+
+// Subtitles straight from the finished job: "srt", "vtt", "txt" or "json"
+const srt = await client.transcription.getTranscript(job.id, "srt");
+console.log(srt);
+```
+</CodeGroup>
+
+For a local file in Node, use `client.transcription.upload({ file: "./interview.mp3", speakerDiarization: true })`, then `client.transcription.waitForCompletion(job.id)`.
+
+## What comes back
+
+| Field | Meaning |
+|---|---|
+| `job["id"]` / `job.id` | The transcription job id. Use it to fetch the transcript in any format. |
+| `status` | `COMPLETED` once the transcript is ready (`FAILED` raises an error in both SDKs). |
+| `segments[]` (JSON transcript) | `start`, `end` (seconds), `text` and `speaker_label` for each segment. |
+| `detected_language` | The language AudioPod detected, when you didn't set one. |
+
+## Tips
+
+- Set `language="en"` (Python) or `language: "en"` (Node) when you know it; detection is automatic otherwise.
+- In Node, `minSpeakers` and `maxSpeakers` bound the speaker count when you know roughly how many people talk.
+- Want to be told when a long recording finishes instead of waiting? Register a [webhook](/account/webhooks).
+- Live audio from a microphone or call: see [live transcription](/api-reference/live-transcription).
+
+## From an AI agent
+
+Connected to the [AudioPod MCP server](/agents)? Ask: *"Transcribe https://example.com/interview.mp3 with speaker labels as SRT."* The agent calls `transcribe_audio` with `diarize: true` and `format: "srt"`, then `check_job_status` until it is done.
+
+Full endpoint reference: [Speech-to-Text](/api-reference/speech-to-text).

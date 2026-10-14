@@ -1,0 +1,70 @@
+---
+title: "Remove background noise from audio"
+sidebarTitle: "Noise reduction"
+description: "Clean hiss, hum, wind, traffic and room noise out of voice recordings and videos with the AudioPod Python or Node SDK, with three quality modes."
+---
+
+**What you get:** a cleaned copy of your recording as a download URL. For a video input you also get the video back with the cleaned audio.
+
+**Input:** a local audio or video file, or a URL of one.
+
+## 1. Install and set your key
+
+<CodeGroup>
+```bash Python
+pip install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+
+```bash Node
+npm install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+</CodeGroup>
+
+## 2. Denoise
+
+<CodeGroup>
+```python Python
+from audiopod import Client
+
+client = Client()
+
+# denoise() waits for the job by default
+job = client.denoiser.denoise(file="voice-memo.m4a")
+print(job["output_url"])
+```
+
+```typescript Node
+import AudioPod from "audiopod";
+
+const client = new AudioPod();
+
+// denoise() submits the job and waits for it
+const job = await client.denoiser.denoise({ file: "./voice-memo.m4a" });
+console.log(job.output_url);
+```
+</CodeGroup>
+
+For a video, read `video_output_url` for the cleaned video as well as `output_url` for the audio.
+
+## Quality modes
+
+| Mode | Use it for |
+|---|---|
+| `balanced` | The fastest mode, for quick clean-ups and previews. |
+| `studio` (default) | Broadcast and podcast quality. |
+| `ultra` | The highest fidelity, restoring lost high frequencies. |
+
+Each mode is priced per minute of audio; see [pricing](https://audiopod.ai/pricing). In the REST API the field is `quality_mode`. The SDKs take it as `mode` from their next release; until then, leave it out to get `studio`.
+
+## Tips
+
+- Clean voice samples before [cloning a voice](/quickstarts/voice-cloning) and noisy recordings before [transcription](/quickstarts/transcription): both come out better.
+- Music in the background is not "noise". To pull a voice out of a song, use [stem separation](/quickstarts/stem-separation) in `two` mode instead.
+
+## From an AI agent
+
+With the [AudioPod MCP server](/agents) connected (core or full): *"Clean up the background noise in https://example.com/voice-memo.m4a."* The agent calls `denoise_audio` with `file_url`.
+
+Full endpoint reference: [Noise Reduction](/api-reference/noise-reduction).

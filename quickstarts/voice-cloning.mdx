@@ -1,0 +1,81 @@
+---
+title: "Clone a voice and speak with it"
+sidebarTitle: "Voice cloning"
+description: "Create a custom voice from a short, clean speech sample with the AudioPod Python or Node SDK, then use it for text to speech in the same script."
+---
+
+**What you get:** a custom voice in your account, with an id you can pass to text to speech, the voice changer and audiobook narration.
+
+**Input:** a short recording of one person speaking with no music or background noise. A clean 10–30 second sample works best.
+
+<Warning>
+Only clone your own voice, or a voice whose speaker has given you explicit permission. Do not clone a public figure or anyone else without their consent. See [voice consent](https://audiopod.ai/voice-consent).
+</Warning>
+
+## 1. Install and set your key
+
+<CodeGroup>
+```bash Python
+pip install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+
+```bash Node
+npm install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+</CodeGroup>
+
+## 2. Clone, then speak
+
+<CodeGroup>
+```python Python
+from audiopod import Client
+
+client = Client()
+
+voice = client.voice.create_voice(
+    name="My Voice",
+    audio_file="sample.wav",
+    description="Warm, mid-pitched narrator",
+)
+
+job = client.voice.generate_speech(
+    voice_id=voice["id"],
+    text="This sentence was never recorded. It is my cloned voice.",
+    wait_for_completion=True,
+)
+print(job["output_url"])
+```
+
+```typescript Node
+import AudioPod from "audiopod";
+
+const client = new AudioPod();
+
+const voice = await client.voice.create({
+  name: "My Voice",
+  audioFile: "./sample.wav",
+  description: "Warm, mid-pitched narrator",
+});
+
+const job = await client.voice.generate({
+  text: "This sentence was never recorded. It is my cloned voice.",
+  voiceId: voice.id,
+});
+console.log(job.output_url);
+```
+</CodeGroup>
+
+## Tips
+
+- Record in a quiet room with the microphone at a steady distance. Run a noisy sample through [noise reduction](/quickstarts/noise-reduction) first.
+- Custom voices count against your plan's voice slots. See [pricing](https://audiopod.ai/pricing).
+- Remove a voice with `client.voice.delete_voice(id)` (Python) or `client.voice.delete(id)` (Node).
+- Change who is speaking in an existing recording with the [voice changer](/api-reference/voice-changer), using the same voice id.
+
+## From an AI agent
+
+On the full MCP endpoint (`https://mcp.audiopod.ai`, see [AudioPod for AI agents](/agents)) ask: *"Clone my voice from https://example.com/my-voice.wav and name it 'Me'. It's my own voice."* The `clone_voice` tool requires the agent to confirm consent (`consent_confirmed: true`) before anything is created, so expect it to ask you first.
+
+Full endpoint reference: [Voice Management](/api-reference/voice-management).

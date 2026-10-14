@@ -4,7 +4,7 @@ description: "Connect any agent to AudioPod via Model Context Protocol — music
 ---
 
 <Info>
-**What is MCP?** [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that lets AI assistants (Claude Desktop, Cursor, Continue, Cline, Goose, Codex…) call external tools through a single transport. AudioPod publishes a Streamable-HTTP MCP server that exposes ten audio AI tools.
+**What is MCP?** [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that lets AI assistants (Claude Desktop, Cursor, Continue, Cline, Goose, Codex…) call external tools through a single transport. AudioPod publishes a Streamable-HTTP MCP server with two tool sets: the full set at `https://mcp.audiopod.ai` and a core set for audio you already have at `https://mcp.audiopod.ai/core`. New to agents? Start with [AudioPod for AI agents](/agents).
 </Info>
 
 ## Endpoint
@@ -34,14 +34,18 @@ Schemas are returned by `tools/list` — these are the names and one-liners:
 | `edit_music_score` | Deprecated alias of `record_music_score`. | `music:generate` |
 | `text_to_speech` | TTS in 200+ languages with 200+ voices and custom clones — powered by AudioSonic. | `voice:synthesize` |
 | `clone_voice` | Clone a voice from a 5–30s reference clip. | `voice:clone` |
-| `separate_stems` | Up to 16 stems (vocals, drums, bass, guitar, piano, other…). Two-stem mode returns a vocals/instrumental (karaoke) split. | `stems:separate` |
+| `separate_stems` | Split a track into 4 stems (vocals, drums, bass, other) or 6 (adds guitar and piano). The `2stem_vocals` and `2stem_other` modes return a vocals / instrumental (karaoke) split. For the detailed and 45-instrument modes, use the [REST API](/api-reference/stem-splitter). | `stems:separate` |
 | `transcribe_audio` | Word-level timestamps, speaker diarization, SRT/VTT/JSON. | `transcribe` |
 | `denoise_audio` | Remove background noise while preserving voice character. | `audio:write` |
 | `convert_media` | MP3 / WAV / FLAC / OGG / M4A / MP4 / MOV conversion. | `audio:write` |
 | `separate_speakers` | Isolate each speaker into a separate track from multi-speaker audio. | `audio:write` |
 | `change_voice` | Convert a recording to a different target voice (voice-to-voice). | `voice:synthesize` |
 | `audio_to_midi` | Convert a recording of a melody, instrument or song into MIDI files (per-instrument plus one multitrack). Specialist piano and vocal engines need a Creator plan or above; see [pricing](https://audiopod.ai/pricing). | `audio:write` |
-| `check_job_status` | Poll the status and result of a long-running job. | _none (free)_ |
+| `check_job_status` | Poll the status and result of a long-running job. Free. | `audio:read` |
+| `get_account` | Read your plan and credit balance. Free. | `audio:read` |
+| `get_profile` | Identify the connected account (an opaque account id). Free. | `audio:read` |
+
+The core endpoint (`https://mcp.audiopod.ai/core`) serves only `transcribe_audio`, `separate_stems`, `denoise_audio`, `separate_speakers`, `convert_media`, `audio_to_midi`, `check_job_status`, `get_account` and `get_profile`: tools that work on audio you already have and never create new audio.
 
 Scopes are enforced when authenticating with an API key. JWT-based auth implies full user privileges. Not sure which music tool to use? See [Choosing how to make music](/api-reference/music/choosing).
 
@@ -62,7 +66,7 @@ claude mcp add --transport http audiopod https://mcp.audiopod.ai \
   --header "X-API-Key: ap_YOUR_KEY" --scope user
 ```
 
-The `--scope user` flag installs at the user level so every Claude Code project picks up the server. Run `claude mcp list` to verify, then `/mcp` inside the TUI to see the eleven tools.
+The `--scope user` flag installs at the user level so every Claude Code project picks up the server. Run `claude mcp list` to verify, then `/mcp` inside the TUI to see the tools.
 
 </Tab>
 
@@ -294,7 +298,7 @@ Returns the issuer, supported scopes, and the bearer-token pattern. Most agent c
 
 <Columns cols={2}>
   <Card title="Use the CLI" icon="terminal" href="/sdks/cli">
-    Same eleven tools, terminal-first.
+    The same tools, terminal-first.
   </Card>
   <Card title="For Agents landing" icon="robot" href="https://audiopod.ai/for-agents">
     Single-pane overview of every developer surface.

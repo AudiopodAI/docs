@@ -33,166 +33,36 @@ Remove background noise using AI-powered denoising models.
     ```python
     from audiopod import Client
 
-    client = Client()
+    client = Client()  # reads AUDIOPOD_API_KEY
 
-    # Simple noise reduction
-    denoised = client.denoiser.denoise_audio(
-        audio_file="noisy_recording.wav",
-        quality_mode="balanced",  # "balanced", "studio" (default) or "ultra"
-        wait_for_completion=True
-    )
+    # denoise() uploads the file and waits for the job by default
+    job = client.denoiser.denoise(file="noisy_recording.wav")
+    print(f"Clean audio: {job['output_url']}")
 
-    print(f"Denoising completed!")
-    print(f"Input file: {denoised.input_file}")
-    print(f"Denoised audio URL: {denoised.denoised_audio_url}")
-    print(f"Noise reduction level: {denoised.noise_reduction_db}dB")
+    # Quality mode: "balanced" (fastest), "studio" (default) or "ultra" (next SDK release)
+    job = client.denoiser.denoise(file="noisy_recording.wav", mode="ultra")
 
-    # Download cleaned audio
-    clean_audio = client.download_file(denoised.denoised_audio_url)
-    with open("clean_recording.wav", "wb") as f:
-        f.write(clean_audio)
-
-    # Studio quality denoising
-    studio_denoised = client.denoiser.denoise_audio(
-        audio_file="interview_with_background_noise.wav",
-        quality_mode="studio",  # Higher quality processing
-        wait_for_completion=True
-    )
-
-    print(f"Studio denoising completed!")
-    print(f"Noise reduction level: {studio_denoised.noise_reduction_db}dB")
-
-    # Batch processing multiple files
-    noisy_files = [
-        "meeting_room_recording.wav",
-        "interview_outdoors.mp3",
-        "podcast_home_setup.wav",
-        "lecture_hall_audio.m4a"
-    ]
-
-    batch_results = client.denoiser.denoise_batch(
-        audio_files=noisy_files,
-        quality_mode="balanced",
-        wait_for_completion=True
-    )
-
-    for i, result in enumerate(batch_results):
-        print(f"\nFile {i+1}: {noisy_files[i]}")
-        print(f"Status: {result.status}")
-        if result.status == "completed":
-            print(f"Noise reduced: {result.noise_reduction_db}dB")
-            print(f"Clean audio: {result.denoised_audio_url}")
-            
-            # Download and save
-            clean_audio = client.download_file(result.denoised_audio_url)
-            output_name = f"clean_{i+1}_{noisy_files[i].split('.')[0]}.wav"
-            with open(output_name, "wb") as f:
-                f.write(clean_audio)
-            print(f"Saved: {output_name}")
-
-    # Process video files (audio cleaning)
-    video_denoised = client.denoiser.denoise_video(
-        video_file="presentation_with_noise.mp4",
-        quality_mode="studio",  # Higher quality processing
-        preserve_video=True,        # Keep original video stream
-        wait_for_completion=True
-    )
-
-    print(f"Video denoising completed!")
-    print(f"Clean video URL: {video_denoised.video_output_url}")
-    print(f"Audio-only URL: {video_denoised.denoised_audio_url}")
+    # Video in, video out: the cleaned video is in video_output_url
+    job = client.denoiser.denoise(file="presentation_with_noise.mp4")
+    print(f"Clean video: {job.get('video_output_url')}")
     ```
   </Tab>
   <Tab title="Node.js">
     ```javascript
-    // Note: SDK examples shown are conceptual and may not reflect the current SDK implementation
-    // For production use, refer to the Raw HTTP examples or check the latest SDK documentation
-    const { AudioPodClient } = require('audiopod-js');
-    const fs = require('fs');
+    import AudioPod from "audiopod";
 
-    const client = new AudioPodClient();
+    const client = new AudioPod(); // reads AUDIOPOD_API_KEY
 
-    async function denoiseAudio() {
-      try {
-        // Simple noise reduction
-        const denoised = await client.denoiser.denoiseAudio({
-          audioFile: fs.createReadStream('noisy_recording.wav'),
-          qualityMode: 'balanced',  // "balanced", "studio" (default) or "ultra"
-          waitForCompletion: true
-        });
+    // denoise() uploads the file, starts the job and waits for it
+    const job = await client.denoiser.denoise({ file: "./noisy_recording.wav" });
+    console.log(`Clean audio: ${job.output_url}`);
 
-        console.log('Denoising completed!');
-        console.log(`Input file: ${denoised.inputFile}`);
-        console.log(`Denoised audio URL: ${denoised.denoisedAudioUrl}`);
-        console.log(`Noise reduction level: ${denoised.noiseReductionDb}dB`);
+    // Quality mode: "balanced" (fastest), "studio" (default) or "ultra" (next SDK release)
+    const ultra = await client.denoiser.denoise({ file: "./noisy_recording.wav", mode: "ultra" });
 
-        // Download cleaned audio
-        const cleanAudio = await client.downloadFile(denoised.denoisedAudioUrl);
-        fs.writeFileSync('clean_recording.wav', cleanAudio);
-
-        // Studio quality denoising
-        const studioDenoised = await client.denoiser.denoiseAudio({
-          audioFile: fs.createReadStream('interview_with_background_noise.wav'),
-          qualityMode: 'studio',  // Higher quality processing
-          waitForCompletion: true
-        });
-
-        console.log('Studio denoising completed!');
-        console.log(`Noise reduction level: ${studioDenoised.noiseReductionDb}dB`);
-
-        // Batch processing multiple files
-        const noisyFiles = [
-          'meeting_room_recording.wav',
-          'interview_outdoors.mp3',
-          'podcast_home_setup.wav',
-          'lecture_hall_audio.m4a'
-        ];
-
-        const fileStreams = noisyFiles.map(file => ({
-          file: fs.createReadStream(file),
-          name: file
-        }));
-
-        const batchResults = await client.denoiser.denoiseBatch({
-          audioFiles: fileStreams,
-          qualityMode: 'balanced',
-          waitForCompletion: true
-        });
-
-        batchResults.forEach((result, index) => {
-          console.log(`\nFile ${index + 1}: ${noisyFiles[index]}`);
-          console.log(`Status: ${result.status}`);
-          if (result.status === 'completed') {
-            console.log(`Noise reduced: ${result.noiseReductionDb}dB`);
-            console.log(`Clean audio: ${result.denoisedAudioUrl}`);
-            
-            // Download and save
-            client.downloadFile(result.denoisedAudioUrl).then(cleanAudio => {
-              const outputName = `clean_${index + 1}_${noisyFiles[index].split('.')[0]}.wav`;
-              fs.writeFileSync(outputName, cleanAudio);
-              console.log(`Saved: ${outputName}`);
-            });
-          }
-        });
-
-        // Process video files (audio cleaning)
-        const videoDenoised = await client.denoiser.denoiseVideo({
-          videoFile: fs.createReadStream('presentation_with_noise.mp4'),
-          qualityMode: 'studio',  // Higher quality processing
-          preserveVideo: true,        // Keep original video stream
-          waitForCompletion: true
-        });
-
-        console.log('Video denoising completed!');
-        console.log(`Clean video URL: ${videoDenoised.videoOutputUrl}`);
-        console.log(`Audio-only URL: ${videoDenoised.denoisedAudioUrl}`);
-
-      } catch (error) {
-        console.error('Denoising error:', error.message);
-      }
-    }
-
-    denoiseAudio();
+    // Video in, video out: the cleaned video is in video_output_url
+    const video = await client.denoiser.denoise({ file: "./presentation_with_noise.mp4" });
+    console.log(`Clean video: ${video.video_output_url}`);
     ```
   </Tab>
   <Tab title="Raw HTTP">
@@ -276,93 +146,22 @@ Process audio/video from URLs (YouTube, etc.) to remove noise.
 <Tabs>
   <Tab title="Python">
     ```python
-    # Note: SDK examples shown are conceptual and may not reflect the current SDK implementation
-    # For production use, refer to the Raw HTTP examples or check the latest SDK documentation
     from audiopod import Client
 
     client = Client()
 
-    # Denoise from YouTube URL
-    url_denoised = client.denoiser.denoise_from_url(
-        url="https://youtube.com/watch?v=example123",
-        quality_mode="studio",  # Higher quality processing for online content
-        wait_for_completion=True
-    )
-
-    print(f"URL denoising completed!")
-    print(f"Source: {url_denoised.source_url}")
-    print(f"Clean audio URL: {url_denoised.denoised_audio_url}")
-    print(f"Noise reduction: {url_denoised.noise_reduction_db}dB")
-
-    # Batch URL processing
-    urls = [
-        "https://youtube.com/watch?v=lecture1",
-        "https://vimeo.com/meeting_recording",
-        "https://example.com/noisy_podcast.mp3"
-    ]
-
-    batch_url_results = client.denoiser.denoise_batch_from_urls(
-        urls=urls,
-        quality_mode="balanced",
-        wait_for_completion=True
-    )
-
-    for i, result in enumerate(batch_url_results):
-        print(f"\nURL {i+1}: {urls[i]}")
-        print(f"Status: {result.status}")
-        if result.status == "completed":
-            print(f"Clean audio: {result.denoised_audio_url}")
+    job = client.denoiser.denoise(url="https://example.com/noisy_podcast.mp3")
+    print(f"Clean audio: {job['output_url']}")
     ```
   </Tab>
   <Tab title="Node.js">
     ```javascript
-    // Note: SDK examples shown are conceptual and may not reflect the current SDK implementation
-    // For production use, refer to the Raw HTTP examples or check the latest SDK documentation
-    const { AudioPodClient } = require('audiopod-js');
+    import AudioPod from "audiopod";
 
-    const client = new AudioPodClient();
+    const client = new AudioPod();
 
-    async function denoiseFromUrl() {
-      try {
-        // Denoise from YouTube URL
-        const urlDenoised = await client.denoiser.denoiseFromUrl({
-          url: "https://youtube.com/watch?v=example123",
-          qualityMode: "studio",  // Higher quality processing for online content
-          waitForCompletion: true
-        });
-
-        console.log('URL denoising completed!');
-        console.log(`Source: ${urlDenoised.sourceUrl}`);
-        console.log(`Clean audio URL: ${urlDenoised.denoisedAudioUrl}`);
-        console.log(`Noise reduction: ${urlDenoised.noiseReductionDb}dB`);
-
-        // Batch URL processing
-        const urls = [
-          "https://youtube.com/watch?v=lecture1",
-          "https://vimeo.com/meeting_recording",
-          "https://example.com/noisy_podcast.mp3"
-        ];
-
-        const batchUrlResults = await client.denoiser.denoiseBatchFromUrls({
-          urls: urls,
-          qualityMode: "balanced",
-          waitForCompletion: true
-        });
-
-        batchUrlResults.forEach((result, index) => {
-          console.log(`\nURL ${index + 1}: ${urls[index]}`);
-          console.log(`Status: ${result.status}`);
-          if (result.status === "completed") {
-            console.log(`Clean audio: ${result.denoisedAudioUrl}`);
-          }
-        });
-
-      } catch (error) {
-        console.error('URL denoising error:', error.message);
-      }
-    }
-
-    denoiseFromUrl();
+    const job = await client.denoiser.denoise({ url: "https://example.com/noisy_podcast.mp3" });
+    console.log(`Clean audio: ${job.output_url}`);
     ```
   </Tab>
   <Tab title="Raw HTTP">

@@ -1,0 +1,83 @@
+---
+title: "Separate a song into stems"
+sidebarTitle: "Stem separation"
+description: "Split a mixed track into vocals, drums, bass, guitar, piano and other stems with one Python or Node call, or make a karaoke instrumental and an acapella from a two-stem split."
+---
+
+**What you get:** one audio file per stem, as download links keyed by stem name (`vocals`, `drums`, `bass`, `other`, ...).
+
+**Input:** a local file or a URL of an audio or video file.
+
+## 1. Install and set your key
+
+<CodeGroup>
+```bash Python
+pip install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+
+```bash Node
+npm install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+</CodeGroup>
+
+## 2. Separate
+
+<CodeGroup>
+```python Python
+from audiopod import Client
+
+client = Client()
+
+# separate() waits for the job by default
+job = client.stem_extraction.separate(
+    file="song.mp3",  # or url="https://example.com/song.mp3"
+    mode="four",      # vocals, drums, bass, other
+)
+
+for stem, link in job["download_urls"].items():
+    print(stem, link)
+```
+
+```typescript Node
+import AudioPod from "audiopod";
+
+const client = new AudioPod();
+
+// separate() submits the job and waits for it
+const job = await client.stems.separate({
+  file: "./song.mp3", // or url: "https://example.com/song.mp3"
+  mode: "four",
+});
+
+for (const [stem, link] of Object.entries(job.download_urls ?? {})) {
+  console.log(stem, link);
+}
+```
+</CodeGroup>
+
+## Modes
+
+| `mode` | Stems | Plan |
+|---|---|---|
+| `two` | vocals + instrumental (karaoke / acapella) | every plan |
+| `four` | vocals, drums, bass, other | every plan |
+| `six` | vocals, drums, bass, guitar, piano, other | every plan |
+| `single` | one core stem (set `stem`, e.g. `"vocals"`) plus everything else | every plan |
+| `producer` | up to 8, with the drum kit split into kick, snare, hi-hat | Creator and above |
+| `studio`, `mastering` | up to 12 and up to 16 | Pro and above |
+
+The detailed modes return "up to" their count: a stem the track doesn't contain isn't returned. To isolate one specific instrument (for example saxophone or violin), pick it from the 45-instrument catalog with the advanced endpoint; see [Stem Separation](/api-reference/stem-splitter#the-45-instrument-catalog). See [pricing](https://audiopod.ai/pricing) for plans.
+
+## Tips
+
+- Karaoke track and acapella: `mode="two"` returns both. For one core stem plus everything else, use `mode="single"` with `stem` set to `vocals`, `drums`, `bass`, `guitar`, `piano` or `other`.
+- Download links are short-lived. Fetch a fresh set with `client.stem_extraction.get_job(id)` (Python) or `client.stems.get(id)` (Node).
+- Feed a finished stem job straight into [audio to MIDI](/quickstarts/audio-to-midi) to transcribe its parts without separating again.
+
+## From an AI agent
+
+With the [AudioPod MCP server](/agents) connected: *"Split https://example.com/song.mp3 into 6 stems."* The agent calls `separate_stems` with `mode: "6stem"`. Over MCP the modes are `4stem`, `6stem`, `2stem_vocals` and `2stem_other`.
+
+Full endpoint reference: [Stem Separation](/api-reference/stem-splitter).
