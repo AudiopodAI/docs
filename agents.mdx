@@ -221,6 +221,13 @@ Drop this into `AGENTS.md`, `CLAUDE.md` or `.cursor/rules` so every agent in you
 - SDKs: `pip install audiopod` / `npm install audiopod`; the key is read from AUDIOPOD_API_KEY.
 - Jobs are asynchronous: pass wait_for_completion=True (Python) or use the waiting helpers
   (Node: transcribe, separate, generate, denoise) to block until the output URLs are ready.
+- A new voice clone is PENDING until processed; speech with it fails until it is COMPLETED.
+  Use create_voice(..., wait_for_ready=True) (Python) / voice.create({..., waitForReady: true})
+  (Node), or poll GET /api/v1/voice/voices/{id}/status, before the first speech request.
+- Errors: 401 = set AUDIOPOD_API_KEY (keys: https://audiopod.ai/dashboard/account/api-keys).
+  402 = API-key calls are paid from the prepaid API wallet first, then the account's
+  plan/pay-as-you-go credits, and neither covers the job: top up the wallet on the
+  API keys page or add credits at https://audiopod.ai/pricing.
 - Docs for agents: https://docs.audiopod.ai/llms.txt (append .md to any docs URL for Markdown).
 - MCP: https://mcp.audiopod.ai/core (audio you have) or https://mcp.audiopod.ai (adds speech, voices, music).
 ```
