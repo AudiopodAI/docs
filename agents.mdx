@@ -223,7 +223,7 @@ Drop this into `AGENTS.md`, `CLAUDE.md` or `.cursor/rules` so every agent in you
   (Node: transcribe, separate, generate, denoise) to block until the output URLs are ready.
 - A new voice clone is PENDING until processed; speech with it fails until it is COMPLETED.
   Use create_voice(..., wait_for_ready=True) (Python) / voice.create({..., waitForReady: true})
-  (Node), or poll GET /api/v1/voice/voices/{id}/status, before the first speech request.
+  (Node) (SDK 2.11.0+), or poll GET /api/v1/voice/voices/{id}/status, before the first speech request.
 - Errors: 401 = set AUDIOPOD_API_KEY (keys: https://audiopod.ai/dashboard/account/api-keys).
   402 = API-key calls are paid from the prepaid API wallet first, then the account's
   plan/pay-as-you-go credits, and neither covers the job: top up the wallet on the
