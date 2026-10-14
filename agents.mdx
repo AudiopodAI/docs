@@ -1,0 +1,257 @@
+---
+title: "AudioPod for AI agents"
+sidebarTitle: "For AI agents"
+description: "Give Claude Code, Cursor, VS Code, Windsurf, ChatGPT or any MCP client AudioPod's audio tools in one step: transcription with speaker labels, stem separation, noise removal, audio-to-MIDI, text to speech, voice cloning and music."
+---
+
+AudioPod is an audio API built to be used by coding agents and chat assistants as well as by people. There are two ways an agent uses it:
+
+1. **As tools, right now.** Connect the AudioPod MCP server and the agent can transcribe a link, split a song into stems or clean up a recording inside the chat.
+2. **In the code it writes.** Point the agent at the Python or Node SDK and it adds transcription, stems, text to speech or music to your app with a working call.
+
+Both use the same AudioPod account and credits. Sign-in is OAuth in the browser, so there is no key to paste for the MCP route. New accounts start with free credits and no card. See [pricing](https://audiopod.ai/pricing).
+
+---
+
+## Pick an endpoint
+
+AudioPod serves two MCP endpoints. Both speak Streamable HTTP (MCP `2025-06-18`) and accept OAuth or an `X-API-Key` header.
+
+| Endpoint | Tools | Use it when |
+|---|---|---|
+| `https://mcp.audiopod.ai/core` | `transcribe_audio`, `separate_stems`, `denoise_audio`, `separate_speakers`, `convert_media`, `audio_to_midi`, `check_job_status`, `get_account`, `get_profile` | You work with audio you already have: transcripts, stems, cleanup, MIDI. No tool on this endpoint creates new audio. |
+| `https://mcp.audiopod.ai` | Everything in core, plus `text_to_speech`, `clone_voice`, `change_voice`, `generate_music`, `compose_music`, `revise_music_score`, `record_music_score`, `get_music_score` | You also want speech, voices or music. |
+
+Connect one or the other, not both: they register the same tool names. The full parameter list for every tool is on the [MCP Server](/sdks/mcp) page.
+
+---
+
+## One-step setup
+
+<Tabs>
+
+<Tab title="Claude Code">
+
+Install the plugin. It adds the MCP server plus skills and slash commands (`/audiopod:transcribe`, `/audiopod:stems`, `/audiopod:midi`, `/audiopod:status`).
+
+```
+/plugin marketplace add AudiopodAI/claude-plugin
+/plugin install audiopod@audiopod
+```
+
+For speech, voices and music as well, install `audiopod-studio@audiopod` instead (install one plugin, not both). The first time a tool runs, Claude Code asks you to connect: a browser opens, you sign in to AudioPod and choose **Allow access**.
+
+Prefer the bare MCP server without the plugin?
+
+```bash
+claude mcp add --transport http audiopod https://mcp.audiopod.ai/core --scope user
+```
+
+Then run `/mcp`, select `audiopod` and choose **Authenticate**. Details: [Claude plugin](/sdks/claude-plugin).
+
+</Tab>
+
+<Tab title="Cursor">
+
+[Add AudioPod core to Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=audiopod&config=eyJ1cmwiOiJodHRwczovL21jcC5hdWRpb3BvZC5haS9jb3JlIn0=) (one click), or [add the full toolset](cursor://anysphere.cursor-deeplink/mcp/install?name=audiopod&config=eyJ1cmwiOiJodHRwczovL21jcC5hdWRpb3BvZC5haSJ9).
+
+Or edit `~/.cursor/mcp.json` (all projects) or `.cursor/mcp.json` (one project):
+
+```json
+{
+  "mcpServers": {
+    "audiopod": {
+      "url": "https://mcp.audiopod.ai/core"
+    }
+  }
+}
+```
+
+Cursor shows a **Needs login** button next to the server under **Settings → MCP**. Click it and sign in to AudioPod.
+
+</Tab>
+
+<Tab title="VS Code">
+
+From a terminal:
+
+```bash
+code --add-mcp '{"name":"audiopod","type":"http","url":"https://mcp.audiopod.ai/core"}'
+```
+
+Or add `.vscode/mcp.json` to your project:
+
+```json
+{
+  "servers": {
+    "audiopod": {
+      "type": "http",
+      "url": "https://mcp.audiopod.ai/core"
+    }
+  }
+}
+```
+
+Start the server from the file's code lens, then sign in to AudioPod when VS Code asks. The tools appear in Copilot Chat's agent mode.
+
+</Tab>
+
+<Tab title="Windsurf">
+
+Edit `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "audiopod": {
+      "serverUrl": "https://mcp.audiopod.ai/core"
+    }
+  }
+}
+```
+
+Refresh the MCP list in Cascade and sign in to AudioPod when prompted.
+
+</Tab>
+
+<Tab title="ChatGPT">
+
+ChatGPT connects to remote MCP servers through **developer mode**, where your ChatGPT plan offers it:
+
+1. Open **Settings → Apps & Connectors → Advanced settings** and turn on **Developer mode**.
+2. Choose **Create** (connector), name it `AudioPod`, and set the MCP server URL to `https://mcp.audiopod.ai/core`.
+3. Leave authentication on **OAuth**, save, and sign in to AudioPod when ChatGPT opens the browser.
+4. In a new chat, add the AudioPod connector from the tools menu and ask: *"Transcribe https://example.com/interview.mp3 with speaker labels."*
+
+Use `https://mcp.audiopod.ai` instead if you also want speech, voices and music.
+
+</Tab>
+
+<Tab title="Other MCP clients">
+
+Claude Desktop, Codex CLI, Continue, Cline, Goose and anything else that speaks MCP: see the configs on the [MCP Server](/sdks/mcp) page. For a client that only runs local (stdio) servers:
+
+```bash
+npx -y mcp-remote https://mcp.audiopod.ai/core
+```
+
+</Tab>
+
+</Tabs>
+
+### Headless, CI and API keys
+
+Where no browser is available, use an API key from [your dashboard](https://www.audiopod.ai/dashboard/account/api-keys) and send it as a header:
+
+```bash
+claude mcp add --transport http audiopod https://mcp.audiopod.ai/core \
+  --header "X-API-Key: $AUDIOPOD_API_KEY"
+```
+
+```json
+{
+  "mcpServers": {
+    "audiopod": {
+      "url": "https://mcp.audiopod.ai/core",
+      "headers": { "X-API-Key": "ap_YOUR_KEY" }
+    }
+  }
+}
+```
+
+The same key works for the SDKs and the REST API.
+
+---
+
+## Copy-paste prompts
+
+Paste these into your agent after connecting. Replace the example URLs with your own: a direct link to an audio or video file, or a page the file can be fetched from.
+
+### Use AudioPod as a tool
+
+| Task | Prompt | Tool it calls |
+|---|---|---|
+| Transcript with speakers | *Transcribe https://example.com/interview.mp3 with speaker labels and give me an SRT file.* | `transcribe_audio` (`diarize: true`, `format: "srt"`) |
+| Stems | *Split https://example.com/song.mp3 into 6 stems and give me the links.* | `separate_stems` (`mode: "6stem"`) |
+| Karaoke / acapella | *Remove the vocals from https://example.com/song.mp3.* | `separate_stems` (`mode: "2stem_vocals"`) |
+| Noise removal | *Clean up the background noise in https://example.com/voice-memo.m4a.* | `denoise_audio` |
+| Speakers on separate tracks | *Put each speaker in https://example.com/podcast.mp3 on their own track. There are 2 speakers.* | `separate_speakers` (`num_speakers: 2`) |
+| Audio to MIDI | *Turn the piano in https://example.com/take.wav into MIDI.* | `audio_to_midi` (`stems: ["piano"]`) |
+| Format conversion | *Convert https://example.com/master.wav to a high-quality MP3.* | `convert_media` |
+| Job status | *Is my AudioPod job done yet?* | `check_job_status` |
+| Credits | *How many AudioPod credits do I have left?* | `get_account` |
+| Text to speech (full endpoint) | *Read this paragraph aloud in a warm British English voice: ...* | `text_to_speech` |
+| Voice clone (full endpoint) | *Clone my voice from https://example.com/my-voice.wav and call it "Me". It's my own voice.* | `clone_voice` (needs the speaker's consent) |
+| Music (full endpoint) | *Make a 60-second lo-fi instrumental for a study video.* | `generate_music` (`instrumental: true`, `duration: 60`) |
+
+Long jobs return a job id straight away. The agent then polls `check_job_status` and hands you the output links. Output links expire after 1 hour; ask again for fresh ones.
+
+### Have your agent add AudioPod to your app
+
+| Task | Prompt |
+|---|---|
+| Transcription | *Add an endpoint to my FastAPI app that takes an audio URL and returns a transcript with speaker labels, using the `audiopod` Python SDK. Read https://docs.audiopod.ai/quickstarts/transcription.md first.* |
+| Stems | *Write a CLI that splits a song into stems with the `audiopod` npm package and downloads each stem. Docs: https://docs.audiopod.ai/quickstarts/stem-separation.md* |
+| Text to speech | *Add a "listen to this article" button to my Next.js app: a server route that calls the `audiopod` Node SDK for text to speech and returns the audio URL. Docs: https://docs.audiopod.ai/quickstarts/text-to-speech.md* |
+| Voice cloning | *Let users record a short sample and create a custom voice with the `audiopod` Python SDK, then speak text in that voice. Docs: https://docs.audiopod.ai/quickstarts/voice-cloning.md* |
+| Music | *Generate background music for each video in my pipeline with the `audiopod` Python SDK. Docs: https://docs.audiopod.ai/quickstarts/music.md* |
+| Audio to MIDI | *Convert uploaded recordings to MIDI with the `audiopod` Node SDK and store the multitrack .mid. Docs: https://docs.audiopod.ai/quickstarts/audio-to-midi.md* |
+| Noise removal | *Clean up voice notes before transcribing them, using `audiopod` denoise then transcription. Docs: https://docs.audiopod.ai/quickstarts/noise-reduction.md* |
+
+The agent needs an API key in the environment as `AUDIOPOD_API_KEY`. Both SDKs read it automatically.
+
+---
+
+## Give your agent the docs
+
+Every page on this site is also published as plain Markdown for agents and LLM tools:
+
+- [`https://docs.audiopod.ai/llms.txt`](https://docs.audiopod.ai/llms.txt): an index of every page with a one-line summary.
+- [`https://docs.audiopod.ai/llms-full.txt`](https://docs.audiopod.ai/llms-full.txt): the whole site in one file.
+- Add `.md` to any page URL for its Markdown, for example [`/quickstarts/transcription.md`](https://docs.audiopod.ai/quickstarts/transcription.md).
+- The docs are indexed in [Context7](https://context7.com/websites/audiopod_ai), so agents with the Context7 MCP server can pull them with "use context7".
+- The page menu (top right of each page) copies the page as Markdown or opens it in ChatGPT, Claude, Perplexity, Cursor or VS Code.
+
+### Add AudioPod to your AGENTS.md
+
+Drop this into `AGENTS.md`, `CLAUDE.md` or `.cursor/rules` so every agent in your repo knows how to call AudioPod:
+
+```markdown
+## Audio (AudioPod)
+- SDKs: `pip install audiopod` / `npm install audiopod`; the key is read from AUDIOPOD_API_KEY.
+- Jobs are asynchronous: pass wait_for_completion=True (Python) or use the waiting helpers
+  (Node: transcribe, separate, generate, denoise) to block until the output URLs are ready.
+- Docs for agents: https://docs.audiopod.ai/llms.txt (append .md to any docs URL for Markdown).
+- MCP: https://mcp.audiopod.ai/core (audio you have) or https://mcp.audiopod.ai (adds speech, voices, music).
+```
+
+---
+
+## Discovery for MCP clients
+
+| Resource | URL |
+|---|---|
+| Server card | [`https://audiopod.ai/.well-known/mcp/server-card.json`](https://audiopod.ai/.well-known/mcp/server-card.json) |
+| OAuth protected resource (full) | [`https://mcp.audiopod.ai/.well-known/oauth-protected-resource`](https://mcp.audiopod.ai/.well-known/oauth-protected-resource) |
+| OAuth protected resource (core) | [`https://mcp.audiopod.ai/.well-known/oauth-protected-resource/core`](https://mcp.audiopod.ai/.well-known/oauth-protected-resource/core) |
+
+An unauthenticated request gets a `401` with a `WWW-Authenticate` header that points at the right metadata, so clients that follow the MCP authorization spec find the sign-in flow on their own.
+
+---
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Transcription quickstart" icon="file-lines" href="/quickstarts/transcription">
+    Speaker labels, SRT and VTT in a few lines.
+  </Card>
+  <Card title="Stem separation quickstart" icon="layer-group" href="/quickstarts/stem-separation">
+    Vocals, drums, bass and more from one call.
+  </Card>
+  <Card title="MCP Server reference" icon="plug" href="/sdks/mcp">
+    Every tool, scope and client config.
+  </Card>
+  <Card title="Get an API key" icon="key" href="https://www.audiopod.ai/dashboard/account/api-keys">
+    Free credits, no card required.
+  </Card>
+</Columns>

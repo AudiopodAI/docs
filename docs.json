@@ -17,7 +17,20 @@
           {
             "group": "Getting Started",
             "icon": "rocket",
-            "pages": ["index", "quickstart"]
+            "pages": ["index", "quickstart", "agents"]
+          },
+          {
+            "group": "Quickstarts by task",
+            "icon": "bolt",
+            "pages": [
+              "quickstarts/transcription",
+              "quickstarts/stem-separation",
+              "quickstarts/text-to-speech",
+              "quickstarts/voice-cloning",
+              "quickstarts/music",
+              "quickstarts/audio-to-midi",
+              "quickstarts/noise-reduction"
+            ]
           },
           {
             "group": "Account",

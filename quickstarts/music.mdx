@@ -1,0 +1,96 @@
+---
+title: "Generate music from a description"
+sidebarTitle: "Music"
+description: "Generate instrumentals, background tracks and full songs with vocals from a text prompt in Python or Node, with a set length from 10 seconds to 10 minutes."
+---
+
+**What you get:** an original track as a download URL. Instrumentals by default; pass lyrics for a sung song.
+
+**Input:** a description of the music (genre, mood, tempo, instruments) and, optionally, a length in seconds (10–600) and lyrics.
+
+## 1. Install and set your key
+
+<CodeGroup>
+```bash Python
+pip install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+
+```bash Node
+npm install audiopod
+export AUDIOPOD_API_KEY="ap_..."
+```
+</CodeGroup>
+
+## 2. Generate an instrumental
+
+<CodeGroup>
+```python Python
+from audiopod import Client
+
+client = Client()
+
+track = client.music.generate(
+    prompt="lo-fi hip hop, 80 BPM, soft piano and vinyl crackle, calm",
+    duration=60,
+    wait_for_completion=True,
+)
+print(track["output_url"])
+```
+
+```typescript Node
+import AudioPod from "audiopod";
+
+const client = new AudioPod();
+
+// generate() starts the job and waits for it
+const track = await client.music.generate({
+  prompt: "lo-fi hip hop, 80 BPM, soft piano and vinyl crackle, calm",
+  duration: 60,
+});
+console.log(track.output_url);
+```
+</CodeGroup>
+
+## A song with vocals
+
+Pass lyrics with section tags. They are sung word for word.
+
+<CodeGroup>
+```python Python
+lyrics = """[verse]
+Packing up the morning, coffee in a paper cup
+[chorus]
+We're leaving on the early train, and we're not looking back"""
+
+song = client.music.generate(
+    prompt="upbeat indie pop, bright guitars, female vocal",
+    task="text2music",
+    lyrics=lyrics,
+    duration=90,
+    wait_for_completion=True,
+)
+print(song["output_url"])
+```
+
+```typescript Node
+const song = await client.music.generate({
+  prompt: "upbeat indie pop, bright guitars, female vocal",
+  lyrics: "[verse]\nPacking up the morning, coffee in a paper cup\n[chorus]\nWe're leaving on the early train, and we're not looking back",
+  duration: 90,
+}); // lyrics switch the task to a sung song
+console.log(song.output_url);
+```
+</CodeGroup>
+
+## Tips
+
+- Leave `duration` out (or pass `-1`) to let the length follow the music.
+- Want to read and change the composition before recording it? Use score-first music: `client.music.compose(...)` then `record_score(...)` / `recordScore(...)`. See [Choosing how to make music](/api-reference/music/choosing).
+- Generated tracks stay in your account; see the [music jobs](/api-reference/music/jobs) reference to list and re-fetch them.
+
+## From an AI agent
+
+On the full MCP endpoint (`https://mcp.audiopod.ai`, see [AudioPod for AI agents](/agents)) ask: *"Make a 60-second upbeat instrumental for a product demo."* The agent calls `generate_music` with `instrumental: true` and `duration: 60`. Without lyrics from you, AudioPod writes them for vocal tracks.
+
+Full endpoint reference: [Music generation](/api-reference/music/generation).
