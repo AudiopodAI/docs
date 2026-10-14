@@ -26,7 +26,9 @@ export AUDIOPOD_API_KEY="ap_..."
 ```
 </CodeGroup>
 
-## 2. Clone, then speak
+## 2. Clone, wait until it's ready, then speak
+
+A new voice starts as `PENDING` while it is processed, and text to speech with it fails until its status is `COMPLETED`. Wait for it before the first speech request:
 
 <CodeGroup>
 ```python Python
@@ -38,6 +40,7 @@ voice = client.voice.create_voice(
     name="My Voice",
     audio_file="sample.wav",
     description="Warm, mid-pitched narrator",
+    wait_for_ready=True,  # returns once the voice is COMPLETED
 )
 
 job = client.voice.generate_speech(
@@ -57,6 +60,7 @@ const voice = await client.voice.create({
   name: "My Voice",
   audioFile: "./sample.wav",
   description: "Warm, mid-pitched narrator",
+  waitForReady: true, // resolves once the voice is COMPLETED
 });
 
 const job = await client.voice.generate({
@@ -66,6 +70,39 @@ const job = await client.voice.generate({
 console.log(job.output_url);
 ```
 </CodeGroup>
+
+`wait_for_ready` / `waitForReady` raise an error with the reason if cloning fails, and after `timeout` (300 seconds by default) if it is still processing.
+
+<Note>
+`wait_for_ready` and `waitForReady` arrive in the next release of both SDKs (after 2.10.1). On 2.10.1 or earlier, poll the voice status yourself before speaking:
+
+<CodeGroup>
+```python Python
+import time
+
+voice = client.voice.create_voice(name="My Voice", audio_file="sample.wav")
+while True:
+    status = client.voice.get_voice(voice["id"])["status"]
+    if status == "COMPLETED":
+        break
+    if status in ("FAILED", "CANCELLED"):
+        raise RuntimeError(f"Voice cloning {status.lower()}")
+    time.sleep(3)
+```
+
+```typescript Node
+let voice = await client.voice.create({ name: "My Voice", audioFile: "./sample.wav" });
+for (;;) {
+  const { status } = (await client.voice.get(voice.id)) as { status?: string };
+  if (status === "COMPLETED") break;
+  if (status === "FAILED" || status === "CANCELLED") throw new Error(`Voice cloning ${status}`);
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+}
+```
+</CodeGroup>
+
+Over plain HTTP, poll `GET /api/v1/voice/voices/{id}/status` until `status` is `COMPLETED`.
+</Note>
 
 ## Tips
 
