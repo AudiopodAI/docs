@@ -74,7 +74,7 @@ console.log(job.output_url);
 `wait_for_ready` / `waitForReady` raise an error with the reason if cloning fails, and after `timeout` (300 seconds by default) if it is still processing.
 
 <Note>
-`wait_for_ready` and `waitForReady` arrive in the next release of both SDKs (after 2.10.1). On 2.10.1 or earlier, poll the voice status yourself before speaking:
+`wait_for_ready` and `waitForReady` need version 2.11.0 or later of either SDK (`pip install -U audiopod` / `npm install audiopod@latest`). On 2.10.1 or earlier, poll the voice status yourself before speaking:
 
 <CodeGroup>
 ```python Python
