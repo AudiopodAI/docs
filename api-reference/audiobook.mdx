@@ -136,6 +136,8 @@ Chapters are the unit you *organise* by; **paragraphs are the unit that is actua
 | Assign a voice to a character | POST | `/audiobook/projects/{project_id}/cast/assign` |
 | Auto-cast (designs voices — prepaid) | POST | `/audiobook/projects/{project_id}/cast/auto` |
 | Auto-cast status | GET | `/audiobook/projects/{project_id}/cast/auto/{job_id}/status` |
+| **Book voices — preview a change** (narrator, one narrator / character voices) | POST | `/audiobook/projects/{project_id}/voices/preview` — see [Change the book's voices](#change-the-books-voices) |
+| Book voices — apply a previewed change | POST | `/audiobook/projects/{project_id}/voices/apply` |
 | **Pronunciation dictionary — list entries** | GET | `/audiobook/projects/{project_id}/pronunciations` |
 | Add a pronunciation entry | POST | `/audiobook/projects/{project_id}/pronunciations` |
 | Update a pronunciation entry | PUT | `/audiobook/projects/{project_id}/pronunciations/{pronunciation_id}` |
@@ -740,6 +742,66 @@ When you send a longer one, the response carries a `warnings` entry telling you 
 ## Characters and voices
 
 A book with dialogue can give every character their own voice. Character voices are off by default; send `multi_voice: true` when you add the manuscript (or on `PUT /audiobook/projects/{project_id}`) and every character found gets a library voice for free (when a suitable one is available). Then review the cast, merge alternate names and change any voice before you narrate. The full workflow, with every endpoint, is on **[Characters and voices (cast)](/api-reference/audiobook-cast)**.
+
+### Change the book's voices
+
+Changing the narrator, or switching between one narrator and character voices, can leave lines that already have audio in a voice they would no longer be read in. So a change is made in two steps: **preview** it to see exactly which narrated lines it affects and what re-narrating them costs, then **apply** it with the preview's `preview_hash`. Previewing is free and saves nothing.
+
+`POST /audiobook/projects/{project_id}/voices/preview`
+
+<ParamField body="narration_style" type="string">`single`: one narrator reads every line. `characters`: each character gets their own voice. Omit to keep the current style.</ParamField>
+<ParamField body="narrator_voice_id" type="integer">The book's new narrator (an id from [`GET /audiobook/voices/available`](#4-choose-a-voice)). Omit to keep the narrator.</ParamField>
+<ParamField body="reset_line_voices" type="boolean" default="false">Also clear the voices chosen for single lines, so those lines follow the narrator or their character again.</ParamField>
+
+A new narrator is heard on every unlocked line that has no voice of its own. Turning character voices on gives each character without a voice a free library voice (listed in `cast_preview`). **Locked lines always keep the voice they have.** Send an empty body to see how many narrated lines are already in a different voice from the one they would be read in now.
+
+<ResponseField name="drift_lines" type="integer">Narrated lines whose audio would be in a different voice from the one they are read in after this change.</ResponseField>
+<ResponseField name="paragraph_ids" type="string[]">Those lines, in reading order — exactly what `renarrate` re-narrates.</ResponseField>
+<ResponseField name="by_voice" type="object[]">The drifting lines grouped by the voice they would take: `[{ "voice_id", "lines" }]`.</ResponseField>
+<ResponseField name="own_voice_lines" type="integer">Unlocked lines with a voice chosen for that line alone (cleared by `reset_line_voices`).</ResponseField>
+<ResponseField name="renarrate" type="object">`lines`, `credits` (the same quote as [`GET .../cost-estimate`](#4-choose-a-voice) for those lines; `0` when included), `included` (true when the re-narration is covered by the whole-book voice swap that comes with a book bought per finished hour), `swap_available`, and your `balance`.</ResponseField>
+<ResponseField name="cast_preview" type="object[] | null">With `narration_style: "characters"`: each character (`key`, `display_name`) and the `voice_id` / `voice_source` they would have.</ResponseField>
+<ResponseField name="preview_hash" type="string">Pass to `voices/apply` to make this exact change.</ResponseField>
+
+```bash
+# 1. What would a new narrator change?
+curl -s -X POST "$AP/audiobook/projects/$PID/voices/preview" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"narrator_voice_id": 412}'
+# => { "narration_style": "single", "narrator_voice_id": 412,
+#      "drift_lines": 312, "own_voice_lines": 0,
+#      "by_voice": [ { "voice_id": 412, "lines": 312 } ],
+#      "paragraph_ids": [ "6f1c…", … ],
+#      "renarrate": { "lines": 312, "credits": 41200, "included": false,
+#                     "swap_available": false, "balance": 90000 },
+#      "cast_preview": null, "preview_hash": "9b0e…" }
+```
+
+`POST /audiobook/projects/{project_id}/voices/apply`
+
+Send the same fields as the preview, plus:
+
+<ParamField body="preview_hash" type="string" required>`preview_hash` from the preview of this same change.</ParamField>
+<ParamField body="renarrate" type="boolean" default="false">Also re-narrate the lines the preview listed in `paragraph_ids`, at the price it quoted (or with the included voice swap). Without it, existing audio is kept and the new voices are heard the next time those lines are narrated.</ParamField>
+
+The response is the preview of the change as made, plus `renarration` — the narration run that was started when `renarrate` was true (same shape as [`POST .../narration/batch`](#5-narrate)), otherwise `null`. If narration cannot start (for example `402` for credits, or `400 RIGHTS_NOT_ATTESTED`), the voice change is not saved either.
+
+```bash
+# 2. Make it, and re-narrate the 312 lines in the new voice
+curl -s -X POST "$AP/audiobook/projects/$PID/voices/apply" \
+  -H "X-API-Key: $AUDIOPOD_API_KEY" -H "Content-Type: application/json" \
+  -d '{"narrator_voice_id": 412, "preview_hash": "9b0e…", "renarrate": true}'
+# => { …the preview fields…, "renarration": { "job_id": …, "total_paragraphs": 312, … } }
+```
+
+| Status | When |
+|---|---|
+| `409` `preview_stale` | The book changed since the preview, so the change would now affect other lines or cost something else (or the included voice swap was already used). Nothing was saved: preview again and apply with the new `preview_hash`. |
+| `409` `book_locked` | The book is being finalized or exported. `detail.lock` says what is locked (`state`, `blocks`) and whether it can be stopped; the same object is `edit_lock` on the project and at `GET .../lock`. |
+| `409` `book_busy` | Another change holds the book for a moment. Retry after the `Retry-After` header (seconds). |
+| `404` | The project, or `narrator_voice_id`, is not one you can use. |
+
+Errors carry `{"detail": {"code": "…", "message": "…"}}`.
 
 ## 3d. Pronunciation dictionary
 
