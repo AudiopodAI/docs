@@ -607,7 +607,7 @@ Read one paragraph with `GET .../projects/{project_id}/paragraphs/{paragraph_id}
 <ParamField body="emotion" type="string">Emotional direction for this take.</ParamField>
 <ParamField body="character_name" type="string">Speaking character (max 120 chars).</ParamField>
 <ParamField body="direction" type="string">Performance direction for this take; takes precedence over `narration_style`. The field accepts 500 characters but only the first **110** are performed — see [Auto Direction](#auto-direction) for how to write one, and let it write them for you.</ParamField>
-<ParamField body="mode" type="string" default="auto">Rolling out. How an edited, already narrated passage is re-narrated: `auto` narrates only the changed sentences when the edit is small enough, otherwise the whole passage; `sentence` requires sentence-level narration and returns `409` with `code: "sentence_mode_unavailable"` and a `reason` when it is not possible; `passage` always narrates the whole passage. See [Re-narrating edited passages](#re-narrating-edited-passages).</ParamField>
+<ParamField body="mode" type="string" default="auto">How an edited, already narrated passage is re-narrated: `auto` narrates only the changed sentences when the edit is small enough, otherwise the whole passage; `sentence` requires sentence-level narration and returns `409` with `code: "sentence_mode_unavailable"` and a `reason` when it is not possible; `passage` always narrates the whole passage. See [Re-narrating edited passages](#re-narrating-edited-passages).</ParamField>
 
 **Response:**
 
@@ -878,7 +878,7 @@ curl -s "https://api.audiopod.ai/api/v1/audiobook/projects/$PID/cost" \
 <ResponseField name="currency" type="string">`"USD"`. Every `*_cents` value is in US cents.</ResponseField>
 <ResponseField name="billing_lane" type="string">`"api_wallet"` (paid from the API wallet), `"credits"` (paid from account credits) or `"mixed"` (both).</ResponseField>
 <ResponseField name="totals" type="object">`charged_cents` / `charged_credits`: every charge taken for the book, including ones later returned. `refunded_cents` / `refunded_credits`: charges returned for passages that failed or were cancelled. `net_cents` / `net_credits`: `charged - refunded`, what the book cost; `net_cents` equals the sum of the API wallet debits for this book. `characters_billed`: billable characters of the narration kept.</ResponseField>
-<ResponseField name="breakdown" type="object">`first_narration`: `{characters, cents, credits}` for each passage's first narration. `regenerations`: `{characters, cents, credits, count}` for paid regenerations (every take after a passage's first). `free_regenerations`: count of regenerations that cost nothing (a passage's first regeneration is free). `review_approvals`: count of flagged narrations approved from review, which cost nothing. `sentence_edits` (rolling out): `{count, characters, cents, credits, free_count}` for edits where only the changed sentences were narrated; they are also counted under `regenerations` (or `free_regenerations`), `characters` is the changed characters billed, not the whole passage, and `free_count` is how many cost nothing.</ResponseField>
+<ResponseField name="breakdown" type="object">`first_narration`: `{characters, cents, credits}` for each passage's first narration. `regenerations`: `{characters, cents, credits, count}` for paid regenerations (every take after a passage's first). `free_regenerations`: count of regenerations that cost nothing (a passage's first regeneration is free). `review_approvals`: count of flagged narrations approved from review, which cost nothing. `sentence_edits`: `{count, characters, cents, credits, free_count}` for edits where only the changed sentences were narrated; they are also counted under `regenerations` (or `free_regenerations`), `characters` is the changed characters billed, not the whole passage, and `free_count` is how many cost nothing.</ResponseField>
 <ResponseField name="chapters" type="array">Per chapter, `{chapter_id, chapter_number, title, characters, cents, credits}` (net). Passages deleted since they were narrated stay counted under their chapter.</ResponseField>
 <ResponseField name="partial" type="boolean">`true` when older charges made while this book was being narrated can no longer be tied to one of its passages; they are left out of the figures and `notes` says how many. `false` means every charge is accounted for.</ResponseField>
 <ResponseField name="notes" type="array">Explanations, empty when there is nothing to add.</ResponseField>
@@ -909,7 +909,7 @@ Omit `chapter_ids` and `paragraph_ids` to narrate the whole book. An **empty** l
 <ParamField body="include_locked" type="boolean" default="false">Include locked paragraphs.</ParamField>
 <ParamField body="include_skipped" type="boolean" default="false">Include paragraphs marked `skip_narration`.</ParamField>
 <ParamField body="narration_settings" type="object" default="{}">Per-run narration settings — see [Delivery mode](#delivery-mode-how-performed-the-read-is) below.</ParamField>
-<ParamField body="mode" type="string" default="auto">Rolling out. `auto` re-narrates only the changed sentences of small edits; `passage` narrates whole passages. There is no strict `sentence` mode for a batch. See [Re-narrating edited passages](#re-narrating-edited-passages).</ParamField>
+<ParamField body="mode" type="string" default="auto">`auto` re-narrates only the changed sentences of small edits; `passage` narrates whole passages. There is no strict `sentence` mode for a batch. See [Re-narrating edited passages](#re-narrating-edited-passages).</ParamField>
 <ParamField body="narration_review_policy" type="string">Optional — `manual` or `auto_accept`. When sent, it is saved on the project for this and later narration. See [Narration review](#narration-review).</ParamField>
 
 #### Delivery mode — how performed the read is
@@ -940,7 +940,7 @@ Also accepted in `narration_settings`: `speed` (0.5–2.0) and `language` (a bar
 <ResponseField name="job_id" type="integer">The narration job.</ResponseField>
 <ResponseField name="total_paragraphs" type="integer">Paragraphs queued for this run.</ResponseField>
 <ResponseField name="skipped_paragraphs" type="integer">Paragraphs excluded by the `include_*` rules above (already completed, locked, or skipped), plus passages waiting for review.</ResponseField>
-<ResponseField name="skipped_no_audible_change" type="integer">Rolling out. Of `skipped_paragraphs`, edited passages whose change is not heard (for example quote marks or spacing). They keep their audio and are not charged; send `"mode": "passage"` to re-narrate them anyway.</ResponseField>
+<ResponseField name="skipped_no_audible_change" type="integer">Of `skipped_paragraphs`, edited passages whose change is not heard (for example quote marks or spacing). They keep their audio and are not charged; send `"mode": "passage"` to re-narrate them anyway.</ResponseField>
 <ResponseField name="skipped_needs_review" type="integer">Of `skipped_paragraphs`, how many are waiting for [review](#narration-review). A batch never narrates these again, whatever the `include_*` flags or `paragraph_ids` say — approve, reject or edit them.</ResponseField>
 <ResponseField name="estimated_completion_time" type="string">Human-readable estimate.</ResponseField>
 
@@ -995,7 +995,7 @@ For a single line, use [`POST .../paragraphs/{paragraph_id}/narrate`](#narrate-a
 ### Re-narrating edited passages
 
 <Note>
-**Rolling out.** Sentence-level re-narration is being enabled account by account. Where it is not yet on, `mode` is ignored, the fields below are absent, and every re-narration covers the whole passage.
+Sentence-level re-narration is available on every account. When an edit is small, only the changed sentences are recorded and you pay only for their characters; otherwise the whole passage is narrated. A passage's first regeneration is free, and if a sentence-level take does not blend in, the whole passage is re-narrated at no extra charge beyond the quote.
 </Note>
 
 When you edit a passage that already has audio and re-narrate it, AudioPod can narrate **only the sentences you changed** and fit them into the existing take, so the rest of the passage keeps the performance you approved. Choose how with `mode` on [`.../paragraphs/{paragraph_id}/narrate`](#narrate-a-single-paragraph) and [`narration/batch`](#5-narrate):
