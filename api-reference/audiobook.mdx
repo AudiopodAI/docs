@@ -12,7 +12,7 @@ create project → add manuscript → parse into chapters → narrate → export
                                                               └──── completion webhook ────┘
 ```
 
-The API-key workflow supports asynchronous production: submit a job, get an ID back immediately, and receive a signed webhook when it finishes — so your control panel never blocks on a long render. The guided narrator-sample endpoint described below is Studio-only.
+The API-key workflow supports asynchronous production: submit a job, get an ID back immediately, and receive a signed webhook when it finishes — so your control panel never blocks on a long render. API keys can request a [narrator sample and quote](#narrator-samples-and-quotes), priced for the API wallet; approving that quote and starting guided production are Studio-only.
 
 ### Key features
 
@@ -86,11 +86,13 @@ curl -X POST "https://api.audiopod.ai/api/v1/audiobook/projects/$PROJECT_ID/prod
   -H "Idempotency-Key: $(uuidgen)"
 ```
 
-Read `approval_id` from the response and poll `GET /api/v1/audiobook/projects/{project_id}/production/quotes/{approval_id}` until `sample_status` is `completed` (or `needs_attention`, with a `sample_failure` reason). With an API key, the quote is priced for your API wallet (`billing_lane: "api_wallet"`, `estimated_cost_cents`, `estimated_cost_usd`, `billable_chars`) and includes `sample_audio_url` once the sample is ready. That link is valid for one hour; call the same GET again for a fresh one.
+Read `approval_id` from the response and poll `GET /api/v1/audiobook/projects/{project_id}/production/quotes/{approval_id}` until `sample_status` is `completed` (or `needs_attention`, with a `sample_failure` reason). With an API key, the quote is priced for your API wallet (`billing_lane: "api_wallet"`, `estimated_cost_cents`, `estimated_cost_usd`, `billable_chars`, and `sample_cost_cents`, which is always `0` because preparing the sample is free) and includes `sample_audio_url` once the sample is ready. That link is valid for one hour; call the same GET again for a fresh one.
 
-`GET /api/v1/audiobook/projects/{project_id}/production/quotes/latest` returns the most recent quote in the same shape, or `null` if none exists. A `null` there after a POST means the POST did not create a quote: check its status code and response body.
+`GET /api/v1/audiobook/projects/{project_id}/production/quotes/latest` returns the most recent quote in the same shape, or `null` when the book has no quote or its production was cancelled. A `null` there after a POST means the POST did not create a quote: check its status code and response body.
 
-With an API key the sample is a preview. Approving the quote and starting guided production are available in Audiobook Studio only; narrate the book through the API narration workflow documented below, which bills your API wallet.
+With an API key the sample is a preview. Approving the quote and starting guided production are available in Audiobook Studio only (with an API key they return `400`, pointing you to the narration endpoints); narrate the book through the API narration workflow documented below, which bills your API wallet.
+
+`GET /api/v1/audiobook/projects/{project_id}/production/latest` returns the book's latest production, or `null` when the book is yours and has no production yet. It returns `404` when the book does not exist or is not yours. For an existing production, `POST .../production/runs/{run_id}/cancel` works with an API key: finished passages and chapters are kept and credits held for unfinished work are refunded. `POST .../production/runs/{run_id}/operations/{operation_id}/retry` and `POST .../production/runs/{run_id}/continue` reserve credits again, so with an API key they return `400`, pointing you to the narration endpoints.
 
 Preparing a guided sample takes over any outstanding automatic direction started by manuscript intake, so the sample does not wait for a whole-book direction pass. A direction run started explicitly is preserved: finish or stop it before preparing the sample, otherwise the quote request returns `409`.
 
@@ -767,7 +769,7 @@ Changing the narrator, or switching between one narrator and character voices, c
 <ParamField body="narrator_voice_id" type="integer">The book's new narrator (an id from [`GET /audiobook/voices/available`](#4-choose-a-voice)). Omit to keep the narrator.</ParamField>
 <ParamField body="reset_line_voices" type="boolean" default="false">Also clear the voices chosen for single lines, so those lines follow the narrator or their character again.</ParamField>
 
-A new narrator is heard on every unlocked line that has no voice of its own. Turning character voices on gives each character without a voice a free library voice (listed in `cast_preview`). **Locked lines always keep the voice they have.** Send an empty body to see how many narrated lines are already in a different voice from the one they would be read in now.
+A new narrator is heard on every unlocked line that has no voice of its own. Turning character voices on gives each character without a voice a free library voice (listed in `cast_preview`). **Locked lines always keep the voice they have.** Send no body, or `{}`, to see how many narrated lines are already in a different voice from the one they would be read in now.
 
 <ResponseField name="drift_lines" type="integer">Narrated lines whose audio would be in a different voice from the one they are read in after this change.</ResponseField>
 <ResponseField name="paragraph_ids" type="string[]">Those lines, in reading order — exactly what `renarrate` re-narrates.</ResponseField>
@@ -972,6 +974,8 @@ Returns `404` if the book does not exist or is not yours.
 - **`chapter_ids`** → narrate only those chapters;
 - **`paragraph_ids`** → narrate only those paragraphs.
 
+The request body is optional: no body, or `{}`, narrates the whole book with the defaults.
+
 <ParamField body="voice_id" type="integer">Voice to narrate with (from `voices/available`). Optional — a narrator for this run, in place of the book's. With character voices off it voices every selected paragraph. With [character voices](/api-reference/audiobook-cast) on (`multi_voice`) it voices only the narrator's lines: characters keep their cast voice, and a paragraph given its own voice keeps it. It is a narrator override: it is saved on the narrator lines it voices, like any narration voice, and with character voices off it replaces the voice a line had, including one set with a `PUT`. Omit it to use the [voice order](/api-reference/audiobook-cast#voice-order).</ParamField>
 <ParamField body="multi_voice" type="boolean">Optional — turn character voices on or off, saved on the book before this run reads its voices. `true` also gives uncast characters a library voice.</ParamField>
 <ParamField body="chapter_ids" type="array">Optional — UUIDs of chapters to narrate.</ParamField>
@@ -986,7 +990,7 @@ Omit `chapter_ids` and `paragraph_ids` to narrate the whole book. An **empty** l
 <ParamField body="include_skipped" type="boolean" default="false">Include paragraphs marked `skip_narration`.</ParamField>
 <ParamField body="narration_settings" type="object" default="{}">Per-run narration settings — see [Delivery mode](#delivery-mode-how-performed-the-read-is) below.</ParamField>
 <ParamField body="mode" type="string" default="auto">`auto` re-narrates only the changed sentences of small edits; `passage` narrates whole passages. There is no strict `sentence` mode for a batch. See [Re-narrating edited passages](#re-narrating-edited-passages).</ParamField>
-<ParamField body="narration_review_policy" type="string">Optional — `manual` or `auto_accept`. When sent, it is saved on the project for this and later narration. See [Narration review](#narration-review).</ParamField>
+<ParamField body="narration_review_policy" type="string">Optional — `manual` or `auto_accept`. When sent, it is saved on the project for this and later narration. When omitted with an API key on a project that has no policy yet, `auto_accept` is saved. See [Narration review](#narration-review).</ParamField>
 
 #### Delivery mode — how performed the read is
 
