@@ -198,5 +198,9 @@
       "linkedin": "https://www.linkedin.com/company/audiopod-ai/",
       "instagram": "https://www.instagram.com/audiopod.ai/"
     }
-  }
+  },
+  "redirects": [
+    { "source": "/openapi.json", "destination": "https://api.audiopod.ai/api/v1/openapi.json", "permanent": false },
+    { "source": "/api-reference/openapi.json", "destination": "https://api.audiopod.ai/api/v1/openapi.json", "permanent": false }
+  ]
 }
